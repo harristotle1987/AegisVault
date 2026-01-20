@@ -9,24 +9,19 @@ const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './manifest.json',
-  './favicon.svg',
-  './icon-192.svg',
-  './icon-512.svg',
-  './icon-maskable.svg'
+  './favicon.svg'
 ];
 
-// Install Event: Hydrating the local cache
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('Vault Hardened: Assets Cached Locally');
-      return cache.addAll(ASSETS_TO_CACHE);
+      // Best effort caching
+      return cache.addAll(ASSETS_TO_CACHE).catch(err => console.warn('Cache incomplete', err));
     })
   );
 });
 
-// Activate Event: Claim clients and clean up old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     Promise.all([
@@ -34,9 +29,7 @@ self.addEventListener('activate', (event) => {
       caches.keys().then((keyList) => {
         return Promise.all(
           keyList.map((key) => {
-            if (key !== CACHE_NAME) {
-              return caches.delete(key);
-            }
+            if (key !== CACHE_NAME) return caches.delete(key);
           })
         );
       })
@@ -44,32 +37,14 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch Event: Serving from Cache to ensure zero-latency
 self.addEventListener('fetch', (event) => {
-  // Handle Google Fonts
-  if (event.request.url.includes('fonts.googleapis.com') || event.request.url.includes('fonts.gstatic.com')) {
-    event.respondWith(
-      caches.open(CACHE_NAME).then((cache) => {
-        return cache.match(event.request).then((response) => {
-          return response || fetch(event.request).then((networkResponse) => {
-            cache.put(event.request, networkResponse.clone());
-            return networkResponse;
-          });
-        });
-      })
-    );
-    return;
-  }
-
-  // Default Cache-First Strategy
+  if (event.request.method !== 'GET') return;
+  
   event.respondWith(
     caches.match(event.request).then((response) => {
-      // Return cached asset or fetch from network
-      return response || fetch(event.request).then((response) => {
-         // Optionally cache new requests dynamically if needed, 
-         // but strict cache-first relies on install/activate or specific dynamic caching logic.
-         // For now, we fallback to network for non-pre-cached items (like ES modules).
-         return response;
+      return response || fetch(event.request).catch(() => {
+        // Fallback or just fail gracefully
+        return new Response('', { status: 408, statusText: 'Offline' });
       });
     })
   );

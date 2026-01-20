@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Editor } from './components/Editor';
 import { Preview } from './components/Preview';
@@ -10,17 +9,11 @@ import { ConfigModal } from './components/modals/ConfigModal';
 import { TagsModal } from './components/modals/TagsModal';
 import { VaultConverter } from './services/exportService';
 import { StorageService } from './services/storageService';
-import { VaultRefiner } from './services/vaultRefiner';
+import { VaultRefiner } from './services/VaultRefiner';
 import { SovereignDocument } from './types';
-import { Check, Shield, Cpu, Sparkles, FileText } from 'lucide-react';
+import { Check, Shield, FileText } from 'lucide-react';
 import { usePWAInstall } from './hooks/usePWAInstall';
 import { GoogleGenAI } from "@google/genai";
-
-interface ExportTask {
-  id: string;
-  label: string;
-  status: 'pending' | 'active' | 'complete' | 'error';
-}
 
 type ModalType = 'export' | 'config' | 'tags' | null;
 
@@ -39,12 +32,20 @@ export default function App() {
   
   const { isInstallable, install } = usePWAInstall();
 
+  // Safety ref to prevent state updates if component unmounts during async ops
+  const isMounted = useRef(true);
+  useEffect(() => {
+    return () => { isMounted.current = false; };
+  }, []);
+
   const activeDoc = documents.find(d => d.id === activeDocId);
   const saveTimeoutRef = useRef<number | null>(null);
 
   const refreshDocuments = async () => {
     const allDocs = await StorageService.getAllDocuments();
-    setDocuments(allDocs);
+    if (isMounted.current) {
+      setDocuments(allDocs);
+    }
     return allDocs;
   };
 
@@ -55,10 +56,14 @@ export default function App() {
         const firstDoc = await StorageService.createNewDocument();
         firstDoc.content = `# Welcome to AegisVault\n\n**Sovereign Architecture** meets **Executive Typography**.\n\n### Why AegisVault?\n1. **Local Sovereignty**: Your drafts never leave your browser RAM.\n2. **Binary Sharding**: Export high-fidelity PDFs and DOCX files.\n3. **Hardened Refinement**: Auto-cleanup of vertical rhythm and typography.\n\n--- \n\n### Commands\n- **Harden**: Standardizes typography and vertical rhythm.\n- **Export**: Generates binary assets from your markdown.\n- **Beam**: Shares your vault entry instantly via Native OS APIs.\n\n*Begin your first archive shard now...*`;
         await StorageService.saveDocument(firstDoc);
-        setDocuments([firstDoc]);
-        setActiveDocId(firstDoc.id);
+        if (isMounted.current) {
+          setDocuments([firstDoc]);
+          setActiveDocId(firstDoc.id);
+        }
       } else if (!activeDocId && allDocs.length > 0) {
-        setActiveDocId(allDocs[0].id);
+        if (isMounted.current) {
+          setActiveDocId(allDocs[0].id);
+        }
       }
     };
     initVault();
@@ -66,13 +71,15 @@ export default function App() {
 
   useEffect(() => {
     if (notification) {
-      const timer = setTimeout(() => setNotification(null), 3000);
+      const timer = setTimeout(() => {
+        if (isMounted.current) setNotification(null);
+      }, 3000);
       return () => clearTimeout(timer);
     }
   }, [notification]);
 
   const persistChanges = useCallback(async (doc: SovereignDocument) => {
-    setIsSaving(true);
+    if (isMounted.current) setIsSaving(true);
     try {
       const wordCount = doc.content.split(/\s+/).filter(x => x).length;
       const updatedDoc = {
@@ -85,13 +92,17 @@ export default function App() {
         }
       };
       await StorageService.saveDocument(updatedDoc);
-      setDocuments(prev => {
-        const others = prev.filter(d => d.id !== updatedDoc.id);
-        const sorted = [updatedDoc, ...others].sort((a, b) => b.lastModified - a.lastModified);
-        return sorted;
-      });
+      if (isMounted.current) {
+        setDocuments(prev => {
+          const others = prev.filter(d => d.id !== updatedDoc.id);
+          const sorted = [updatedDoc, ...others].sort((a, b) => b.lastModified - a.lastModified);
+          return sorted;
+        });
+      }
     } finally {
-      setTimeout(() => setIsSaving(false), 400);
+      setTimeout(() => {
+        if (isMounted.current) setIsSaving(false);
+      }, 400);
     }
   }, []);
 
@@ -114,9 +125,15 @@ export default function App() {
 
   const handleAIRefine = async () => {
     if (!activeDoc || isAIRefining) return;
+
+    if (!process.env.API_KEY) {
+      setNotification({ message: 'API Key Missing', type: 'error' });
+      return;
+    }
+
     setIsAIRefining(true);
+    
     try {
-      // Hardened Initialization: Create fresh instance with API Key for every request
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
@@ -133,15 +150,24 @@ export default function App() {
       });
       
       const refinedContent = response.text || activeDoc.content;
-      handleContentChange(refinedContent);
-      if ('vibrate' in navigator) navigator.vibrate([20, 10, 20]);
-      setNotification({ message: 'Executive AI hardening applied', type: 'success' });
-    } catch (err) {
+      
+      if (isMounted.current) {
+        handleContentChange(refinedContent);
+        if ('vibrate' in navigator) navigator.vibrate([20, 10, 20]);
+        setNotification({ message: 'Executive AI hardening applied', type: 'success' });
+      }
+    } catch (err: any) {
       console.error("AI Protocol Failure:", err);
-      const errorMessage = err instanceof Error ? err.message : 'Unknown Protocol Error';
-      setNotification({ message: `AI Protocol failure: ${errorMessage}`, type: 'error' });
+      if (isMounted.current) {
+        const msg = err?.message || '';
+        if (msg.includes('Rpc failed') || msg.includes('Failed to fetch')) {
+           setNotification({ message: 'Network Error (Check AdBlock)', type: 'error' });
+        } else {
+           setNotification({ message: 'AI Protocol Failed', type: 'error' });
+        }
+      }
     } finally {
-      setIsAIRefining(false);
+      if (isMounted.current) setIsAIRefining(false);
     }
   };
 
@@ -166,31 +192,36 @@ export default function App() {
     if (!doc) return;
     const updated = { ...doc, title: newTitle };
     setDocuments(prev => prev.map(d => d.id === id ? updated : d));
-    // Immediate state update, delayed persistence handled by effect if needed, but direct save is safer here
+    
     if (saveTimeoutRef.current) window.clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = window.setTimeout(() => persistChanges(updated), 800);
   };
 
   const handleShare = async () => {
     if (!activeDoc) return;
+    
+    // STRICT: No URL field to prevent invalid URL errors on PWAs/Localhost
+    const shareData = {
+      title: activeDoc.title,
+      text: activeDoc.content
+    };
+
     try {
-      if (navigator.share) {
-        await navigator.share({
-          title: activeDoc.title,
-          text: activeDoc.content,
-          // url: REMOVED. Passing local/file URLs causes 'Invalid URL' errors in many contexts.
-          // Sharing raw text/title is more sovereign and compatible.
-        });
-        setNotification({ message: 'Beam successful', type: 'success' });
+      if (navigator.share && (typeof navigator.canShare !== 'function' || navigator.canShare(shareData))) {
+        await navigator.share(shareData);
+        if (isMounted.current) setNotification({ message: 'Beam successful', type: 'success' });
       } else {
-         await navigator.clipboard.writeText(activeDoc.content);
-         setNotification({ message: 'Copied to clipboard', type: 'success' });
+         throw new Error('Share API unavailable');
       }
     } catch (err) {
-      // Ignore user aborts, alert on real errors
       if ((err as Error).name !== 'AbortError') {
-         console.error('Beam failed:', err);
-         setNotification({ message: 'Beam aborted', type: 'error' });
+         // Fallback to Clipboard
+         try {
+           await navigator.clipboard.writeText(activeDoc.content);
+           if (isMounted.current) setNotification({ message: 'Copied to clipboard', type: 'success' });
+         } catch (clipErr) {
+           if (isMounted.current) setNotification({ message: 'Beam failed', type: 'error' });
+         }
       }
     }
   };
@@ -201,18 +232,19 @@ export default function App() {
     setActiveModal(null);
     try {
       if (pendingFormat === 'pdf') {
-        // Ensure Preview is rendered (even if hidden) for ID capture
         await VaultConverter.toPDF('preview-area', name);
       } else {
         await VaultConverter.toDocx(activeDoc.content, name);
       }
-      setNotification({ message: 'Export sequence complete', type: 'success' });
+      if (isMounted.current) setNotification({ message: 'Export sequence complete', type: 'success' });
     } catch (e) {
       console.error(e);
-      setNotification({ message: 'Export failed', type: 'error' });
+      if (isMounted.current) setNotification({ message: 'Export failed', type: 'error' });
     } finally {
-      setIsExporting(false);
-      setPendingFormat(null);
+      if (isMounted.current) {
+        setIsExporting(false);
+        setPendingFormat(null);
+      }
     }
   };
 
@@ -262,7 +294,7 @@ export default function App() {
               {/* Vertical Divider (Desktop) */}
               <div className="hidden md:block w-px bg-vault-border z-10" />
 
-              {/* Preview Area: Always mount for PDF generation, hide via CSS on mobile if needed */}
+              {/* Preview Area: Always mount for PDF generation */}
               <div className={`flex-1 flex flex-col h-full overflow-hidden bg-obsidian-soft ${mobileTab === 'editor' ? 'hidden md:flex' : 'flex'}`}>
                 <Preview content={activeDoc.content} />
               </div>
@@ -285,7 +317,7 @@ export default function App() {
           onLocalRefine={handleLocalRefine}
         />
         
-        {/* Mobile View Toggle (Floating) - If strict tabs are preferred over the action bar integration */}
+        {/* Mobile View Toggle (Floating) */}
         <div className="md:hidden fixed bottom-24 right-6 z-[120]">
            <button 
              onClick={() => setMobileTab(prev => prev === 'editor' ? 'preview' : 'editor')}
