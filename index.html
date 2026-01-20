@@ -3,8 +3,13 @@
 <html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sovereign Vault | Markdown Converter</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#050505">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>AegisVault | Sovereign Editor</title>
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+    <link rel="manifest" href="./manifest.json">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -67,6 +72,7 @@
             margin: 0;
             overflow: hidden;
             -webkit-font-smoothing: antialiased;
+            overscroll-behavior-y: none; /* Prevent pull-to-refresh on mobile */
         }
 
         /* Custom "Obsidian" Scrollbar */
@@ -191,6 +197,14 @@
           left: -1.5rem;
           color: #10b981;
           font-weight: bold;
+        }
+
+        /* Mobile Typography Adjustments */
+        @media (max-width: 768px) {
+          .prose-vault h1 { font-size: 2.5rem; margin-bottom: 1.5rem; }
+          .prose-vault h2 { font-size: 1.75rem; margin-top: 2rem; }
+          .prose-vault p { font-size: 1rem; line-height: 1.6; }
+          .prose-vault pre { padding: 1.25rem; }
         }
     </style>
 </head>

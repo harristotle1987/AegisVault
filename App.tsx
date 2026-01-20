@@ -4,13 +4,15 @@ import { Editor } from './components/Editor';
 import { Preview } from './components/Preview';
 import { Sidebar } from './components/Sidebar';
 import { Toolbar } from './components/Toolbar';
+import { MobileActionBar } from './components/MobileActionBar';
 import { ExportModal } from './components/modals/ExportModal';
 import { VaultConverter } from './services/exportService';
 import { StorageService } from './services/storageService';
-// Fix: Use uppercase VaultRefiner to match the canonical filename and resolve casing conflicts.
-import { VaultRefiner } from './services/VaultRefiner';
+// Logic consolidated in services/vaultRefiner.ts to resolve casing collision errors
+import { VaultRefiner } from './services/vaultRefiner';
 import { SovereignDocument } from './types';
 import { Check, AlertCircle, Shield, Terminal, Database, Activity, Cpu, Layers, HardDrive } from 'lucide-react';
+import { usePWAInstall } from './hooks/usePWAInstall';
 
 interface ExportTask {
   id: string;
@@ -28,6 +30,9 @@ export default function App() {
   const [suggestedName, setSuggestedName] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  
+  const { isInstallable, install } = usePWAInstall();
 
   const activeDoc = documents.find(d => d.id === activeDocId);
   const saveTimeoutRef = useRef<number | null>(null);
@@ -105,6 +110,7 @@ export default function App() {
     const newDoc = await StorageService.createNewDocument();
     setDocuments(prev => [newDoc, ...prev]);
     setActiveDocId(newDoc.id);
+    setIsSidebarOpen(false); // Close sidebar on mobile
   };
 
   const handleDelete = async (id: string) => {
@@ -121,6 +127,11 @@ export default function App() {
     const updated = { ...doc, title: newTitle, lastModified: Date.now() };
     setDocuments(prev => prev.map(d => d.id === id ? updated : d).sort((a, b) => b.lastModified - a.lastModified));
     StorageService.saveDocument(updated);
+  };
+
+  const handleSelectDoc = (id: string) => {
+    setActiveDocId(id);
+    setIsSidebarOpen(false); // Close sidebar on mobile select
   };
 
   const onExportClick = (format: 'pdf' | 'docx') => {
@@ -198,23 +209,35 @@ export default function App() {
       <Sidebar 
         documents={documents} 
         activeId={activeDocId} 
-        onSelect={setActiveDocId} 
+        onSelect={handleSelectDoc} 
         onCreate={handleCreateNew}
         onDelete={handleDelete}
         onRename={handleRenameDraft}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        installPrompt={{ isInstallable, install }}
       />
 
-      <main className="flex flex-1 flex-col overflow-hidden min-w-0">
+      {/* Mobile Overlay for Sidebar */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 md:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      <main className="flex flex-1 flex-col overflow-hidden min-w-0 relative">
         <Toolbar 
           markdown={activeDoc?.content || ''}
           isExporting={isExporting}
           isSaving={isSaving}
           onExport={onExportClick}
           onLocalRefine={handleLocalRefine}
+          onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
         />
 
-        <div className="flex flex-1 overflow-hidden relative">
-          <section className="w-1/2 vanish-border border-r border-vault-border flex flex-col min-w-0 bg-obsidian">
+        <div className="flex-1 overflow-hidden relative flex flex-col md:flex-row pb-20 md:pb-0">
+          <section className="flex-1 md:w-1/2 vanish-border border-b md:border-b-0 md:border-r border-vault-border flex flex-col min-w-0 bg-obsidian overflow-hidden">
             {activeDoc ? (
               <Editor key={activeDoc.id} value={activeDoc.content} onChange={handleContentChange} />
             ) : (
@@ -225,11 +248,17 @@ export default function App() {
             )}
           </section>
 
-          <section className="w-1/2 bg-obsidian-soft flex flex-col min-w-0">
+          <section className="flex-1 md:w-1/2 bg-obsidian-soft flex flex-col min-w-0 overflow-hidden">
             <Preview content={activeDoc?.content || ''} />
           </section>
         </div>
       </main>
+
+      <MobileActionBar 
+        isExporting={isExporting} 
+        onExport={onExportClick} 
+        onLocalRefine={handleLocalRefine} 
+      />
 
       <ExportModal 
         format={pendingFormat}
@@ -241,88 +270,33 @@ export default function App() {
       {isExporting && (
         <div className="fixed inset-0 bg-obsidian/98 backdrop-blur-3xl z-[200] flex flex-col items-center justify-center animate-in fade-in duration-500">
           <div className="w-full max-w-lg space-y-12 px-8">
+            {/* Loading UI */}
             <div className="flex flex-col items-center gap-8">
-              <div className="relative">
-                <div className="absolute inset-0 bg-emerald-vault/10 blur-[100px] rounded-full scale-[3]" />
-                <div className="relative w-32 h-32 border border-white/10 rounded-[2rem] bg-obsidian-soft flex items-center justify-center shadow-sovereign overflow-hidden">
+               <div className="relative w-32 h-32 border border-white/10 rounded-[2rem] bg-obsidian-soft flex items-center justify-center shadow-sovereign overflow-hidden">
                   <div className="absolute inset-0 bg-gradient-to-br from-emerald-vault/5 to-transparent opacity-50" />
                   <Shield className="w-14 h-14 text-emerald-vault animate-pulse relative z-10" />
                 </div>
-              </div>
-              <div className="flex flex-col items-center gap-4">
-                <span className="text-[11px] font-black uppercase tracking-[0.8em] text-emerald-vault/80 ml-[0.8em]">Vault Pipeline</span>
                 <div className="flex items-center gap-3 text-vault-dim/60">
                   <Cpu size={14} className="animate-spin duration-[4000ms]" />
                   <span className="text-[10px] font-mono uppercase tracking-[0.3em]">Executing Shard Encoding</span>
                 </div>
-              </div>
             </div>
-
-            <div className="space-y-8">
-              <div className="grid grid-cols-2 gap-4">
-                {exportTasks.map((task) => (
-                  <div 
-                    key={task.id} 
-                    className={`p-4 rounded-xl border transition-all duration-300 flex items-center gap-3 ${
-                      task.status === 'active' 
-                        ? 'bg-emerald-vault/5 border-emerald-vault/40 shadow-[0_0_20px_rgba(16,185,129,0.08)]' 
-                        : task.status === 'complete'
-                        ? 'bg-white/[0.02] border-white/10 opacity-70'
-                        : 'bg-white/[0.01] border-white/5 opacity-30'
-                    }`}
-                  >
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
-                      task.status === 'active' ? 'bg-emerald-vault text-black shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 
-                      task.status === 'complete' ? 'bg-emerald-vault/20 text-emerald-vault' : 'bg-white/5 text-vault-dim'
-                    }`}>
-                      {task.status === 'complete' ? <Check size={14} strokeWidth={3} /> : 
-                       task.id === 'refine' ? <Layers size={14} /> :
-                       task.id === 'hydrate' ? <Activity size={14} /> :
-                       task.id === 'render' ? <Cpu size={14} /> :
-                       <HardDrive size={14} />}
-                    </div>
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-white">{task.label}</span>
-                      <span className="text-[8px] font-mono uppercase text-vault-dim tracking-wider">
-                        {task.status === 'active' ? 'Processing' : task.status === 'complete' ? 'Success' : 'Ready'}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="space-y-4">
+            {/* Progress bar */}
+            <div className="space-y-4">
                 <div className="h-[2px] w-full bg-white/[0.05] relative overflow-hidden rounded-full">
                   <div 
                     className="h-full bg-emerald-vault shadow-[0_0_20px_rgba(16,185,129,1)] transition-all duration-500 ease-out" 
                     style={{ width: `${progress}%` }} 
                   />
                 </div>
-                
-                <div className="flex justify-between items-center px-1">
-                  <div className="flex items-center gap-2">
-                    <Terminal size={12} className="text-emerald-vault/40" />
-                    <span className="text-[9px] font-mono text-emerald-vault/60 uppercase tracking-widest">
-                      Task.Status: {progress}% Finalized
-                    </span>
-                  </div>
-                  <Database size={12} className="text-vault-dim/20" />
-                </div>
-              </div>
             </div>
           </div>
         </div>
       )}
 
       {notification && (
-        <div className="fixed bottom-8 right-8 px-6 py-4 rounded-lg border border-white/10 bg-obsidian-soft flex items-center gap-4 shadow-sovereign z-[250] animate-in fade-in slide-in-from-bottom-4 backdrop-blur-md">
-          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white/5 border border-white/5">
-            {notification.type === 'success' ? (
-              <Check className="w-4 h-4 text-emerald-vault" />
-            ) : (
-              <AlertCircle className="w-4 h-4 text-red-500" />
-            )}
-          </div>
+        <div className="fixed bottom-24 md:bottom-8 right-8 px-6 py-4 rounded-lg border border-white/10 bg-obsidian-soft flex items-center gap-4 shadow-sovereign z-[250] animate-in fade-in slide-in-from-bottom-4 backdrop-blur-md">
+          <Check className="w-4 h-4 text-emerald-vault" />
           <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-vault-text">
             {notification.message}
           </span>
