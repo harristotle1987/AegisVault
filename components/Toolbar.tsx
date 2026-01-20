@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { 
   FileText, 
@@ -7,7 +8,6 @@ import {
   Brush,
   Menu,
   Share2,
-  Sparkles,
   Tag,
   Settings
 } from 'lucide-react';
@@ -19,8 +19,6 @@ interface ToolbarProps {
   onExport: (format: 'pdf' | 'docx') => void;
   onShare: () => void;
   onLocalRefine: () => void;
-  onAIRefine: () => void;
-  isAIRefining: boolean;
   onToggleSidebar: () => void;
   onOpenTags: () => void;
   onOpenConfig: () => void;
@@ -38,8 +36,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onExport, 
   onShare,
   onLocalRefine,
-  onAIRefine,
-  isAIRefining,
   onToggleSidebar,
   onOpenTags,
   onOpenConfig
@@ -93,16 +89,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         </div>
 
         <div className="hidden md:flex gap-2 h-full items-center">
-          <button 
-            onClick={onAIRefine}
-            disabled={isAIRefining}
-            className="relative z-10 flex items-center gap-2 px-3 md:px-4 py-2 md:py-1.5 rounded-md bg-emerald-vault/5 hover:bg-emerald-vault/10 transition text-[11px] font-bold uppercase tracking-widest text-emerald-vault border border-emerald-vault/20 disabled:opacity-50 active:scale-95 touch-manipulation"
-            title="AI Executive Refinement"
-          >
-            {isAIRefining ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-            <span className="hidden sm:inline">AI Refine</span>
-          </button>
-
           <button 
             onClick={onLocalRefine}
             className="relative z-10 flex items-center gap-2 px-3 md:px-4 py-2 md:py-1.5 rounded-md bg-white/5 hover:bg-white/10 transition text-[11px] font-bold uppercase tracking-widest text-vault-dim border border-vault-border active:scale-95 touch-manipulation"

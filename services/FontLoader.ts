@@ -4,6 +4,7 @@
  */
 export const VAULT_FONTS = {
   // Placeholder binary data - In production, these are full Base64 strings.
+  // The system now detects "PLACEHOLDER" and gracefully degrades to system fonts.
   INTER_REGULAR: "AAEAAAARAQAABAAQR0RFR...[BASE64_PLACEHOLDER]",
   JETBRAINS_MONO: "AAEAAAARAQAABAAQR0RFR...[BASE64_PLACEHOLDER]",
 };
@@ -13,6 +14,12 @@ export class FontLoader {
    * Hydrates the jsPDF instance with custom fonts from the local VFS.
    */
   static async loadForPDF(doc: any) {
+    // CRITICAL FIX: Prevent atob crash by checking for placeholders
+    if (!VAULT_FONTS.INTER_REGULAR || VAULT_FONTS.INTER_REGULAR.includes("PLACEHOLDER")) {
+      console.log("Vault: Using system fonts (Optimization Mode)");
+      return;
+    }
+
     try {
       doc.addFileToVFS("Inter-Regular.ttf", VAULT_FONTS.INTER_REGULAR);
       doc.addFileToVFS("JetBrainsMono.ttf", VAULT_FONTS.JETBRAINS_MONO);
@@ -28,6 +35,9 @@ export class FontLoader {
    * Utility to bufferize Base64 for Docx embedding.
    */
   static getBuffer(base64: string): Uint8Array {
+    if (!base64 || base64.includes("PLACEHOLDER")) {
+      return new Uint8Array();
+    }
     try {
       const pureBase64 = base64.includes(",") ? base64.split(",")[1] : base64;
       const binaryString = window.atob(pureBase64);

@@ -10,14 +10,14 @@ if (!rootElement) {
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    // Attempt registration using relative path to support subfolder deployments
     navigator.serviceWorker.register('./sw.js')
       .then(reg => console.log('🛡️ AegisVault: Secured', reg.scope))
       .catch(err => {
-        // Suppress 404 errors to avoid alarming user
-        if (err.message && !err.message.includes('404')) {
-           console.warn('Vault Offline Mode:', err);
+        // Silently handle 404s/offline dev environments to prevent console noise
+        if (process.env.NODE_ENV === 'development' || err.message.includes('404') || err.message.includes('script')) {
+           return; 
         }
+        console.warn('Vault Offline Mode:', err);
       });
   });
 }

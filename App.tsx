@@ -13,7 +13,6 @@ import { VaultRefiner } from './services/VaultRefiner';
 import { SovereignDocument } from './types';
 import { Check, Shield, FileText } from 'lucide-react';
 import { usePWAInstall } from './hooks/usePWAInstall';
-import { GoogleGenAI } from "@google/genai";
 
 type ModalType = 'export' | 'config' | 'tags' | null;
 
@@ -21,7 +20,6 @@ export default function App() {
   const [documents, setDocuments] = useState<SovereignDocument[]>([]);
   const [activeDocId, setActiveDocId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
-  const [isAIRefining, setIsAIRefining] = useState(false);
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [pendingFormat, setPendingFormat] = useState<'pdf' | 'docx' | null>(null);
   const [suggestedName, setSuggestedName] = useState<string>("");
@@ -123,54 +121,6 @@ export default function App() {
     setNotification({ message: 'Structural hardening complete', type: 'success' });
   };
 
-  const handleAIRefine = async () => {
-    if (!activeDoc || isAIRefining) return;
-
-    if (!process.env.API_KEY) {
-      setNotification({ message: 'API Key Missing', type: 'error' });
-      return;
-    }
-
-    setIsAIRefining(true);
-    
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: `Refine this markdown document for a sovereign, executive audience. 
-        Enforce perfect vertical rhythm, clear hierarchies, and professional clarity. 
-        Do not change the fundamental meaning. Return only the refined markdown.
-        
-        DOCUMENT:
-        ${activeDoc.content}`,
-        config: {
-          systemInstruction: "You are an elite sovereign editor for high-stakes documentation. Your output is precise, structured, and typographically superior.",
-          temperature: 0.4
-        }
-      });
-      
-      const refinedContent = response.text || activeDoc.content;
-      
-      if (isMounted.current) {
-        handleContentChange(refinedContent);
-        if ('vibrate' in navigator) navigator.vibrate([20, 10, 20]);
-        setNotification({ message: 'Executive AI hardening applied', type: 'success' });
-      }
-    } catch (err: any) {
-      console.error("AI Protocol Failure:", err);
-      if (isMounted.current) {
-        const msg = err?.message || '';
-        if (msg.includes('Rpc failed') || msg.includes('Failed to fetch')) {
-           setNotification({ message: 'Network Error (Check AdBlock)', type: 'error' });
-        } else {
-           setNotification({ message: 'AI Protocol Failed', type: 'error' });
-        }
-      }
-    } finally {
-      if (isMounted.current) setIsAIRefining(false);
-    }
-  };
-
   const handleCreateNew = async () => {
     const newDoc = await StorageService.createNewDocument();
     setDocuments(prev => [newDoc, ...prev]);
@@ -269,7 +219,6 @@ export default function App() {
           markdown={activeDoc?.content || ''}
           isExporting={isExporting}
           isSaving={isSaving}
-          isAIRefining={isAIRefining}
           onExport={(format) => {
              setPendingFormat(format);
              setSuggestedName(activeDoc?.title || "vault-export");
@@ -277,7 +226,6 @@ export default function App() {
           }}
           onShare={handleShare}
           onLocalRefine={handleLocalRefine}
-          onAIRefine={handleAIRefine}
           onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
           onOpenTags={() => setActiveModal('tags')}
           onOpenConfig={() => setActiveModal('config')}

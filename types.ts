@@ -22,6 +22,5 @@ export interface AppState {
   documents: SovereignDocument[];
   activeDocumentId: string | null;
   isExporting: boolean;
-  isProcessingAI: boolean;
   isSaving: boolean;
 }

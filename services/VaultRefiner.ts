@@ -1,3 +1,4 @@
+
 /**
  * VaultRefiner: Sovereign Structural Intelligence Engine.
  * Operates entirely client-side to enforce "Executive" standards without external calls.
