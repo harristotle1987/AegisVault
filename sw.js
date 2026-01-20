@@ -1,22 +1,22 @@
-
 /**
- * Role: Security Lead / Senior Architect
- * Logic: Offline-First Service Worker for AegisVault
+ * Role: Senior Architect
+ * Logic: Offline-First Sovereign Routing for AegisVault
  */
 
 const CACHE_NAME = 'aegis-vault-v1';
 const ASSETS_TO_CACHE = [
-  './',
-  './index.html',
-  './manifest.json',
-  './favicon.svg'
+  '/',
+  '/index.html',
+  '/manifest.json',
+  '/favicon.svg',
+  '/icon-192.svg',
+  '/icon-512.svg'
 ];
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      // Best effort caching
       return cache.addAll(ASSETS_TO_CACHE).catch(err => console.warn('Cache incomplete', err));
     })
   );
@@ -42,8 +42,12 @@ self.addEventListener('fetch', (event) => {
   
   event.respondWith(
     caches.match(event.request).then((response) => {
+      // Return cached asset or fetch from network
       return response || fetch(event.request).catch(() => {
-        // Fallback or just fail gracefully
+        // If both fail and it's a navigation request, return index.html shell
+        if (event.request.mode === 'navigate') {
+          return caches.match('/');
+        }
         return new Response('', { status: 408, statusText: 'Offline' });
       });
     })

@@ -11,8 +11,8 @@ import { TagsModal } from './components/modals/TagsModal';
 import { InstallPrompt } from './components/InstallPrompt';
 import { VaultConverter } from './services/exportService';
 import { StorageService } from './services/storageService';
-// Fixed: Changed './services/VaultRefiner' (incorrect casing/empty file) to './services/vaultRefiner'
-import { VaultRefiner } from './services/vaultRefiner';
+// Fixed: Standardized casing to match root compilation file './services/VaultRefiner'
+import { VaultRefiner } from './services/VaultRefiner';
 import { SovereignDocument, VaultFont } from './types';
 import { Check, Shield, Loader2, FileText } from 'lucide-react';
 import { usePWAInstall } from './hooks/usePWAInstall';

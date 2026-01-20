@@ -1,30 +1,24 @@
 {
-  "name": "AegisVault Sovereign Editor",
+  "name": "AegisVault Sovereign CRM",
   "short_name": "AegisVault",
-  "description": "High-fidelity, private markdown editor and binary document converter.",
-  "start_url": "./",
+  "description": "Where Modern Sovereignty Meets Timeless Elegance.",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#050505",
-  "theme_color": "#050505",
+  "theme_color": "#10B981",
   "orientation": "portrait",
   "icons": [
     {
-      "src": "./icon-192.svg",
+      "src": "/icon-192.svg",
       "type": "image/svg+xml",
       "sizes": "192x192",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
-      "src": "./icon-512.svg",
+      "src": "/icon-512.svg",
       "type": "image/svg+xml",
       "sizes": "512x512",
-      "purpose": "any"
-    },
-    {
-      "src": "./icon-maskable.svg",
-      "type": "image/svg+xml",
-      "sizes": "512x512",
-      "purpose": "maskable"
+      "purpose": "any maskable"
     }
   ]
 }

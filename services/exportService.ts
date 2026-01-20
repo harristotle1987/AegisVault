@@ -1,4 +1,3 @@
-
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { 
@@ -82,7 +81,7 @@ export class VaultConverter {
         }
       });
 
-      // JPEG 0.75 Compression: Reduces MBs to KBs
+      // JPEG 0.75 Compression: Reduces MBs to KBs significantly
       const imgData = canvas.toDataURL('image/jpeg', 0.75); 
       const pdfWidth = 210;
       const pdfHeight = 297;
@@ -93,12 +92,11 @@ export class VaultConverter {
       let position = 0; // Current Y offset in mm
 
       while (heightLeft > 0) {
-        // Use 'FAST' interpolation for smaller PDF overhead
+        // Use 'FAST' interpolation and overlap bleed to hide stitching lines
         pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, pdfImgHeight, undefined, 'FAST');
         
-        heightLeft -= (pdfHeight - 0.5); // Track with bleed
-        // The 0.5mm overlap "hides" the stitching gap
-        position -= (pdfHeight - 0.5);
+        heightLeft -= (pdfHeight - 0.5); // Overlap calculation
+        position -= (pdfHeight - 0.5); // 0.5mm overlap fixes "white lines"
 
         if (heightLeft > 0) {
           pdf.addPage();
