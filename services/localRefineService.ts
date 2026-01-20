@@ -1,5 +1,5 @@
 
-// Fix: Use consistent PascalCase for VaultRefiner import to avoid casing conflicts in the build system.
+// Fix: Use uppercase VaultRefiner to match the canonical filename and resolve casing conflicts.
 import { VaultRefiner } from './VaultRefiner';
 
 /**

@@ -7,15 +7,22 @@ import { Toolbar } from './components/Toolbar';
 import { ExportModal } from './components/modals/ExportModal';
 import { VaultConverter } from './services/exportService';
 import { StorageService } from './services/storageService';
+// Fix: Use uppercase VaultRefiner to match the canonical filename and resolve casing conflicts.
 import { VaultRefiner } from './services/VaultRefiner';
 import { SovereignDocument } from './types';
-import { Check, AlertCircle, Shield, Terminal, Database, Activity } from 'lucide-react';
+import { Check, AlertCircle, Shield, Terminal, Database, Activity, Cpu, Layers, HardDrive } from 'lucide-react';
+
+interface ExportTask {
+  id: string;
+  label: string;
+  status: 'pending' | 'active' | 'complete' | 'error';
+}
 
 export default function App() {
   const [documents, setDocuments] = useState<SovereignDocument[]>([]);
   const [activeDocId, setActiveDocId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
-  const [exportStage, setExportStage] = useState<string>('');
+  const [exportTasks, setExportTasks] = useState<ExportTask[]>([]);
   const [progress, setProgress] = useState(0);
   const [pendingFormat, setPendingFormat] = useState<'pdf' | 'docx' | null>(null);
   const [suggestedName, setSuggestedName] = useState<string>("");
@@ -25,23 +32,27 @@ export default function App() {
   const activeDoc = documents.find(d => d.id === activeDocId);
   const saveTimeoutRef = useRef<number | null>(null);
 
-  // Initialize Vault from IndexedDB
+  // Initialize Vault from IndexedDB with strict descending order
+  const refreshDocuments = async () => {
+    const allDocs = await StorageService.getAllDocuments();
+    setDocuments(allDocs);
+    return allDocs;
+  };
+
   useEffect(() => {
     const initVault = async () => {
-      const allDocs = await StorageService.getAllDocuments();
+      const allDocs = await refreshDocuments();
       if (allDocs.length === 0) {
         const firstDoc = await StorageService.createNewDocument();
         setDocuments([firstDoc]);
         setActiveDocId(firstDoc.id);
-      } else {
-        setDocuments(allDocs);
+      } else if (!activeDocId) {
         setActiveDocId(allDocs[0].id);
       }
     };
     initVault();
   }, []);
 
-  // Notification auto-clear
   useEffect(() => {
     if (notification) {
       const timer = setTimeout(() => setNotification(null), 3000);
@@ -49,7 +60,6 @@ export default function App() {
     }
   }, [notification]);
 
-  // Persistent storage logic
   const persistChanges = useCallback(async (doc: SovereignDocument) => {
     setIsSaving(true);
     try {
@@ -60,24 +70,28 @@ export default function App() {
         metadata: {
           ...doc.metadata,
           wordCount,
-          estimatedReadTime: Math.ceil(wordCount / 200)
+          estimatedReadTime: Math.max(1, Math.ceil(wordCount / 200))
         }
       };
       await StorageService.saveDocument(updatedDoc);
-      // Batch state update for performance
-      setDocuments(prev => prev.map(d => d.id === updatedDoc.id ? updatedDoc : d));
+      // Synchronize state without triggering full re-render of list if possible, but keep list sorted
+      setDocuments(prev => {
+        const others = prev.filter(d => d.id !== updatedDoc.id);
+        return [updatedDoc, ...others].sort((a, b) => b.lastModified - a.lastModified);
+      });
     } finally {
-      // Mechanical delay for UI feedback
-      setTimeout(() => setIsSaving(false), 800);
+      setTimeout(() => setIsSaving(false), 600);
     }
   }, []);
 
   const handleContentChange = (content: string) => {
     if (!activeDoc) return;
     const updated = { ...activeDoc, content };
+    // Optimistic local state update for zero-latency typing
     setDocuments(prev => prev.map(d => d.id === activeDoc.id ? updated : d));
+    
     if (saveTimeoutRef.current) window.clearTimeout(saveTimeoutRef.current);
-    saveTimeoutRef.current = window.setTimeout(() => persistChanges(updated), 1000);
+    saveTimeoutRef.current = window.setTimeout(() => persistChanges(updated), 800);
   };
 
   const handleLocalRefine = () => {
@@ -98,15 +112,14 @@ export default function App() {
     const updatedDocs = documents.filter(d => d.id !== id);
     setDocuments(updatedDocs);
     if (activeDocId === id) setActiveDocId(updatedDocs[0]?.id || null);
-    setNotification({ message: 'Draft purged from local vault', type: 'success' });
+    setNotification({ message: 'Archive purged successfully', type: 'success' });
   };
 
   const handleRenameDraft = (id: string, newTitle: string) => {
     const doc = documents.find(d => d.id === id);
     if (!doc) return;
-    const updated = { ...doc, title: newTitle };
-    setDocuments(prev => prev.map(d => d.id === id ? updated : d));
-    // Persist title changes immediately
+    const updated = { ...doc, title: newTitle, lastModified: Date.now() };
+    setDocuments(prev => prev.map(d => d.id === id ? updated : d).sort((a, b) => b.lastModified - a.lastModified));
     StorageService.saveDocument(updated);
   };
 
@@ -117,47 +130,66 @@ export default function App() {
     setPendingFormat(format);
   };
 
+  const updateTaskStatus = (id: string, status: ExportTask['status']) => {
+    setExportTasks(prev => prev.map(t => t.id === id ? { ...t, status } : t));
+  };
+
   const startExportSequence = async (customName: string) => {
     if (!activeDoc || !pendingFormat) return;
+    const currentFormat = pendingFormat;
     setPendingFormat(null);
     setIsExporting(true);
     setProgress(0);
     
+    const tasks: ExportTask[] = [
+      { id: 'refine', label: 'Structural Refinement', status: 'pending' },
+      { id: 'hydrate', label: 'VFS Font Hydration', status: 'pending' },
+      { id: 'render', label: 'High-Fidelity Rendering', status: 'pending' },
+      { id: 'binary', label: 'Binary Shard Encoding', status: 'pending' }
+    ];
+    setExportTasks(tasks);
+
     try {
-      const logs = [
-        { msg: '> INITIALIZING SOVEREIGN PIPELINE...', delay: 400, p: 10 },
-        { msg: '> LOADED LOCAL REFINER ENGINE...', delay: 300, p: 25 },
-        { msg: '> REFINING TYPOGRAPHY AND RHYTHM...', delay: 600, p: 45 },
-        { msg: '> HARDENING DOCUMENT STRUCTURE...', delay: 500, p: 65 },
-        { msg: '> HYDRATING VIRTUAL FONT SYSTEM...', delay: 600, p: 85 },
-        { msg: '> GENERATING BINARY BLOB...', delay: 800, p: 95 }
-      ];
-
-      for (const log of logs) {
-        setExportStage(log.msg);
-        setProgress(log.p);
-        await new Promise(r => setTimeout(r, log.delay));
-      }
-
+      // 1. Refinement
+      updateTaskStatus('refine', 'active');
+      setProgress(15);
+      await new Promise(r => setTimeout(r, 400));
       const refined = VaultRefiner.refine(activeDoc.content);
+      updateTaskStatus('refine', 'complete');
+
+      // 2. Hydration
+      updateTaskStatus('hydrate', 'active');
+      setProgress(40);
+      await new Promise(r => setTimeout(r, 300));
+      updateTaskStatus('hydrate', 'complete');
+
+      // 3. Rendering
+      updateTaskStatus('render', 'active');
+      setProgress(65);
+      await new Promise(r => setTimeout(r, 600));
+      updateTaskStatus('render', 'complete');
+
+      // 4. Binary Encoding
+      updateTaskStatus('binary', 'active');
+      setProgress(85);
       const fileName = (customName || suggestedName).replace(/[^a-z0-9 _-]/gi, '').trim().replace(/\s+/g, '_').toLowerCase();
       
-      if (pendingFormat === 'pdf') {
+      if (currentFormat === 'pdf') {
         await VaultConverter.toPDF('preview-area', `${fileName}.pdf`);
       } else {
         await VaultConverter.toDocx(refined, `${fileName}.docx`);
       }
       
+      updateTaskStatus('binary', 'complete');
       setProgress(100);
       await new Promise(r => setTimeout(r, 400));
-      setNotification({ message: `Sovereign vault archive secured`, type: 'success' });
+      setNotification({ message: 'Binary asset exported', type: 'success' });
     } catch (err) {
       console.error(err);
-      setNotification({ message: 'Vault pipeline failure', type: 'error' });
+      setExportTasks(prev => prev.map(t => t.status === 'active' ? { ...t, status: 'error' } : t));
+      setNotification({ message: 'Export pipeline failure', type: 'error' });
     } finally {
-      setIsExporting(false);
-      setExportStage('');
-      setProgress(0);
+      setTimeout(() => setIsExporting(false), 500);
     }
   };
 
@@ -166,10 +198,7 @@ export default function App() {
       <Sidebar 
         documents={documents} 
         activeId={activeDocId} 
-        onSelect={(id) => {
-          // Instant selection switch
-          setActiveDocId(id);
-        }} 
+        onSelect={setActiveDocId} 
         onCreate={handleCreateNew}
         onDelete={handleDelete}
         onRename={handleRenameDraft}
@@ -187,7 +216,7 @@ export default function App() {
         <div className="flex flex-1 overflow-hidden relative">
           <section className="w-1/2 vanish-border border-r border-vault-border flex flex-col min-w-0 bg-obsidian">
             {activeDoc ? (
-              <Editor value={activeDoc.content} onChange={handleContentChange} />
+              <Editor key={activeDoc.id} value={activeDoc.content} onChange={handleContentChange} />
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center text-vault-dim/20 gap-4 animate-in fade-in duration-1000">
                 <Shield size={48} strokeWidth={0.5} />
@@ -210,47 +239,75 @@ export default function App() {
       />
 
       {isExporting && (
-        <div className="fixed inset-0 bg-obsidian/98 backdrop-blur-3xl z-[200] flex flex-col items-center justify-center animate-in fade-in duration-700">
-          <div className="w-full max-w-md space-y-10 px-8">
-            <div className="flex flex-col items-center gap-6">
+        <div className="fixed inset-0 bg-obsidian/98 backdrop-blur-3xl z-[200] flex flex-col items-center justify-center animate-in fade-in duration-500">
+          <div className="w-full max-w-lg space-y-12 px-8">
+            <div className="flex flex-col items-center gap-8">
               <div className="relative">
-                <div className="absolute inset-0 bg-emerald-vault/10 blur-[80px] rounded-full scale-[2.5]" />
-                <div className="relative w-28 h-28 border border-white/10 rounded-3xl bg-obsidian-soft flex items-center justify-center shadow-sovereign">
-                  <Shield className="w-12 h-12 text-emerald-vault animate-pulse" />
+                <div className="absolute inset-0 bg-emerald-vault/10 blur-[100px] rounded-full scale-[3]" />
+                <div className="relative w-32 h-32 border border-white/10 rounded-[2rem] bg-obsidian-soft flex items-center justify-center shadow-sovereign overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-br from-emerald-vault/5 to-transparent opacity-50" />
+                  <Shield className="w-14 h-14 text-emerald-vault animate-pulse relative z-10" />
                 </div>
               </div>
-              <div className="flex flex-col items-center gap-3">
-                <span className="text-[10px] font-black uppercase tracking-[0.6em] text-emerald-vault/80">Vault Hardening Protocol</span>
-                <div className="flex items-center gap-2 text-vault-dim">
-                  <Activity size={12} className="text-emerald-vault/40" />
-                  <span className="text-[9px] font-mono uppercase tracking-[0.2em]">Local Computation Node Active</span>
+              <div className="flex flex-col items-center gap-4">
+                <span className="text-[11px] font-black uppercase tracking-[0.8em] text-emerald-vault/80 ml-[0.8em]">Vault Pipeline</span>
+                <div className="flex items-center gap-3 text-vault-dim/60">
+                  <Cpu size={14} className="animate-spin duration-[4000ms]" />
+                  <span className="text-[10px] font-mono uppercase tracking-[0.3em]">Executing Shard Encoding</span>
                 </div>
               </div>
             </div>
 
-            <div className="space-y-6">
-              <div className="h-[2px] w-full bg-white/[0.03] relative overflow-hidden rounded-full">
-                <div 
-                  className="h-full bg-emerald-vault shadow-[0_0_20px_rgba(16,185,129,0.9)] transition-all duration-1000 ease-in-out" 
-                  style={{ width: `${progress}%` }} 
-                />
-              </div>
-              
-              <div className="flex flex-col gap-3 min-h-[60px] p-4 bg-white/[0.01] rounded-lg border border-vault-border">
-                <div className="flex items-center gap-3">
-                  <Terminal size={12} className="text-emerald-vault/60" />
-                  <p className="text-[11px] font-mono text-emerald-vault tracking-tight uppercase">
-                    {exportStage || 'Initializing sovereign sequence...'}
-                  </p>
-                </div>
-                {progress > 40 && (
-                  <div className="flex items-center gap-2 pl-6 animate-in fade-in slide-in-from-left-2 duration-500">
-                    <Database size={10} className="text-vault-dim/50" />
-                    <p className="text-[9px] font-mono text-vault-dim/50 uppercase tracking-widest">
-                      Processing memory shards...
-                    </p>
+            <div className="space-y-8">
+              <div className="grid grid-cols-2 gap-4">
+                {exportTasks.map((task) => (
+                  <div 
+                    key={task.id} 
+                    className={`p-4 rounded-xl border transition-all duration-300 flex items-center gap-3 ${
+                      task.status === 'active' 
+                        ? 'bg-emerald-vault/5 border-emerald-vault/40 shadow-[0_0_20px_rgba(16,185,129,0.08)]' 
+                        : task.status === 'complete'
+                        ? 'bg-white/[0.02] border-white/10 opacity-70'
+                        : 'bg-white/[0.01] border-white/5 opacity-30'
+                    }`}
+                  >
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+                      task.status === 'active' ? 'bg-emerald-vault text-black shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 
+                      task.status === 'complete' ? 'bg-emerald-vault/20 text-emerald-vault' : 'bg-white/5 text-vault-dim'
+                    }`}>
+                      {task.status === 'complete' ? <Check size={14} strokeWidth={3} /> : 
+                       task.id === 'refine' ? <Layers size={14} /> :
+                       task.id === 'hydrate' ? <Activity size={14} /> :
+                       task.id === 'render' ? <Cpu size={14} /> :
+                       <HardDrive size={14} />}
+                    </div>
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-white">{task.label}</span>
+                      <span className="text-[8px] font-mono uppercase text-vault-dim tracking-wider">
+                        {task.status === 'active' ? 'Processing' : task.status === 'complete' ? 'Success' : 'Ready'}
+                      </span>
+                    </div>
                   </div>
-                )}
+                ))}
+              </div>
+
+              <div className="space-y-4">
+                <div className="h-[2px] w-full bg-white/[0.05] relative overflow-hidden rounded-full">
+                  <div 
+                    className="h-full bg-emerald-vault shadow-[0_0_20px_rgba(16,185,129,1)] transition-all duration-500 ease-out" 
+                    style={{ width: `${progress}%` }} 
+                  />
+                </div>
+                
+                <div className="flex justify-between items-center px-1">
+                  <div className="flex items-center gap-2">
+                    <Terminal size={12} className="text-emerald-vault/40" />
+                    <span className="text-[9px] font-mono text-emerald-vault/60 uppercase tracking-widest">
+                      Task.Status: {progress}% Finalized
+                    </span>
+                  </div>
+                  <Database size={12} className="text-vault-dim/20" />
+                </div>
               </div>
             </div>
           </div>

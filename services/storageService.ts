@@ -10,11 +10,7 @@ export class VaultDatabase extends Dexie {
   documents!: Table<SovereignDocument>;
 
   constructor() {
-    // Correctly initialize Dexie by calling super with the database name.
     super('ObsidianVaultDB');
-    
-    // Explicitly cast 'this' to any to resolve property name collision between 
-    // the 'version' property and 'version()' method in certain TypeScript configurations.
     (this as any).version(1).stores({
       documents: 'id, title, lastModified, status'
     });
@@ -25,10 +21,13 @@ export const db = new VaultDatabase();
 
 export const StorageService = {
   /**
-   * Persists a document to the local vault.
+   * Persists a document and ensures the timeline is updated.
    */
   async saveDocument(doc: SovereignDocument): Promise<void> {
-    await db.documents.put(doc);
+    await db.documents.put({
+      ...doc,
+      lastModified: Date.now()
+    });
   },
 
   /**
@@ -39,33 +38,33 @@ export const StorageService = {
   },
 
   /**
-   * Returns all documents ordered by last modification date.
+   * Returns all documents ordered by last modification date (DESC).
    */
   async getAllDocuments(): Promise<SovereignDocument[]> {
     return await db.documents.orderBy('lastModified').reverse().toArray();
   },
 
   /**
-   * Purges a document from the local archive.
+   * Purges a document from the local archive permanently.
    */
   async deleteDocument(id: string): Promise<void> {
     await db.documents.delete(id);
   },
 
   /**
-   * Generates a new sovereign document with default metadata.
+   * Generates a new sovereign document with executive metadata.
    */
   async createNewDocument(): Promise<SovereignDocument> {
     const newDoc: SovereignDocument = {
       id: crypto.randomUUID(),
-      title: 'Untitled Archive',
-      content: '# New Entry\n\nBegin your architectural draft here...',
+      title: 'New Archive Shard',
+      content: '# Sovereign Entry\n\nBegin your architectural draft here...',
       createdAt: Date.now(),
       lastModified: Date.now(),
       status: 'draft',
       metadata: {
         wordCount: 0,
-        estimatedReadTime: 0,
+        estimatedReadTime: 1,
         tags: []
       },
       theme: 'obsidian'
