@@ -20,7 +20,7 @@ if ('serviceWorker' in navigator) {
       const swPath = new URL('./sw.js', window.location.href).href;
       
       navigator.serviceWorker.register(swPath)
-        .then(reg => console.log('AegisVault Service Worker: Operational', reg))
+        .then(reg => console.log('AegisVault Service Worker: Operational at scope:', reg.scope))
         .catch(err => {
           // Silent fail or warning for environmental restrictions (common in dev previews)
           if (err.name === 'SecurityError' || err.message.includes('origin')) {

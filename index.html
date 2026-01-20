@@ -81,19 +81,39 @@
             overflow: hidden;
             -webkit-font-smoothing: antialiased;
             overscroll-behavior-y: none;
-            user-select: none;
+            user-select: auto;
             touch-action: manipulation;
         }
         
         #root {
           height: 100vh;
           height: 100svh;
+          position: relative;
+          z-index: 1;
         }
 
-        button, a {
-            touch-action: manipulation;
-            cursor: pointer;
+        /* 
+          HARDENED INTERACTION LAYER
+          Role: Senior Architect
+          Logic: Ensure no "transparent wall" can block UI events.
+        */
+        button, a, input, textarea, select {
+            position: relative;
+            z-index: 5;
+            pointer-events: auto !important;
+            cursor: pointer !important;
             -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        /* Prevent system backgrounds from intercepting clicks */
+        .bg-obsidian, .bg-obsidian-soft, .bg-obsidian-muted {
+            pointer-events: none;
+        }
+        
+        /* Modals and Sidebars must specifically re-enable pointer events */
+        aside, .fixed, .absolute {
+            pointer-events: auto;
         }
 
         ::-webkit-scrollbar { width: 5px; height: 5px; }
@@ -103,6 +123,7 @@
 
         .prose-vault {
           user-select: text;
+          pointer-events: auto;
         }
         .prose-vault h1 { 
           font-size: clamp(2.5rem, 8vw, 3.5rem); 

@@ -10,41 +10,12 @@ import { ConfigModal } from './components/modals/ConfigModal';
 import { TagsModal } from './components/modals/TagsModal';
 import { VaultConverter } from './services/exportService';
 import { StorageService } from './services/storageService';
-// Standardized to uppercase to resolve casing collision with already included 'VaultRefiner.ts' in the program
+// Standardized to VaultRefiner to resolve casing collision in the build program
 import { VaultRefiner } from './services/VaultRefiner';
 import { SovereignDocument } from './types';
 import { Check, Shield, Cpu, Sparkles } from 'lucide-react';
 import { usePWAInstall } from './hooks/usePWAInstall';
 import { GoogleGenAI } from "@google/genai";
-
-/**
- * Role: Senior Debugger
- * Logic: Identification of Overlapping Stacking Contexts
- */
-const useClickInterceptor = () => {
-  useEffect(() => {
-    const handleGlobalClick = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      console.group('🛡️ AegisVault: Interaction Debugger');
-      console.log('Target Element:', target);
-      console.log('Tag Name:', target.tagName);
-      console.log('Z-Index (Computed):', window.getComputedStyle(target).zIndex);
-      
-      if (target.tagName !== 'BUTTON' && target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
-        const parentBtn = target.closest('button');
-        if (!parentBtn) {
-          console.warn('⚠️ Interaction intercepted by a non-interactive layer.');
-        } else {
-          console.log('✅ Button child clicked:', parentBtn);
-        }
-      }
-      console.groupEnd();
-    };
-
-    document.addEventListener('click', handleGlobalClick, true);
-    return () => document.removeEventListener('click', handleGlobalClick, true);
-  }, []);
-};
 
 interface ExportTask {
   id: string;
@@ -55,8 +26,6 @@ interface ExportTask {
 type ModalType = 'export' | 'config' | 'tags' | null;
 
 export default function App() {
-  useClickInterceptor();
-  
   const [documents, setDocuments] = useState<SovereignDocument[]>([]);
   const [activeDocId, setActiveDocId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
@@ -148,6 +117,7 @@ export default function App() {
     if (!activeDoc || isAIRefining) return;
     setIsAIRefining(true);
     try {
+      // Create a new GoogleGenAI instance right before making an API call
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       // Using gemini-3-flash-preview for executive refinement as recommended for basic text tasks
       const response = await ai.models.generateContent({
@@ -269,7 +239,7 @@ export default function App() {
   };
 
   return (
-    <div className="flex h-screen w-full bg-obsidian text-vault-text overflow-hidden font-sans selection:bg-emerald-vault/30">
+    <div className="flex h-screen w-full bg-obsidian text-vault-text overflow-hidden font-sans selection:bg-emerald-vault/30 relative">
       <Sidebar 
         documents={documents} 
         activeId={activeDocId} 
@@ -291,7 +261,7 @@ export default function App() {
         />
       )}
 
-      <main className="flex flex-1 flex-col overflow-hidden min-w-0 relative">
+      <main className="flex flex-1 flex-col overflow-hidden min-w-0 relative z-10">
         <Toolbar 
           markdown={activeDoc?.content || ''}
           isExporting={isExporting}
@@ -306,8 +276,8 @@ export default function App() {
           onOpenConfig={() => setActiveModal('config')}
         />
 
-        <div className="flex-1 overflow-hidden relative flex flex-col md:flex-row pb-20 md:pb-0">
-          <section className="flex-1 md:w-1/2 border-b md:border-b-0 md:border-r border-vault-border flex flex-col min-w-0 bg-obsidian overflow-hidden transition-all duration-300">
+        <div className="flex-1 overflow-hidden relative flex flex-col md:flex-row pb-20 md:pb-0 z-0">
+          <section className="flex-1 md:w-1/2 border-b md:border-b-0 md:border-r border-vault-border flex flex-col min-w-0 bg-obsidian overflow-hidden transition-all duration-300 relative">
             {activeDoc ? (
               <Editor key={activeDoc.id} value={activeDoc.content} onChange={handleContentChange} />
             ) : (
@@ -321,7 +291,7 @@ export default function App() {
             )}
           </section>
 
-          <section className="flex-1 md:w-1/2 bg-obsidian-soft flex flex-col min-w-0 overflow-hidden">
+          <section className="flex-1 md:w-1/2 bg-obsidian-soft flex flex-col min-w-0 overflow-hidden relative">
             <Preview content={activeDoc?.content || ''} />
           </section>
         </div>
@@ -353,7 +323,7 @@ export default function App() {
       />
 
       {(isExporting || isAIRefining) && (
-        <div className="fixed inset-0 bg-obsidian/95 backdrop-blur-3xl z-[250] flex flex-col items-center justify-center animate-in fade-in duration-500">
+        <div className="fixed inset-0 bg-obsidian/95 backdrop-blur-3xl z-[250] flex flex-col items-center justify-center animate-in fade-in duration-500 pointer-events-auto">
           <div className="w-full max-w-sm space-y-12 px-8">
             <div className="flex flex-col items-center gap-8">
                <div className="relative w-24 h-24 border border-white/5 rounded-[2rem] bg-obsidian-soft flex items-center justify-center shadow-sovereign overflow-hidden">

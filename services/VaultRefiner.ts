@@ -2,6 +2,7 @@
 /**
  * VaultRefiner: Sovereign Structural Intelligence Engine.
  * Operates entirely client-side to enforce "Executive" standards without external calls.
+ * This version is used as the primary source of truth to resolve build program casing collisions.
  */
 export class VaultRefiner {
   /**
