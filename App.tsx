@@ -10,10 +10,9 @@ import { ConfigModal } from './components/modals/ConfigModal';
 import { TagsModal } from './components/modals/TagsModal';
 import { VaultConverter } from './services/exportService';
 import { StorageService } from './services/storageService';
-// Standardized to VaultRefiner to resolve casing collision in the build program
-import { VaultRefiner } from './services/VaultRefiner';
+import { VaultRefiner } from './services/vaultRefiner';
 import { SovereignDocument } from './types';
-import { Check, Shield, Cpu, Sparkles } from 'lucide-react';
+import { Check, Shield, Cpu, Sparkles, FileText } from 'lucide-react';
 import { usePWAInstall } from './hooks/usePWAInstall';
 import { GoogleGenAI } from "@google/genai";
 
@@ -30,13 +29,13 @@ export default function App() {
   const [activeDocId, setActiveDocId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [isAIRefining, setIsAIRefining] = useState(false);
-  const [progress, setProgress] = useState(0);
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [pendingFormat, setPendingFormat] = useState<'pdf' | 'docx' | null>(null);
   const [suggestedName, setSuggestedName] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [mobileTab, setMobileTab] = useState<'editor' | 'preview'>('editor');
   
   const { isInstallable, install } = usePWAInstall();
 
@@ -117,9 +116,8 @@ export default function App() {
     if (!activeDoc || isAIRefining) return;
     setIsAIRefining(true);
     try {
-      // Create a new GoogleGenAI instance right before making an API call
+      // Hardened Initialization: Create fresh instance with API Key for every request
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      // Using gemini-3-flash-preview for executive refinement as recommended for basic text tasks
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: `Refine this markdown document for a sovereign, executive audience. 
@@ -139,8 +137,9 @@ export default function App() {
       if ('vibrate' in navigator) navigator.vibrate([20, 10, 20]);
       setNotification({ message: 'Executive AI hardening applied', type: 'success' });
     } catch (err) {
-      console.error(err);
-      setNotification({ message: 'AI Protocol failure', type: 'error' });
+      console.error("AI Protocol Failure:", err);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown Protocol Error';
+      setNotification({ message: `AI Protocol failure: ${errorMessage}`, type: 'error' });
     } finally {
       setIsAIRefining(false);
     }
@@ -151,6 +150,7 @@ export default function App() {
     setDocuments(prev => [newDoc, ...prev]);
     setActiveDocId(newDoc.id);
     setIsSidebarOpen(false);
+    setMobileTab('editor');
     if ('vibrate' in navigator) navigator.vibrate(10);
   };
 
@@ -159,213 +159,174 @@ export default function App() {
     const updatedDocs = documents.filter(d => d.id !== id);
     setDocuments(updatedDocs);
     if (activeDocId === id) setActiveDocId(updatedDocs[0]?.id || null);
-    if ('vibrate' in navigator) navigator.vibrate([10, 50, 10]);
-    setNotification({ message: 'Archive purged successfully', type: 'success' });
   };
 
-  const handleRenameDraft = (id: string, name: string) => {
+  const handleRename = (id: string, newTitle: string) => {
     const doc = documents.find(d => d.id === id);
     if (!doc) return;
-    const updated = { ...doc, title: name, lastModified: Date.now() };
+    const updated = { ...doc, title: newTitle };
     setDocuments(prev => prev.map(d => d.id === id ? updated : d));
-    StorageService.saveDocument(updated);
-  };
-
-  const handleSelectDoc = (id: string) => {
-    setActiveDocId(id);
-    setIsSidebarOpen(false);
-    if ('vibrate' in navigator) navigator.vibrate(5);
-  };
-
-  const onExportClick = (format: 'pdf' | 'docx') => {
-    if (!activeDoc) return;
-    const suggestion = VaultRefiner.suggestFilename(activeDoc.content);
-    setSuggestedName(suggestion);
-    setPendingFormat(format);
-    setActiveModal('export');
+    // Immediate state update, delayed persistence handled by effect if needed, but direct save is safer here
+    if (saveTimeoutRef.current) window.clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = window.setTimeout(() => persistChanges(updated), 800);
   };
 
   const handleShare = async () => {
     if (!activeDoc) return;
-    if (navigator.share) {
-      try {
+    try {
+      if (navigator.share) {
         await navigator.share({
           title: activeDoc.title,
           text: activeDoc.content,
-          url: window.location.href,
+          // url: REMOVED. Passing local/file URLs causes 'Invalid URL' errors in many contexts.
+          // Sharing raw text/title is more sovereign and compatible.
         });
-        if ('vibrate' in navigator) navigator.vibrate(20);
-      } catch (err) {
-        console.error("Beam aborted", err);
+        setNotification({ message: 'Beam successful', type: 'success' });
+      } else {
+         await navigator.clipboard.writeText(activeDoc.content);
+         setNotification({ message: 'Copied to clipboard', type: 'success' });
       }
-    } else {
-      setNotification({ message: "Sharing not supported", type: 'error' });
+    } catch (err) {
+      // Ignore user aborts, alert on real errors
+      if ((err as Error).name !== 'AbortError') {
+         console.error('Beam failed:', err);
+         setNotification({ message: 'Beam aborted', type: 'error' });
+      }
     }
   };
 
-  const startExportSequence = async (customName: string) => {
+  const handleExport = async (name: string) => {
     if (!activeDoc || !pendingFormat) return;
-    const currentFormat = pendingFormat;
-    setActiveModal(null);
-    setPendingFormat(null);
     setIsExporting(true);
-    setProgress(0);
-
+    setActiveModal(null);
     try {
-      setProgress(20);
-      await new Promise(r => setTimeout(r, 400));
-      const refined = VaultRefiner.refine(activeDoc.content);
-      
-      setProgress(60);
-      await new Promise(r => setTimeout(r, 600));
-
-      setProgress(90);
-      const fileName = (customName || suggestedName).replace(/[^a-z0-9 _-]/gi, '').trim().replace(/\s+/g, '_').toLowerCase();
-      
-      if (currentFormat === 'pdf') {
-        await VaultConverter.toPDF('preview-area', `${fileName}.pdf`);
+      if (pendingFormat === 'pdf') {
+        // Ensure Preview is rendered (even if hidden) for ID capture
+        await VaultConverter.toPDF('preview-area', name);
       } else {
-        await VaultConverter.toDocx(refined, `${fileName}.docx`);
+        await VaultConverter.toDocx(activeDoc.content, name);
       }
-      
-      setProgress(100);
-      if ('vibrate' in navigator) navigator.vibrate(30);
-      setNotification({ message: 'Binary asset exported', type: 'success' });
-    } catch (err) {
-      setNotification({ message: 'Export pipeline failure', type: 'error' });
+      setNotification({ message: 'Export sequence complete', type: 'success' });
+    } catch (e) {
+      console.error(e);
+      setNotification({ message: 'Export failed', type: 'error' });
     } finally {
-      setTimeout(() => setIsExporting(false), 500);
+      setIsExporting(false);
+      setPendingFormat(null);
     }
   };
 
   return (
-    <div className="flex h-screen w-full bg-obsidian text-vault-text overflow-hidden font-sans selection:bg-emerald-vault/30 relative">
+    <div className="flex h-screen bg-obsidian text-vault-text overflow-hidden selection:bg-emerald-vault/30">
       <Sidebar 
-        documents={documents} 
-        activeId={activeDocId} 
-        onSelect={handleSelectDoc} 
+        documents={documents}
+        activeId={activeDocId}
+        onSelect={(id) => { setActiveDocId(id); setIsSidebarOpen(false); }}
         onCreate={handleCreateNew}
         onDelete={handleDelete}
-        onRename={handleRenameDraft}
-        onOpenConfig={() => setActiveModal('config')}
-        onOpenTags={() => setActiveModal('tags')}
+        onRename={handleRename}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
+        onOpenConfig={() => setActiveModal('config')}
+        onOpenTags={() => setActiveModal('tags')}
         installPrompt={{ isInstallable, install }}
       />
 
-      {isSidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-md z-[90] md:hidden animate-in fade-in duration-300 pointer-events-auto"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
-
-      <main className="flex flex-1 flex-col overflow-hidden min-w-0 relative z-10">
+      <main className="flex-1 flex flex-col relative overflow-hidden transition-all duration-300">
         <Toolbar 
           markdown={activeDoc?.content || ''}
           isExporting={isExporting}
           isSaving={isSaving}
-          onExport={onExportClick}
+          isAIRefining={isAIRefining}
+          onExport={(format) => {
+             setPendingFormat(format);
+             setSuggestedName(activeDoc?.title || "vault-export");
+             setActiveModal('export');
+          }}
           onShare={handleShare}
           onLocalRefine={handleLocalRefine}
           onAIRefine={handleAIRefine}
-          isAIRefining={isAIRefining}
           onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
           onOpenTags={() => setActiveModal('tags')}
           onOpenConfig={() => setActiveModal('config')}
         />
 
-        <div className="flex-1 overflow-hidden relative flex flex-col md:flex-row pb-20 md:pb-0 z-0">
-          <section className="flex-1 md:w-1/2 border-b md:border-b-0 md:border-r border-vault-border flex flex-col min-w-0 bg-obsidian overflow-hidden transition-all duration-300 relative">
-            {activeDoc ? (
-              <Editor key={activeDoc.id} value={activeDoc.content} onChange={handleContentChange} />
-            ) : (
-              <div className="flex-1 flex flex-col items-center justify-center text-vault-dim/10 gap-6">
-                <div className="relative">
-                  <Shield size={64} strokeWidth={0.5} className="animate-pulse" />
-                  <div className="absolute inset-0 bg-emerald-vault/5 blur-3xl rounded-full" />
-                </div>
-                <span className="text-[10px] font-black uppercase tracking-[0.6em] italic opacity-40">Vault Standby</span>
+        <div className="flex-1 flex overflow-hidden relative">
+          {activeDoc ? (
+            <>
+              {/* Mobile: Toggle Visibility based on Tab State */}
+              <div className={`flex-1 flex flex-col h-full overflow-hidden ${mobileTab === 'preview' ? 'hidden md:flex' : 'flex'}`}>
+                <Editor value={activeDoc.content} onChange={handleContentChange} />
               </div>
-            )}
-          </section>
+              
+              {/* Vertical Divider (Desktop) */}
+              <div className="hidden md:block w-px bg-vault-border z-10" />
 
-          <section className="flex-1 md:w-1/2 bg-obsidian-soft flex flex-col min-w-0 overflow-hidden relative">
-            <Preview content={activeDoc?.content || ''} />
-          </section>
+              {/* Preview Area: Always mount for PDF generation, hide via CSS on mobile if needed */}
+              <div className={`flex-1 flex flex-col h-full overflow-hidden bg-obsidian-soft ${mobileTab === 'editor' ? 'hidden md:flex' : 'flex'}`}>
+                <Preview content={activeDoc.content} />
+              </div>
+            </>
+          ) : (
+             <div className="flex-1 flex items-center justify-center text-vault-dim opacity-50 uppercase tracking-widest text-xs font-bold">
+               No Active Shard
+             </div>
+          )}
+        </div>
+
+        {/* Mobile Action Bar */}
+        <MobileActionBar 
+          isExporting={isExporting}
+          onExport={(format) => {
+             setPendingFormat(format);
+             setSuggestedName(activeDoc?.title || "vault-export");
+             setActiveModal('export');
+          }}
+          onLocalRefine={handleLocalRefine}
+        />
+        
+        {/* Mobile View Toggle (Floating) - If strict tabs are preferred over the action bar integration */}
+        <div className="md:hidden fixed bottom-24 right-6 z-[120]">
+           <button 
+             onClick={() => setMobileTab(prev => prev === 'editor' ? 'preview' : 'editor')}
+             className="w-12 h-12 rounded-full bg-emerald-vault text-black flex items-center justify-center shadow-lg shadow-emerald-vault/30 active:scale-90 transition-transform"
+           >
+             {mobileTab === 'editor' ? <Check size={20} /> : <FileText size={20} />}
+           </button>
+        </div>
+
+        {/* Global Notification Toast */}
+        <div className={`fixed top-20 right-6 z-[200] transition-all duration-500 transform ${notification ? 'translate-x-0 opacity-100' : 'translate-x-10 opacity-0 pointer-events-none'}`}>
+          {notification && (
+            <div className={`flex items-center gap-3 px-5 py-3 rounded-xl border backdrop-blur-md shadow-2xl ${
+              notification.type === 'success' 
+                ? 'bg-emerald-vault/10 border-emerald-vault/30 text-emerald-vault' 
+                : 'bg-red-500/10 border-red-500/30 text-red-400'
+            }`}>
+              {notification.type === 'success' ? <Check size={16} /> : <Shield size={16} />}
+              <span className="text-xs font-bold uppercase tracking-wider">{notification.message}</span>
+            </div>
+          )}
         </div>
       </main>
 
-      <MobileActionBar 
-        isExporting={isExporting || isAIRefining} 
-        onExport={onExportClick} 
-        onLocalRefine={handleLocalRefine} 
-      />
-
+      {/* Modals Layer */}
       <ExportModal 
-        format={pendingFormat}
         initialName={suggestedName}
-        onCancel={() => setActiveModal(null)}
-        onConfirm={startExportSequence}
+        format={pendingFormat}
+        onConfirm={handleExport}
+        onCancel={() => { setActiveModal(null); setPendingFormat(null); }}
       />
-
       <ConfigModal 
         isOpen={activeModal === 'config'} 
-        onClose={() => setActiveModal(null)}
+        onClose={() => setActiveModal(null)} 
         docCount={documents.length}
       />
-
-      <TagsModal
-        isOpen={activeModal === 'tags'}
+      <TagsModal 
+        isOpen={activeModal === 'tags'} 
         onClose={() => setActiveModal(null)}
         documents={documents}
       />
-
-      {(isExporting || isAIRefining) && (
-        <div className="fixed inset-0 bg-obsidian/95 backdrop-blur-3xl z-[250] flex flex-col items-center justify-center animate-in fade-in duration-500 pointer-events-auto">
-          <div className="w-full max-w-sm space-y-12 px-8">
-            <div className="flex flex-col items-center gap-8">
-               <div className="relative w-24 h-24 border border-white/5 rounded-[2rem] bg-obsidian-soft flex items-center justify-center shadow-sovereign overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-emerald-vault/10 to-transparent" />
-                  {isAIRefining ? (
-                    <Sparkles className="w-10 h-10 text-emerald-vault animate-pulse relative z-10" />
-                  ) : (
-                    <Shield className="w-10 h-10 text-emerald-vault animate-pulse relative z-10" />
-                  )}
-                </div>
-                <div className="flex flex-col items-center gap-2">
-                  <div className="flex items-center gap-3 text-vault-dim/60">
-                    <Cpu size={12} className="animate-spin duration-[4000ms]" />
-                    <span className="text-[10px] font-mono uppercase tracking-[0.3em]">
-                      {isAIRefining ? 'AI Executive Refinement' : 'Executing Shard Encoding'}
-                    </span>
-                  </div>
-                </div>
-            </div>
-            
-            <div className="space-y-4">
-                <div className="h-[2px] w-full bg-white/[0.05] relative overflow-hidden rounded-full">
-                  <div 
-                    className="h-full bg-emerald-vault shadow-[0_0_20px_rgba(16,185,129,0.8)] transition-all duration-500 ease-out" 
-                    style={{ width: isAIRefining ? '100%' : `${progress}%` }} 
-                  />
-                </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {notification && (
-        <div className="fixed bottom-28 md:bottom-10 left-1/2 -translate-x-1/2 px-6 py-3.5 rounded-2xl border border-white/10 bg-obsidian-soft/90 flex items-center gap-4 shadow-sovereign z-[300] animate-in fade-in slide-in-from-bottom-6 backdrop-blur-2xl pointer-events-none">
-          <div className="w-6 h-6 rounded-full bg-emerald-vault/10 flex items-center justify-center">
-            <Check className="w-3.5 h-3.5 text-emerald-vault" strokeWidth={3} />
-          </div>
-          <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-vault-text">
-            {notification.message}
-          </span>
-        </div>
-      )}
     </div>
   );
 }

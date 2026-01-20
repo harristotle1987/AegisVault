@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { X, Moon, Shield, Save, Database, EyeOff, Zap, Layout, Monitor } from 'lucide-react';
 
@@ -7,6 +6,29 @@ interface ConfigModalProps {
   onClose: () => void;
   docCount: number;
 }
+
+const ToggleOption = ({ label, description, defaultOn, icon }: { label: string, description: string, defaultOn?: boolean, icon: React.ReactNode }) => {
+  const [isOn, setIsOn] = useState(defaultOn || false);
+  return (
+    <button 
+      onClick={() => setIsOn(!isOn)}
+      className="w-full flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-vault-border hover:bg-white/[0.04] transition-all group active:scale-[0.98] touch-manipulation"
+    >
+      <div className="flex items-center gap-4">
+        <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${isOn ? 'bg-emerald-vault/20 text-emerald-vault' : 'bg-white/5 text-vault-dim'}`}>
+          {icon}
+        </div>
+        <div className="flex flex-col items-start">
+          <span className="text-[10px] font-bold text-vault-text uppercase tracking-widest">{label}</span>
+          <span className="text-[9px] text-vault-dim font-medium">{description}</span>
+        </div>
+      </div>
+      <div className={`w-10 h-5 rounded-full p-1 transition-colors ${isOn ? 'bg-emerald-vault' : 'bg-vault-border'}`}>
+        <div className={`w-3 h-3 bg-white rounded-full shadow-sm transition-transform ${isOn ? 'translate-x-5' : 'translate-x-0'}`} />
+      </div>
+    </button>
+  );
+};
 
 /**
  * Role: Senior Architect
@@ -27,16 +49,18 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, onClose, docCo
   return (
     <>
       {/* Backdrop - High Contrast Blur */}
+      {/* FIX: Added 'invisible' to completely remove from hit testing when closed */}
       <div 
-        className={`fixed inset-0 bg-obsidian/40 backdrop-blur-sm z-[150] transition-opacity duration-500 ease-in-out pointer-events-auto
-          ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        className={`fixed inset-0 bg-obsidian/40 backdrop-blur-sm z-[150] transition-all duration-500 ease-in-out
+          ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none invisible'}`}
         onClick={onClose}
       />
 
       {/* Sovereign Drawer Panel */}
+      {/* FIX: Added 'pointer-events-none' when closed to prevent ghost interaction during/after transition */}
       <div className={`fixed top-0 right-0 h-full w-full sm:max-w-md bg-obsidian-soft border-l border-vault-border z-[160] shadow-sovereign 
         transform transition-transform duration-500 ease-in-out flex flex-col
-        ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+        ${isOpen ? 'translate-x-0 pointer-events-auto' : 'translate-x-full pointer-events-none'}`}>
         
         {/* Header - Technical Context */}
         <div className="flex items-center justify-between p-6 border-b border-vault-border bg-obsidian">
@@ -129,37 +153,14 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, onClose, docCo
 
         {/* Footer Action */}
         <div className="p-6 bg-obsidian border-t border-vault-border">
-          <button 
-            onClick={(e) => { e.stopPropagation(); onClose(); }}
-            className="w-full py-4 bg-emerald-vault text-black rounded-xl text-[11px] font-black uppercase tracking-[0.4em] transition-all flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(16,185,129,0.15)] active:scale-[0.98] touch-manipulation"
-          >
-            Acknowledge Changes
-          </button>
+           <button 
+             onClick={onClose}
+             className="w-full py-4 bg-white/5 hover:bg-white/10 text-white rounded-xl text-[11px] font-black uppercase tracking-[0.3em] transition-all flex items-center justify-center gap-3 active:scale-[0.98] border border-vault-border"
+           >
+             <Save size={16} /> Save Configuration
+           </button>
         </div>
       </div>
     </>
-  );
-};
-
-const ToggleOption = ({ label, description, defaultOn = false, icon }: any) => {
-  const [active, setActive] = useState(defaultOn);
-  return (
-    <div 
-      onClick={() => setActive(!active)}
-      className="flex items-center justify-between p-4 bg-obsidian-muted/40 rounded-xl border border-vault-border/50 cursor-pointer hover:bg-obsidian-muted/60 transition-all group touch-manipulation"
-    >
-      <div className="flex items-center gap-4">
-        <div className={`p-2 rounded-lg transition-colors ${active ? 'bg-emerald-vault/10 text-emerald-vault' : 'bg-white/5 text-vault-dim'}`}>
-          {icon}
-        </div>
-        <div className="flex flex-col gap-0.5">
-          <p className="text-[10px] text-white font-black uppercase tracking-widest">{label}</p>
-          <p className="text-[9px] text-vault-dim/60 font-medium">{description}</p>
-        </div>
-      </div>
-      <div className={`w-10 h-5 rounded-full relative transition-all duration-300 ${active ? 'bg-emerald-vault/30 border border-emerald-vault/50' : 'bg-white/5 border border-white/10'}`}>
-        <div className={`absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full transition-all duration-300 shadow-sm ${active ? 'right-1 bg-emerald-vault shadow-emerald-glow' : 'left-1 bg-vault-dim'}`} />
-      </div>
-    </div>
   );
 };

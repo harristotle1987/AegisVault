@@ -1,4 +1,3 @@
-
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
@@ -13,24 +12,13 @@ if (!rootElement) {
  * We resolve the path relative to window.location.href to ensure the origin matches.
  */
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    // Determine the absolute path based on the current environment's origin.
-    // This prevents origin mismatch errors in proxied previews.
+  window.addEventListener('load', async () => {
     try {
-      const swPath = new URL('./sw.js', window.location.href).href;
-      
-      navigator.serviceWorker.register(swPath)
-        .then(reg => console.log('AegisVault Service Worker: Operational at scope:', reg.scope))
-        .catch(err => {
-          // Silent fail or warning for environmental restrictions (common in dev previews)
-          if (err.name === 'SecurityError' || err.message.includes('origin')) {
-            console.warn('AegisVault: Service Worker registration restricted by environment security policy or origin mismatch.');
-          } else {
-            console.error('AegisVault Service Worker: Failed', err);
-          }
-        });
-    } catch (e) {
-      console.warn('AegisVault: Could not determine Service Worker path.', e);
+      // Points to root /sw.js in the public folder logic
+      const registration = await navigator.serviceWorker.register('./sw.js');
+      console.log('🛡️ AegisVault: Service Worker Active', registration.scope);
+    } catch (error) {
+      console.error('❌ AegisVault: Service Worker Offline', error);
     }
   });
 }

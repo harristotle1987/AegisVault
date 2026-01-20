@@ -6,13 +6,13 @@
 
 const CACHE_NAME = 'aegis-vault-v1';
 const ASSETS_TO_CACHE = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/favicon.svg',
-  '/icon-192.svg',
-  '/icon-512.svg',
-  '/icon-maskable.svg'
+  './',
+  './index.html',
+  './manifest.json',
+  './favicon.svg',
+  './icon-192.svg',
+  './icon-512.svg',
+  './icon-maskable.svg'
 ];
 
 // Install Event: Hydrating the local cache
