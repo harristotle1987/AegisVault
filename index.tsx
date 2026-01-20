@@ -1,4 +1,3 @@
-
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
@@ -10,13 +9,11 @@ if (!rootElement) {
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
+    // Explicitly using absolute path for PWA asset reliability
+    navigator.serviceWorker.register('/sw.js', { scope: '/' })
       .then(reg => console.log('🛡️ AegisVault: Secured', reg.scope))
       .catch(err => {
-        // Silently handle 404s/offline dev environments to prevent console noise
-        if (process.env.NODE_ENV === 'development' || err.message.includes('404') || err.message.includes('script')) {
-           return; 
-        }
+        if (err.message.includes('404')) return; 
         console.warn('Vault Offline Mode:', err);
       });
   });

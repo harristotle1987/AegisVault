@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { X, Moon, Shield, Save, Database, EyeOff, Zap, Layout, Monitor } from 'lucide-react';
 
@@ -31,13 +30,7 @@ const ToggleOption = ({ label, description, defaultOn, icon }: { label: string, 
   );
 };
 
-/**
- * Role: Senior Architect
- * Feature: System Configuration Drawer (Slide-out)
- * Behavior: Hardware-accelerated translate-x transitions, full-width on mobile.
- */
 export const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, onClose, docCount }) => {
-  // Prevent background scrolling for total immersion
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -49,21 +42,17 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, onClose, docCo
 
   return (
     <>
-      {/* Backdrop - High Contrast Blur */}
-      {/* FIX: Added 'invisible' to completely remove from hit testing when closed */}
+      {/* Hardened Backdrop with Interaction Defense */}
       <div 
         className={`fixed inset-0 bg-obsidian/40 backdrop-blur-sm z-[150] transition-all duration-500 ease-in-out
-          ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none invisible'}`}
+          ${isOpen ? 'opacity-100 pointer-events-auto visible' : 'opacity-0 pointer-events-none invisible'}`}
         onClick={onClose}
       />
 
-      {/* Sovereign Drawer Panel */}
-      {/* FIX: Added 'pointer-events-none' when closed to prevent ghost interaction during/after transition */}
       <div className={`fixed top-0 right-0 h-full w-full sm:max-w-md bg-obsidian-soft border-l border-vault-border z-[160] shadow-sovereign 
         transform transition-transform duration-500 ease-in-out flex flex-col
-        ${isOpen ? 'translate-x-0 pointer-events-auto' : 'translate-x-full pointer-events-none'}`}>
+        ${isOpen ? 'translate-x-0 pointer-events-auto visible' : 'translate-x-full pointer-events-none invisible'}`}>
         
-        {/* Header - Technical Context */}
         <div className="flex items-center justify-between p-6 border-b border-vault-border bg-obsidian">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-emerald-vault/10 flex items-center justify-center border border-emerald-vault/20">
@@ -75,17 +64,14 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, onClose, docCo
             </div>
           </div>
           <button 
-            onClick={(e) => { e.stopPropagation(); onClose(); }} 
-            className="p-2.5 hover:bg-white/5 rounded-full text-vault-dim transition-all active:scale-90 touch-manipulation"
+            onClick={onClose} 
+            className="p-2.5 hover:bg-white/5 rounded-full text-vault-dim transition-all active:scale-90"
           >
             <X className="w-6 h-6" />
           </button>
         </div>
 
-        {/* Settings Content - Vertical Rhythm Hardening */}
         <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-10 no-scrollbar">
-          
-          {/* Section: Status Shards */}
           <section className="grid grid-cols-2 gap-3">
             <div className="p-4 rounded-xl bg-obsidian-muted/30 border border-vault-border space-y-1">
               <span className="text-[8px] font-black uppercase tracking-widest text-vault-dim">Shard Count</span>
@@ -97,7 +83,6 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, onClose, docCo
             </div>
           </section>
 
-          {/* Section: Privacy Hardening */}
           <section className="space-y-4">
             <div className="flex items-center gap-2 px-1">
               <Shield size={12} className="text-emerald-vault" />
@@ -118,7 +103,6 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, onClose, docCo
             </div>
           </section>
 
-          {/* Section: Visual Logic */}
           <section className="space-y-4">
             <div className="flex items-center gap-2 px-1">
               <Layout size={12} className="text-vault-dim" />
@@ -127,32 +111,19 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, onClose, docCo
             <div className="p-6 rounded-2xl bg-obsidian-muted border border-vault-border space-y-4">
               <p className="text-[10px] text-vault-dim leading-relaxed font-medium">Select the primary typeface for document generation. Binary sharding embeds these assets automatically.</p>
               <div className="grid grid-cols-2 gap-3">
-                <button className="flex flex-col items-center gap-2 py-4 border border-emerald-vault/40 bg-emerald-vault/5 text-emerald-vault rounded-xl transition-all hover:bg-emerald-vault/10 active:scale-95 touch-manipulation">
+                <button className="flex flex-col items-center gap-2 py-4 border border-emerald-vault/40 bg-emerald-vault/5 text-emerald-vault rounded-xl transition-all">
                   <Monitor size={14} />
                   <span className="text-[9px] font-black uppercase tracking-widest">Inter (Sans)</span>
                 </button>
-                <button className="flex flex-col items-center gap-2 py-4 border border-vault-border bg-white/[0.02] text-vault-dim rounded-xl transition-all hover:bg-white/5 active:scale-95 touch-manipulation">
+                <button className="flex flex-col items-center gap-2 py-4 border border-vault-border bg-white/[0.02] text-vault-dim rounded-xl transition-all">
                   <Database size={14} />
                   <span className="text-[9px] font-black uppercase tracking-widest">Mono (Draft)</span>
                 </button>
               </div>
             </div>
           </section>
-
-          {/* Section: Support */}
-          <section className="pt-4 border-t border-vault-border/50">
-             <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-vault-border">
-                <div className="flex items-center gap-3">
-                   <Shield size={14} className="text-vault-dim" />
-                   <span className="text-[10px] font-bold text-vault-dim uppercase tracking-widest">Security Protocol</span>
-                </div>
-                <span className="text-[9px] font-mono text-emerald-vault/60 uppercase">E2EE Ready</span>
-             </div>
-          </section>
-
         </div>
 
-        {/* Footer Action */}
         <div className="p-6 bg-obsidian border-t border-vault-border">
            <button 
              onClick={onClose}

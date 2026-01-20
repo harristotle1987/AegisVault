@@ -33,12 +33,12 @@ export const TagsModal: React.FC<TagsModalProps> = ({ isOpen, onClose, documents
       {/* Hardened Backdrop with Interaction Lock Fix */}
       <div 
         className={`fixed inset-0 z-[190] bg-obsidian/60 backdrop-blur-md transition-all duration-500 ease-in-out
-          ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none invisible'}`}
+          ${isOpen ? 'opacity-100 pointer-events-auto visible' : 'opacity-0 pointer-events-none invisible'}`}
         onClick={onClose}
       />
 
       <div className={`fixed inset-0 z-[200] flex items-center justify-center p-4 transition-all duration-500 ease-in-out pointer-events-none
-        ${isOpen ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-10 scale-95 invisible'}`}>
+        ${isOpen ? 'opacity-100 translate-y-0 scale-100 visible' : 'opacity-0 translate-y-10 scale-95 invisible'}`}>
         
         <div className="w-full max-w-lg bg-obsidian-soft border border-vault-border rounded-2xl shadow-sovereign overflow-hidden pointer-events-auto">
           <div className="p-6 flex items-center justify-between border-b border-vault-border bg-white/[0.01]">
