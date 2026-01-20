@@ -1,5 +1,6 @@
-import React from 'react';
-import { X, Shield, Cpu, Activity, Database, Smartphone } from 'lucide-react';
+
+import React, { useEffect, useState } from 'react';
+import { X, Moon, Shield, Save, Database, EyeOff, Zap, Layout, Monitor } from 'lucide-react';
 
 interface ConfigModalProps {
   isOpen: boolean;
@@ -7,83 +8,158 @@ interface ConfigModalProps {
   docCount: number;
 }
 
+/**
+ * Role: Senior Architect
+ * Feature: System Configuration Drawer (Slide-out)
+ * Behavior: Hardware-accelerated translate-x transitions, full-width on mobile.
+ */
 export const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, onClose, docCount }) => {
-  if (!isOpen) return null;
+  // Prevent background scrolling for total immersion
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [isOpen]);
 
   return (
-    <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-obsidian/90 backdrop-blur-2xl animate-in fade-in duration-300">
-      <div className="w-full max-w-lg bg-obsidian-soft border border-vault-border rounded-2xl shadow-sovereign overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="p-6 flex items-center justify-between border-b border-vault-border bg-white/[0.01]">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-emerald-vault/10 flex items-center justify-center border border-emerald-vault/20">
-              <SettingsIcon className="w-5 h-5 text-emerald-vault" strokeWidth={2.5} />
+    <>
+      {/* Backdrop - High Contrast Blur */}
+      <div 
+        className={`fixed inset-0 bg-obsidian/40 backdrop-blur-sm z-[150] transition-opacity duration-500 ease-in-out pointer-events-auto
+          ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        onClick={onClose}
+      />
+
+      {/* Sovereign Drawer Panel */}
+      <div className={`fixed top-0 right-0 h-full w-full sm:max-w-md bg-obsidian-soft border-l border-vault-border z-[160] shadow-sovereign 
+        transform transition-transform duration-500 ease-in-out flex flex-col
+        ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+        
+        {/* Header - Technical Context */}
+        <div className="flex items-center justify-between p-6 border-b border-vault-border bg-obsidian">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-emerald-vault/10 flex items-center justify-center border border-emerald-vault/20">
+              <Database className="text-emerald-vault w-4 h-4" strokeWidth={2.5} />
             </div>
             <div className="flex flex-col">
-              <span className="text-[11px] font-black tracking-[0.4em] uppercase text-vault-dim">Vault Configuration</span>
-              <span className="text-[9px] font-mono text-emerald-vault/40 uppercase tracking-widest">Aegis.Engine: v1.0.4</span>
+              <h2 className="text-white font-black text-xs uppercase tracking-[0.4em]">System Configuration</h2>
+              <span className="text-[8px] font-mono text-emerald-vault/50 uppercase tracking-widest">Aegis.Core: Operational</span>
             </div>
           </div>
-          <button onClick={onClose} className="text-vault-dim hover:text-white transition-all p-2 hover:bg-white/5 rounded-full">
-            <X size={20} />
+          <button 
+            onClick={(e) => { e.stopPropagation(); onClose(); }} 
+            className="p-2.5 hover:bg-white/5 rounded-full text-vault-dim transition-all active:scale-90 touch-manipulation"
+          >
+            <X className="w-6 h-6" />
           </button>
         </div>
 
-        <div className="p-8 space-y-8">
-          <div className="grid grid-cols-2 gap-4">
-             <StatCard icon={<Database size={14}/>} label="Shard Storage" value={`${docCount} Entries`} />
-             <StatCard icon={<Activity size={14}/>} label="Engine Status" value="Operational" />
-             <StatCard icon={<Cpu size={14}/>} label="Local Core" value="Sandboxed" />
-             <StatCard icon={<Smartphone size={14}/>} label="PWA Health" value="Hardened" />
-          </div>
+        {/* Settings Content - Vertical Rhythm Hardening */}
+        <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-10 no-scrollbar">
+          
+          {/* Section: Status Shards */}
+          <section className="grid grid-cols-2 gap-3">
+            <div className="p-4 rounded-xl bg-obsidian-muted/30 border border-vault-border space-y-1">
+              <span className="text-[8px] font-black uppercase tracking-widest text-vault-dim">Shard Count</span>
+              <div className="text-sm font-bold text-white">{docCount} Archives</div>
+            </div>
+            <div className="p-4 rounded-xl bg-obsidian-muted/30 border border-vault-border space-y-1">
+              <span className="text-[8px] font-black uppercase tracking-widest text-vault-dim">Environment</span>
+              <div className="text-sm font-bold text-emerald-vault">Sandboxed</div>
+            </div>
+          </section>
 
-          <div className="space-y-4">
-             <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-vault-dim/50 px-1">Sovereign Controls</h4>
-             <div className="space-y-2">
-                <ToggleItem label="Executive Hardening" desc="Auto-refine vertical rhythm on export" active={true} />
-                <ToggleItem label="Tactile Response" desc="Haptic feedback on shard interaction" active={true} />
-                <ToggleItem label="Deep-Space Mode" desc="Forced high-contrast Obsidian palette" active={true} />
+          {/* Section: Privacy Hardening */}
+          <section className="space-y-4">
+            <div className="flex items-center gap-2 px-1">
+              <Shield size={12} className="text-emerald-vault" />
+              <h3 className="text-[10px] font-black text-emerald-vault uppercase tracking-[0.3em]">Privacy Hardening</h3>
+            </div>
+            <div className="space-y-3">
+              <ToggleOption 
+                label="Auto-Purge Session" 
+                description="Clear local RAM on vault exit" 
+                icon={<Zap size={14} />}
+              />
+              <ToggleOption 
+                label="Stealth Mode" 
+                description="Hide UI elements during export" 
+                defaultOn 
+                icon={<EyeOff size={14} />}
+              />
+            </div>
+          </section>
+
+          {/* Section: Visual Logic */}
+          <section className="space-y-4">
+            <div className="flex items-center gap-2 px-1">
+              <Layout size={12} className="text-vault-dim" />
+              <h3 className="text-[10px] font-black text-vault-dim uppercase tracking-[0.3em]">Visual Logic</h3>
+            </div>
+            <div className="p-6 rounded-2xl bg-obsidian-muted border border-vault-border space-y-4">
+              <p className="text-[10px] text-vault-dim leading-relaxed font-medium">Select the primary typeface for document generation. Binary sharding embeds these assets automatically.</p>
+              <div className="grid grid-cols-2 gap-3">
+                <button className="flex flex-col items-center gap-2 py-4 border border-emerald-vault/40 bg-emerald-vault/5 text-emerald-vault rounded-xl transition-all hover:bg-emerald-vault/10 active:scale-95 touch-manipulation">
+                  <Monitor size={14} />
+                  <span className="text-[9px] font-black uppercase tracking-widest">Inter (Sans)</span>
+                </button>
+                <button className="flex flex-col items-center gap-2 py-4 border border-vault-border bg-white/[0.02] text-vault-dim rounded-xl transition-all hover:bg-white/5 active:scale-95 touch-manipulation">
+                  <Database size={14} />
+                  <span className="text-[9px] font-black uppercase tracking-widest">Mono (Draft)</span>
+                </button>
+              </div>
+            </div>
+          </section>
+
+          {/* Section: Support */}
+          <section className="pt-4 border-t border-vault-border/50">
+             <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-vault-border">
+                <div className="flex items-center gap-3">
+                   <Shield size={14} className="text-vault-dim" />
+                   <span className="text-[10px] font-bold text-vault-dim uppercase tracking-widest">Security Protocol</span>
+                </div>
+                <span className="text-[9px] font-mono text-emerald-vault/60 uppercase">E2EE Ready</span>
              </div>
-          </div>
+          </section>
+
         </div>
 
-        <div className="p-6 bg-white/[0.02] border-t border-vault-border">
+        {/* Footer Action */}
+        <div className="p-6 bg-obsidian border-t border-vault-border">
           <button 
-            onClick={onClose}
-            className="w-full py-4 bg-white/5 hover:bg-white/10 text-white rounded-xl text-[11px] font-black uppercase tracking-[0.3em] transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
+            onClick={(e) => { e.stopPropagation(); onClose(); }}
+            className="w-full py-4 bg-emerald-vault text-black rounded-xl text-[11px] font-black uppercase tracking-[0.4em] transition-all flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(16,185,129,0.15)] active:scale-[0.98] touch-manipulation"
           >
             Acknowledge Changes
           </button>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
-const StatCard = ({ icon, label, value }: { icon: any, label: string, value: string }) => (
-  <div className="bg-white/[0.02] border border-vault-border p-4 rounded-xl space-y-1">
-    <div className="flex items-center gap-2 text-vault-dim">
-      {icon}
-      <span className="text-[8px] font-black uppercase tracking-widest">{label}</span>
+const ToggleOption = ({ label, description, defaultOn = false, icon }: any) => {
+  const [active, setActive] = useState(defaultOn);
+  return (
+    <div 
+      onClick={() => setActive(!active)}
+      className="flex items-center justify-between p-4 bg-obsidian-muted/40 rounded-xl border border-vault-border/50 cursor-pointer hover:bg-obsidian-muted/60 transition-all group touch-manipulation"
+    >
+      <div className="flex items-center gap-4">
+        <div className={`p-2 rounded-lg transition-colors ${active ? 'bg-emerald-vault/10 text-emerald-vault' : 'bg-white/5 text-vault-dim'}`}>
+          {icon}
+        </div>
+        <div className="flex flex-col gap-0.5">
+          <p className="text-[10px] text-white font-black uppercase tracking-widest">{label}</p>
+          <p className="text-[9px] text-vault-dim/60 font-medium">{description}</p>
+        </div>
+      </div>
+      <div className={`w-10 h-5 rounded-full relative transition-all duration-300 ${active ? 'bg-emerald-vault/30 border border-emerald-vault/50' : 'bg-white/5 border border-white/10'}`}>
+        <div className={`absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full transition-all duration-300 shadow-sm ${active ? 'right-1 bg-emerald-vault shadow-emerald-glow' : 'left-1 bg-vault-dim'}`} />
+      </div>
     </div>
-    <div className="text-xs font-bold text-vault-text font-mono">{value}</div>
-  </div>
-);
-
-const ToggleItem = ({ label, desc, active }: { label: string, desc: string, active: boolean }) => (
-  <div className="flex items-center justify-between p-4 bg-white/[0.01] border border-vault-border rounded-xl">
-    <div className="flex flex-col gap-0.5">
-       <span className="text-[10px] font-bold text-vault-text uppercase tracking-widest">{label}</span>
-       <span className="text-[9px] text-vault-dim/60 font-medium">{desc}</span>
-    </div>
-    <div className={`w-10 h-5 rounded-full relative transition-colors cursor-pointer ${active ? 'bg-emerald-vault/40' : 'bg-white/5'}`}>
-       <div className={`absolute top-1 w-3 h-3 rounded-full transition-all ${active ? 'right-1 bg-emerald-vault' : 'left-1 bg-vault-dim'}`} />
-    </div>
-  </div>
-);
-
-const SettingsIcon = (props: any) => (
-  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
-    <circle cx="12" cy="12" r="3"/>
-  </svg>
-);
+  );
+};

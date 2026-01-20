@@ -16,9 +16,30 @@ import {
   AlignmentType,
   ThematicBreak
 } from 'docx';
-import saveAs from 'file-saver';
 import { marked } from 'marked';
 import { FontLoader } from './FontLoader';
+
+/**
+ * triggerSovereignDownload: Hardened Mobile Download Sequence.
+ * Ensures that binary blobs are reliably delivered to the OS filesystem, 
+ * overcoming Android PWA sandbox constraints.
+ */
+const triggerSovereignDownload = (blob: Blob, filename: string) => {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+
+  // Android specific hardening: Append to body to ensure event visibility
+  document.body.appendChild(link);
+  link.click();
+
+  // Cleanup to preserve mobile RAM sovereignty
+  setTimeout(() => {
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, 100);
+};
 
 /**
  * VaultConverter: High-performance local transformation engine.
@@ -37,7 +58,6 @@ export class VaultConverter {
     container.style.width = '210mm';
     container.className = 'vault-pdf-container';
     
-    // Vault-Executive PDF Theme Base
     container.style.backgroundColor = '#050505'; 
     container.style.color = '#e2e8f0';
     container.innerHTML = sourceElement.innerHTML;
@@ -139,16 +159,17 @@ export class VaultConverter {
         logging: false
       });
 
-      const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({ format: 'a4', unit: 'mm' });
-      
       await FontLoader.loadForPDF(pdf);
 
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
+      const imgData = canvas.toDataURL('image/png');
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
-      pdf.save(fileName);
+      
+      const pdfBlob = pdf.output('blob');
+      triggerSovereignDownload(pdfBlob, fileName);
     } finally {
       document.body.removeChild(container);
     }
@@ -231,6 +252,6 @@ export class VaultConverter {
     });
 
     const blob = await Packer.toBlob(doc);
-    saveAs(blob, fileName);
+    triggerSovereignDownload(blob, fileName);
   }
 }

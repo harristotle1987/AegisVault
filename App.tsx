@@ -10,11 +10,41 @@ import { ConfigModal } from './components/modals/ConfigModal';
 import { TagsModal } from './components/modals/TagsModal';
 import { VaultConverter } from './services/exportService';
 import { StorageService } from './services/storageService';
-// Fix: Use lowercase path to match the primary included file and avoid casing collision errors
-import { VaultRefiner } from './services/vaultRefiner';
+// Standardized to uppercase to resolve casing collision with already included 'VaultRefiner.ts' in the program
+import { VaultRefiner } from './services/VaultRefiner';
 import { SovereignDocument } from './types';
-import { Check, Shield, Cpu } from 'lucide-react';
+import { Check, Shield, Cpu, Sparkles } from 'lucide-react';
 import { usePWAInstall } from './hooks/usePWAInstall';
+import { GoogleGenAI } from "@google/genai";
+
+/**
+ * Role: Senior Debugger
+ * Logic: Identification of Overlapping Stacking Contexts
+ */
+const useClickInterceptor = () => {
+  useEffect(() => {
+    const handleGlobalClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      console.group('🛡️ AegisVault: Interaction Debugger');
+      console.log('Target Element:', target);
+      console.log('Tag Name:', target.tagName);
+      console.log('Z-Index (Computed):', window.getComputedStyle(target).zIndex);
+      
+      if (target.tagName !== 'BUTTON' && target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
+        const parentBtn = target.closest('button');
+        if (!parentBtn) {
+          console.warn('⚠️ Interaction intercepted by a non-interactive layer.');
+        } else {
+          console.log('✅ Button child clicked:', parentBtn);
+        }
+      }
+      console.groupEnd();
+    };
+
+    document.addEventListener('click', handleGlobalClick, true);
+    return () => document.removeEventListener('click', handleGlobalClick, true);
+  }, []);
+};
 
 interface ExportTask {
   id: string;
@@ -25,10 +55,12 @@ interface ExportTask {
 type ModalType = 'export' | 'config' | 'tags' | null;
 
 export default function App() {
+  useClickInterceptor();
+  
   const [documents, setDocuments] = useState<SovereignDocument[]>([]);
   const [activeDocId, setActiveDocId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
-  const [exportTasks, setExportTasks] = useState<ExportTask[]>([]);
+  const [isAIRefining, setIsAIRefining] = useState(false);
   const [progress, setProgress] = useState(0);
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [pendingFormat, setPendingFormat] = useState<'pdf' | 'docx' | null>(null);
@@ -57,7 +89,7 @@ export default function App() {
         await StorageService.saveDocument(firstDoc);
         setDocuments([firstDoc]);
         setActiveDocId(firstDoc.id);
-      } else if (!activeDocId) {
+      } else if (!activeDocId && allDocs.length > 0) {
         setActiveDocId(allDocs[0].id);
       }
     };
@@ -87,7 +119,8 @@ export default function App() {
       await StorageService.saveDocument(updatedDoc);
       setDocuments(prev => {
         const others = prev.filter(d => d.id !== updatedDoc.id);
-        return [updatedDoc, ...others].sort((a, b) => b.lastModified - a.lastModified);
+        const sorted = [updatedDoc, ...others].sort((a, b) => b.lastModified - a.lastModified);
+        return sorted;
       });
     } finally {
       setTimeout(() => setIsSaving(false), 400);
@@ -111,11 +144,44 @@ export default function App() {
     setNotification({ message: 'Structural hardening complete', type: 'success' });
   };
 
+  const handleAIRefine = async () => {
+    if (!activeDoc || isAIRefining) return;
+    setIsAIRefining(true);
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      // Using gemini-3-flash-preview for executive refinement as recommended for basic text tasks
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: `Refine this markdown document for a sovereign, executive audience. 
+        Enforce perfect vertical rhythm, clear hierarchies, and professional clarity. 
+        Do not change the fundamental meaning. Return only the refined markdown.
+        
+        DOCUMENT:
+        ${activeDoc.content}`,
+        config: {
+          systemInstruction: "You are an elite sovereign editor for high-stakes documentation. Your output is precise, structured, and typographically superior.",
+          temperature: 0.4
+        }
+      });
+      
+      const refinedContent = response.text || activeDoc.content;
+      handleContentChange(refinedContent);
+      if ('vibrate' in navigator) navigator.vibrate([20, 10, 20]);
+      setNotification({ message: 'Executive AI hardening applied', type: 'success' });
+    } catch (err) {
+      console.error(err);
+      setNotification({ message: 'AI Protocol failure', type: 'error' });
+    } finally {
+      setIsAIRefining(false);
+    }
+  };
+
   const handleCreateNew = async () => {
     const newDoc = await StorageService.createNewDocument();
     setDocuments(prev => [newDoc, ...prev]);
     setActiveDocId(newDoc.id);
     setIsSidebarOpen(false);
+    if ('vibrate' in navigator) navigator.vibrate(10);
   };
 
   const handleDelete = async (id: string) => {
@@ -130,13 +196,15 @@ export default function App() {
   const handleRenameDraft = (id: string, name: string) => {
     const doc = documents.find(d => d.id === id);
     if (!doc) return;
-    const updated = { ...doc, title: name };
-    persistChanges(updated);
+    const updated = { ...doc, title: name, lastModified: Date.now() };
+    setDocuments(prev => prev.map(d => d.id === id ? updated : d));
+    StorageService.saveDocument(updated);
   };
 
   const handleSelectDoc = (id: string) => {
     setActiveDocId(id);
     setIsSidebarOpen(false);
+    if ('vibrate' in navigator) navigator.vibrate(5);
   };
 
   const onExportClick = (format: 'pdf' | 'docx') => {
@@ -165,10 +233,6 @@ export default function App() {
     }
   };
 
-  const updateTaskStatus = (id: string, status: ExportTask['status']) => {
-    setExportTasks(prev => prev.map(t => t.id === id ? { ...t, status } : t));
-  };
-
   const startExportSequence = async (customName: string) => {
     if (!activeDoc || !pendingFormat) return;
     const currentFormat = pendingFormat;
@@ -176,27 +240,15 @@ export default function App() {
     setPendingFormat(null);
     setIsExporting(true);
     setProgress(0);
-    
-    const tasks: ExportTask[] = [
-      { id: 'refine', label: 'Structural Refinement', status: 'pending' },
-      { id: 'render', label: 'High-Fidelity Rendering', status: 'pending' },
-      { id: 'binary', label: 'Binary Shard Encoding', status: 'pending' }
-    ];
-    setExportTasks(tasks);
 
     try {
-      updateTaskStatus('refine', 'active');
       setProgress(20);
       await new Promise(r => setTimeout(r, 400));
       const refined = VaultRefiner.refine(activeDoc.content);
-      updateTaskStatus('refine', 'complete');
-
-      updateTaskStatus('render', 'active');
+      
       setProgress(60);
       await new Promise(r => setTimeout(r, 600));
-      updateTaskStatus('render', 'complete');
 
-      updateTaskStatus('binary', 'active');
       setProgress(90);
       const fileName = (customName || suggestedName).replace(/[^a-z0-9 _-]/gi, '').trim().replace(/\s+/g, '_').toLowerCase();
       
@@ -206,13 +258,10 @@ export default function App() {
         await VaultConverter.toDocx(refined, `${fileName}.docx`);
       }
       
-      updateTaskStatus('binary', 'complete');
       setProgress(100);
       if ('vibrate' in navigator) navigator.vibrate(30);
-      await new Promise(r => setTimeout(r, 400));
       setNotification({ message: 'Binary asset exported', type: 'success' });
     } catch (err) {
-      setExportTasks(prev => prev.map(t => t.status === 'active' ? { ...t, status: 'error' } : t));
       setNotification({ message: 'Export pipeline failure', type: 'error' });
     } finally {
       setTimeout(() => setIsExporting(false), 500);
@@ -237,7 +286,7 @@ export default function App() {
 
       {isSidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-md z-[65] md:hidden animate-in fade-in duration-300 pointer-events-auto"
+          className="fixed inset-0 bg-black/60 backdrop-blur-md z-[90] md:hidden animate-in fade-in duration-300 pointer-events-auto"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
@@ -250,7 +299,11 @@ export default function App() {
           onExport={onExportClick}
           onShare={handleShare}
           onLocalRefine={handleLocalRefine}
+          onAIRefine={handleAIRefine}
+          isAIRefining={isAIRefining}
           onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+          onOpenTags={() => setActiveModal('tags')}
+          onOpenConfig={() => setActiveModal('config')}
         />
 
         <div className="flex-1 overflow-hidden relative flex flex-col md:flex-row pb-20 md:pb-0">
@@ -275,7 +328,7 @@ export default function App() {
       </main>
 
       <MobileActionBar 
-        isExporting={isExporting} 
+        isExporting={isExporting || isAIRefining} 
         onExport={onExportClick} 
         onLocalRefine={handleLocalRefine} 
       />
@@ -299,18 +352,24 @@ export default function App() {
         documents={documents}
       />
 
-      {isExporting && (
-        <div className="fixed inset-0 bg-obsidian/95 backdrop-blur-3xl z-[200] flex flex-col items-center justify-center animate-in fade-in duration-500">
+      {(isExporting || isAIRefining) && (
+        <div className="fixed inset-0 bg-obsidian/95 backdrop-blur-3xl z-[250] flex flex-col items-center justify-center animate-in fade-in duration-500">
           <div className="w-full max-w-sm space-y-12 px-8">
             <div className="flex flex-col items-center gap-8">
                <div className="relative w-24 h-24 border border-white/5 rounded-[2rem] bg-obsidian-soft flex items-center justify-center shadow-sovereign overflow-hidden">
                   <div className="absolute inset-0 bg-gradient-to-br from-emerald-vault/10 to-transparent" />
-                  <Shield className="w-10 h-10 text-emerald-vault animate-pulse relative z-10" />
+                  {isAIRefining ? (
+                    <Sparkles className="w-10 h-10 text-emerald-vault animate-pulse relative z-10" />
+                  ) : (
+                    <Shield className="w-10 h-10 text-emerald-vault animate-pulse relative z-10" />
+                  )}
                 </div>
                 <div className="flex flex-col items-center gap-2">
                   <div className="flex items-center gap-3 text-vault-dim/60">
                     <Cpu size={12} className="animate-spin duration-[4000ms]" />
-                    <span className="text-[10px] font-mono uppercase tracking-[0.3em]">Executing Shard Encoding</span>
+                    <span className="text-[10px] font-mono uppercase tracking-[0.3em]">
+                      {isAIRefining ? 'AI Executive Refinement' : 'Executing Shard Encoding'}
+                    </span>
                   </div>
                 </div>
             </div>
@@ -319,12 +378,8 @@ export default function App() {
                 <div className="h-[2px] w-full bg-white/[0.05] relative overflow-hidden rounded-full">
                   <div 
                     className="h-full bg-emerald-vault shadow-[0_0_20px_rgba(16,185,129,0.8)] transition-all duration-500 ease-out" 
-                    style={{ width: `${progress}%` }} 
+                    style={{ width: isAIRefining ? '100%' : `${progress}%` }} 
                   />
-                </div>
-                <div className="flex justify-between text-[8px] font-mono text-vault-dim/40 uppercase tracking-widest">
-                  <span>Binary.Shard.Gen</span>
-                  <span>{progress}%</span>
                 </div>
             </div>
           </div>
@@ -332,7 +387,7 @@ export default function App() {
       )}
 
       {notification && (
-        <div className="fixed bottom-28 md:bottom-10 left-1/2 -translate-x-1/2 px-6 py-3.5 rounded-2xl border border-white/10 bg-obsidian-soft/90 flex items-center gap-4 shadow-sovereign z-[250] animate-in fade-in slide-in-from-bottom-6 backdrop-blur-2xl pointer-events-none">
+        <div className="fixed bottom-28 md:bottom-10 left-1/2 -translate-x-1/2 px-6 py-3.5 rounded-2xl border border-white/10 bg-obsidian-soft/90 flex items-center gap-4 shadow-sovereign z-[300] animate-in fade-in slide-in-from-bottom-6 backdrop-blur-2xl pointer-events-none">
           <div className="w-6 h-6 rounded-full bg-emerald-vault/10 flex items-center justify-center">
             <Check className="w-3.5 h-3.5 text-emerald-vault" strokeWidth={3} />
           </div>

@@ -12,7 +12,6 @@ interface TagsModalProps {
 export const TagsModal: React.FC<TagsModalProps> = ({ isOpen, onClose, documents }) => {
   if (!isOpen) return null;
 
-  // Local Extraction Logic: Finding unique tags across shards
   const allTags = documents.reduce((acc, doc) => {
     doc.metadata.tags.forEach(t => {
       acc[t] = (acc[t] || 0) + 1;
@@ -20,11 +19,10 @@ export const TagsModal: React.FC<TagsModalProps> = ({ isOpen, onClose, documents
     return acc;
   }, {} as Record<string, number>);
 
-  // Fix: Explicitly cast to number to resolve "left-hand side of arithmetic operation" error
   const sortedTags = Object.entries(allTags).sort((a, b) => (b[1] as number) - (a[1] as number));
 
   return (
-    <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-obsidian/90 backdrop-blur-2xl animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-obsidian/90 backdrop-blur-2xl animate-in fade-in duration-300 pointer-events-auto">
       <div className="w-full max-w-lg bg-obsidian-soft border border-vault-border rounded-2xl shadow-sovereign overflow-hidden animate-in zoom-in-95 duration-200">
         <div className="p-6 flex items-center justify-between border-b border-vault-border bg-white/[0.01]">
           <div className="flex items-center gap-4">

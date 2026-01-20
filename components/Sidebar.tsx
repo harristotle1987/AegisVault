@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Plus, Hash, Trash2, Shield, Settings, FileText, ChevronLeft, ChevronRight, Clock, X, DownloadCloud } from 'lucide-react';
 import { SovereignDocument } from '../types';
@@ -39,8 +40,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <aside 
       className={`
-        bg-obsidian-soft border-r border-vault-border flex flex-col shrink-0 transition-transform duration-300 ease-in-out z-[70]
+        bg-obsidian-soft border-r border-vault-border flex flex-col shrink-0 transition-transform duration-300 ease-in-out z-[100]
         fixed md:static inset-y-0 left-0 h-full shadow-2xl md:shadow-none pointer-events-auto
+        overflow-y-auto overflow-x-visible
         ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
         ${isCollapsed ? 'md:w-16 w-64' : 'w-72'}
       `}
@@ -57,14 +59,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
         
         <button 
           onClick={onClose}
-          className="md:hidden w-8 h-8 rounded-full border border-white/10 flex items-center justify-center text-vault-dim hover:text-white transition-all bg-white/5 active:scale-90"
+          className="md:hidden w-8 h-8 rounded-full border border-white/10 flex items-center justify-center text-vault-dim hover:text-white transition-all bg-white/5 active:scale-90 touch-manipulation min-h-[44px] min-w-[44px]"
         >
           <X size={16} />
         </button>
 
         <button 
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className={`hidden md:flex w-8 h-8 rounded-full border border-white/10 items-center justify-center text-vault-dim hover:text-emerald-vault transition-all bg-white/5 ${isCollapsed ? 'mx-auto' : ''} active:scale-90`}
+          className={`hidden md:flex w-8 h-8 rounded-full border border-white/10 items-center justify-center text-vault-dim hover:text-emerald-vault transition-all bg-white/5 ${isCollapsed ? 'mx-auto' : ''} active:scale-90 touch-manipulation`}
         >
           {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
         </button>
@@ -73,7 +75,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="px-5 mb-6">
         <button 
           onClick={onCreate}
-          className={`w-full flex items-center justify-center gap-3 py-3 md:py-3 rounded-xl bg-emerald-vault/5 border border-emerald-vault/20 text-emerald-vault hover:bg-emerald-vault/10 transition-all group overflow-hidden active:scale-[0.98] ${isCollapsed ? 'px-0' : 'px-4'}`}
+          className={`w-full flex items-center justify-center gap-3 py-3 md:py-3 rounded-xl bg-emerald-vault/5 border border-emerald-vault/20 text-emerald-vault hover:bg-emerald-vault/10 transition-all group overflow-hidden active:scale-[0.98] touch-manipulation ${isCollapsed ? 'px-0' : 'px-4'}`}
           title="Create Draft"
         >
           <Plus size={18} className="shrink-0" />
@@ -81,7 +83,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 space-y-2 no-scrollbar pb-10">
+      <div className="flex-1 overflow-y-auto px-4 space-y-2 no-scrollbar pb-10 overflow-x-visible">
         {(!isCollapsed || window.innerWidth < 768) && (
           <div className="px-4 py-2 mb-1 animate-in fade-in duration-500">
             <span className="text-[9px] uppercase tracking-[0.3em] text-vault-dim/30 font-bold">Encrypted Shards</span>
@@ -92,7 +94,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div 
             key={doc.id}
             onClick={() => onSelect(doc.id)}
-            className={`group relative flex flex-col gap-1 rounded-xl cursor-pointer transition-all duration-200 border active:scale-[0.98] ${
+            className={`group relative flex flex-col gap-1 rounded-xl cursor-pointer transition-all duration-200 border active:scale-[0.98] touch-manipulation ${
               isCollapsed && window.innerWidth >= 768 ? 'p-3 items-center' : 'px-4 py-3'
             } ${
               activeId === doc.id 
@@ -141,7 +143,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         ))}
       </div>
 
-      <div className={`p-6 border-t border-vault-border space-y-4 ${isCollapsed && window.innerWidth >= 768 ? 'items-center flex flex-col' : ''}`}>
+      <div className={`p-6 border-t border-vault-border space-y-4 overflow-x-visible ${isCollapsed && window.innerWidth >= 768 ? 'items-center flex flex-col' : ''}`}>
         <SidebarStaticItem 
           icon={<Hash size={18} />} 
           label="Tags" 
@@ -158,7 +160,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {installPrompt?.isInstallable && (
           <button 
             onClick={installPrompt.install}
-            className={`flex items-center gap-4 transition-all group w-full active:scale-[0.98] ${isCollapsed && window.innerWidth >= 768 ? 'justify-center p-2' : 'px-4 py-3 border border-emerald-vault text-emerald-vault rounded-xl hover:bg-emerald-vault/10 shadow-[0_0_15px_rgba(16,185,129,0.1)]'}`}
+            className={`flex items-center gap-4 transition-all group w-full active:scale-[0.98] touch-manipulation ${isCollapsed && window.innerWidth >= 768 ? 'justify-center p-2' : 'px-4 py-3 border border-emerald-vault text-emerald-vault rounded-xl hover:bg-emerald-vault/10 shadow-[0_0_15px_rgba(16,185,129,0.1)]'}`}
             title="Install App"
           >
             <DownloadCloud size={18} />
@@ -170,15 +172,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
   );
 };
 
+/**
+ * Role: Senior Developer (UI Hardening)
+ * Feature: Hardened Sidebar interaction item with high stacking priority.
+ */
 const SidebarStaticItem = ({ icon, label, isCollapsed, onClick }: { icon: any, label: string, isCollapsed: boolean, onClick: () => void }) => (
   <button 
     onClick={(e) => {
       e.stopPropagation();
       onClick();
     }}
+    // relative z-[120]: Explicitly clears the sidebar wrapper and any main content ghost layers
+    // pointer-events-auto: Forces the browser to ignore any transparent masks
+    // touch-manipulation: Removes 300ms delay on Android Chrome
     className={`
-      flex items-center gap-4 transition-all group relative z-[80] pointer-events-auto active:scale-[0.95]
-      ${isCollapsed && window.innerWidth >= 768 ? 'justify-center w-full p-2' : 'w-full px-4 py-3 md:py-2 text-vault-dim/50 hover:text-vault-text hover:bg-white/[0.04] rounded-lg'}
+      flex items-center gap-4 transition-all group relative z-[120] pointer-events-auto active:scale-95 touch-manipulation min-h-[48px]
+      ${isCollapsed && window.innerWidth >= 768 ? 'justify-center w-full p-2' : 'w-full px-4 py-3 md:py-2 text-vault-dim/50 hover:text-vault-text hover:bg-white/[0.04] rounded-lg border border-transparent hover:border-vault-border'}
     `}
     title={label}
   >
