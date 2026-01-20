@@ -1,19 +1,26 @@
-
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#050505">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="AegisVault">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="format-detection" content="telephone=no">
+    
     <title>AegisVault | Sovereign Editor</title>
+    
     <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+    <link rel="apple-touch-icon" href="./icon-512.svg">
     <link rel="manifest" href="./manifest.json">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,700;0,800;1,700;1,800&display=swap" rel="stylesheet">
+    
     <script>
       tailwind.config = {
         theme: {
@@ -40,7 +47,8 @@
               serif: ["Playfair Display", "serif"],
             },
             boxShadow: {
-              'sovereign': '0 0 20px 2px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05)',
+              'sovereign': '0 20px 50px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05)',
+              'emerald-glow': '0 0 20px rgba(16, 185, 129, 0.2)',
             },
           },
         },
@@ -72,18 +80,25 @@
             margin: 0;
             overflow: hidden;
             -webkit-font-smoothing: antialiased;
-            overscroll-behavior-y: none; /* Prevent pull-to-refresh on mobile */
+            overscroll-behavior-y: none;
+            user-select: none;
+        }
+        
+        #root {
+          height: 100vh;
+          height: 100svh;
         }
 
-        /* Custom "Obsidian" Scrollbar */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
         ::-webkit-scrollbar-track { background: #050505; }
         ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.08); border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: rgba(16, 185, 129, 0.5); }
 
-        /* Executive Typography Engine (Prose-Vault) */
+        .prose-vault {
+          user-select: text;
+        }
         .prose-vault h1 { 
-          font-size: 3.5rem; 
+          font-size: clamp(2.5rem, 8vw, 3.5rem); 
           font-weight: 800; 
           margin-bottom: 2.5rem; 
           color: #ffffff; 
@@ -114,7 +129,7 @@
           margin-bottom: 1.75rem; 
           line-height: 1.85; 
           color: #cbd5e1; 
-          font-size: 1.1rem;
+          font-size: 1.15rem;
           font-weight: 400;
         }
         .prose-vault table {
@@ -145,7 +160,7 @@
           font-style: italic; 
           margin: 2.5rem 0; 
           background: rgba(16, 185, 129, 0.02); 
-          font-size: 1.2rem;
+          font-size: 1.3rem;
           font-family: 'Playfair Display', serif;
         }
         .prose-vault code { 
@@ -199,12 +214,15 @@
           font-weight: bold;
         }
 
-        /* Mobile Typography Adjustments */
         @media (max-width: 768px) {
-          .prose-vault h1 { font-size: 2.5rem; margin-bottom: 1.5rem; }
-          .prose-vault h2 { font-size: 1.75rem; margin-top: 2rem; }
-          .prose-vault p { font-size: 1rem; line-height: 1.6; }
+          .prose-vault h1 { font-size: 2.2rem; margin-bottom: 1.5rem; }
+          .prose-vault h2 { font-size: 1.6rem; margin-top: 2rem; }
+          .prose-vault p { font-size: 1.05rem; line-height: 1.7; }
           .prose-vault pre { padding: 1.25rem; }
+        }
+
+        :focus:not(:focus-visible) {
+          outline: none;
         }
     </style>
 </head>
