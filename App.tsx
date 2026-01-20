@@ -8,9 +8,10 @@ import { MobileActionBar } from './components/MobileActionBar';
 import { ExportModal } from './components/modals/ExportModal';
 import { ConfigModal } from './components/modals/ConfigModal';
 import { TagsModal } from './components/modals/TagsModal';
+import { InstallPrompt } from './components/InstallPrompt';
 import { VaultConverter } from './services/exportService';
 import { StorageService } from './services/storageService';
-// Standardized on lowercase service filenames to resolve casing conflicts
+// Fixed: Changed './services/VaultRefiner' (incorrect casing/empty file) to './services/vaultRefiner'
 import { VaultRefiner } from './services/vaultRefiner';
 import { SovereignDocument, VaultFont } from './types';
 import { Check, Shield, Loader2, FileText } from 'lucide-react';
@@ -30,8 +31,11 @@ export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [mobileTab, setMobileTab] = useState<'editor' | 'preview'>('editor');
   
-  // Font State - Executive Hardening
   const [activeFont, setActiveFont] = useState<VaultFont>('sans');
+
+  useEffect(() => {
+    document.body.setAttribute('data-font-mode', activeFont);
+  }, [activeFont]);
   
   const { isInstallable, install } = usePWAInstall();
 
@@ -161,7 +165,7 @@ export default function App() {
     setActiveModal(null);
     try {
       if (pendingFormat === 'pdf') {
-        await VaultConverter.toPDF('preview-area', name + '.pdf');
+        await VaultConverter.toPDF('preview-area', name + '.pdf', activeFont);
       } else {
         await VaultConverter.toDocx(activeDoc.content, name + '.docx');
       }
@@ -257,7 +261,6 @@ export default function App() {
           )}
         </div>
 
-        {/* Global Loading Overlay - Hardened Z-Index & Blocking Interaction */}
         {isExporting && (
           <div className="fixed inset-0 z-[600] bg-obsidian/90 backdrop-blur-md flex flex-col items-center justify-center pointer-events-auto cursor-wait">
              <div className="p-10 rounded-3xl bg-obsidian-soft border border-emerald-vault/20 shadow-sovereign flex flex-col items-center gap-6 animate-in zoom-in-95 duration-300">
@@ -275,6 +278,8 @@ export default function App() {
           </div>
         )}
       </main>
+
+      <InstallPrompt />
 
       <ExportModal 
         initialName={suggestedName}

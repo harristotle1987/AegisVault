@@ -1,3 +1,4 @@
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
@@ -9,8 +10,8 @@ if (!rootElement) {
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    // Explicitly using absolute path for PWA asset reliability
-    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+    // Relative path for PWA asset reliability across dev environments
+    navigator.serviceWorker.register('./sw.js', { scope: './' })
       .then(reg => console.log('🛡️ AegisVault: Secured', reg.scope))
       .catch(err => {
         if (err.message.includes('404')) return; 

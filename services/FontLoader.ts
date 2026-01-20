@@ -1,10 +1,14 @@
 
 /**
  * FontLoader: Virtual File System (VFS) for high-fidelity typography.
+ * Embeds binary font data directly into binary output streams.
  */
+
+// Placeholder binary strings representing font files. 
+// In a production environment, these would be the full base64 strings of .ttf files.
 export const VAULT_FONTS = {
-  // Placeholder binary data - In production, these are full Base64 strings.
-  // The system now detects "PLACEHOLDER" and gracefully degrades to system fonts.
+  // Using simplified placeholders that standard PDF engines can map or replace if missing.
+  // Full base64 blobs for Inter and JetBrains Mono would go here.
   INTER_REGULAR: "AAEAAAARAQAABAAQR0RFR...[BASE64_PLACEHOLDER]",
   JETBRAINS_MONO: "AAEAAAARAQAABAAQR0RFR...[BASE64_PLACEHOLDER]",
 };
@@ -14,20 +18,22 @@ export class FontLoader {
    * Hydrates the jsPDF instance with custom fonts from the local VFS.
    */
   static async loadForPDF(doc: any) {
-    // CRITICAL FIX: Prevent atob crash by checking for placeholders
-    if (!VAULT_FONTS.INTER_REGULAR || VAULT_FONTS.INTER_REGULAR.includes("PLACEHOLDER")) {
-      console.log("Vault: Using system fonts (Optimization Mode)");
-      return;
-    }
-
     try {
-      doc.addFileToVFS("Inter-Regular.ttf", VAULT_FONTS.INTER_REGULAR);
-      doc.addFileToVFS("JetBrainsMono.ttf", VAULT_FONTS.JETBRAINS_MONO);
-      doc.addFont("Inter-Regular.ttf", "Inter", "normal");
-      doc.addFont("JetBrainsMono.ttf", "JetBrains", "normal");
-      doc.setFont("Inter");
+      // Logic for adding fonts if real base64 were present
+      if (VAULT_FONTS.INTER_REGULAR && !VAULT_FONTS.INTER_REGULAR.includes("PLACEHOLDER")) {
+        doc.addFileToVFS("Inter-Regular.ttf", VAULT_FONTS.INTER_REGULAR);
+        doc.addFont("Inter-Regular.ttf", "Inter", "normal");
+      }
+      
+      if (VAULT_FONTS.JETBRAINS_MONO && !VAULT_FONTS.JETBRAINS_MONO.includes("PLACEHOLDER")) {
+        doc.addFileToVFS("JetBrainsMono-Regular.ttf", VAULT_FONTS.JETBRAINS_MONO);
+        doc.addFont("JetBrainsMono-Regular.ttf", "JetBrains", "normal");
+      }
+
+      // Default font setting
+      doc.setFont("Helvetica"); // Fallback
     } catch (e) {
-      console.warn("Vault VFS Font Injection bypassed. Using system fallbacks.");
+      console.warn("Vault VFS Font Injection bypassed. Using standard system fallbacks.");
     }
   }
 
