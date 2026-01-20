@@ -2,6 +2,7 @@
 export type ExportFormat = 'pdf' | 'docx';
 export type DocumentStatus = 'draft' | 'vault';
 export type VaultTheme = 'obsidian' | 'minimal' | 'executive';
+export type VaultFont = 'sans' | 'mono';
 
 export interface SovereignDocument {
   id: string;
@@ -16,6 +17,7 @@ export interface SovereignDocument {
     tags: string[];
   };
   theme: VaultTheme;
+  font?: VaultFont;
 }
 
 export interface AppState {

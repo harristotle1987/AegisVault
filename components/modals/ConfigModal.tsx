@@ -1,10 +1,14 @@
+
 import React, { useEffect, useState } from 'react';
 import { X, Moon, Shield, Save, Database, EyeOff, Zap, Layout, Monitor } from 'lucide-react';
+import { VaultFont } from '../../types';
 
 interface ConfigModalProps {
   isOpen: boolean;
   onClose: () => void;
   docCount: number;
+  activeFont: VaultFont;
+  setActiveFont: (font: VaultFont) => void;
 }
 
 const ToggleOption = ({ label, description, defaultOn, icon }: { label: string, description: string, defaultOn?: boolean, icon: React.ReactNode }) => {
@@ -30,7 +34,7 @@ const ToggleOption = ({ label, description, defaultOn, icon }: { label: string, 
   );
 };
 
-export const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, onClose, docCount }) => {
+export const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, onClose, docCount, activeFont, setActiveFont }) => {
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -110,12 +114,26 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, onClose, docCo
             </div>
             <div className="p-6 rounded-2xl bg-obsidian-muted border border-vault-border space-y-4">
               <p className="text-[10px] text-vault-dim leading-relaxed font-medium">Select the primary typeface for document generation. Binary sharding embeds these assets automatically.</p>
-              <div className="grid grid-cols-2 gap-3">
-                <button className="flex flex-col items-center gap-2 py-4 border border-emerald-vault/40 bg-emerald-vault/5 text-emerald-vault rounded-xl transition-all">
+              <div className="grid grid-cols-2 gap-3 relative z-[170]">
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setActiveFont('sans'); }}
+                  className={`flex flex-col items-center gap-2 py-4 border rounded-xl transition-all pointer-events-auto active:scale-95 ${
+                    activeFont === 'sans' 
+                      ? 'border-emerald-vault/40 bg-emerald-vault/5 text-emerald-vault' 
+                      : 'border-vault-border bg-white/[0.02] text-vault-dim hover:border-vault-border/50'
+                  }`}
+                >
                   <Monitor size={14} />
                   <span className="text-[9px] font-black uppercase tracking-widest">Inter (Sans)</span>
                 </button>
-                <button className="flex flex-col items-center gap-2 py-4 border border-vault-border bg-white/[0.02] text-vault-dim rounded-xl transition-all">
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setActiveFont('mono'); }}
+                  className={`flex flex-col items-center gap-2 py-4 border rounded-xl transition-all pointer-events-auto active:scale-95 ${
+                    activeFont === 'mono' 
+                      ? 'border-emerald-vault/40 bg-emerald-vault/5 text-emerald-vault' 
+                      : 'border-vault-border bg-white/[0.02] text-vault-dim hover:border-vault-border/50'
+                  }`}
+                >
                   <Database size={14} />
                   <span className="text-[9px] font-black uppercase tracking-widest">Mono (Draft)</span>
                 </button>

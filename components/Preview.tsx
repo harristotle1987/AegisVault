@@ -1,12 +1,14 @@
 
 import React, { useMemo } from 'react';
 import { marked } from 'marked';
+import { VaultFont } from '../types';
 
 interface PreviewProps {
   content: string;
+  font?: VaultFont;
 }
 
-export const Preview: React.FC<PreviewProps> = ({ content }) => {
+export const Preview: React.FC<PreviewProps> = ({ content, font = 'sans' }) => {
   const html = useMemo(() => {
     return marked.parse(content, { 
       breaks: true, 
@@ -15,6 +17,8 @@ export const Preview: React.FC<PreviewProps> = ({ content }) => {
       headerIds: false
     });
   }, [content]);
+
+  const fontClass = font === 'mono' ? 'font-mono' : 'font-sans';
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -34,7 +38,7 @@ export const Preview: React.FC<PreviewProps> = ({ content }) => {
         <div className="max-w-4xl mx-auto min-h-full flex flex-col shadow-[0_0_100px_rgba(0,0,0,0.4)]">
           <div 
             id="preview-area"
-            className="flex-1 p-16 md:p-24 prose-vault selection:bg-emerald-vault/20 transition-all duration-500 ease-in-out"
+            className={`flex-1 p-16 md:p-24 prose-vault selection:bg-emerald-vault/20 transition-all duration-500 ease-in-out ${fontClass}`}
             dangerouslySetInnerHTML={{ __html: html }}
           />
           

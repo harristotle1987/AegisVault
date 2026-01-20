@@ -10,9 +10,9 @@ import { ConfigModal } from './components/modals/ConfigModal';
 import { TagsModal } from './components/modals/TagsModal';
 import { VaultConverter } from './services/exportService';
 import { StorageService } from './services/storageService';
-// Fix: Use lowercase filename to resolve casing conflict with project root files
-import { VaultRefiner } from './services/vaultRefiner';
-import { SovereignDocument } from './types';
+// Fix: Use PascalCase filename to match project root file standards and resolve casing conflict
+import { VaultRefiner } from './services/VaultRefiner';
+import { SovereignDocument, VaultFont } from './types';
 import { Check, Shield, Loader2, FileText } from 'lucide-react';
 import { usePWAInstall } from './hooks/usePWAInstall';
 
@@ -29,6 +29,9 @@ export default function App() {
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [mobileTab, setMobileTab] = useState<'editor' | 'preview'>('editor');
+  
+  // Font State - Executive Hardening
+  const [activeFont, setActiveFont] = useState<VaultFont>('sans');
   
   const { isInstallable, install } = usePWAInstall();
 
@@ -210,11 +213,11 @@ export default function App() {
           {activeDoc ? (
             <>
               <div className={`flex-1 flex flex-col h-full overflow-hidden ${mobileTab === 'preview' ? 'hidden md:flex' : 'flex'}`}>
-                <Editor value={activeDoc.content} onChange={handleContentChange} />
+                <Editor font={activeFont} value={activeDoc.content} onChange={handleContentChange} />
               </div>
               <div className="hidden md:block w-px bg-vault-border z-10" />
               <div className={`flex-1 flex flex-col h-full overflow-hidden bg-obsidian-soft no-scrollbar ${mobileTab === 'editor' ? 'hidden md:flex' : 'flex'}`}>
-                <Preview content={activeDoc.content} />
+                <Preview font={activeFont} content={activeDoc.content} />
               </div>
             </>
           ) : (
@@ -279,7 +282,13 @@ export default function App() {
         onConfirm={handleExport}
         onCancel={() => { setActiveModal(null); setPendingFormat(null); }}
       />
-      <ConfigModal isOpen={activeModal === 'config'} onClose={() => setActiveModal(null)} docCount={documents.length} />
+      <ConfigModal 
+        isOpen={activeModal === 'config'} 
+        onClose={() => setActiveModal(null)} 
+        docCount={documents.length}
+        activeFont={activeFont}
+        setActiveFont={setActiveFont}
+      />
       <TagsModal isOpen={activeModal === 'tags'} onClose={() => setActiveModal(null)} documents={documents} />
     </div>
   );
