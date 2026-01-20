@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Plus, Hash, Trash2, Shield, Settings, FileText, ChevronLeft, ChevronRight, Clock, X, DownloadCloud } from 'lucide-react';
 import { SovereignDocument } from '../types';
@@ -10,6 +9,8 @@ interface SidebarProps {
   onCreate: () => void;
   onDelete: (id: string) => void;
   onRename: (id: string, name: string) => void;
+  onOpenConfig: () => void;
+  onOpenTags: () => void;
   isOpen: boolean;
   onClose: () => void;
   installPrompt?: { isInstallable: boolean; install: () => void };
@@ -22,6 +23,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onCreate, 
   onDelete,
   onRename,
+  onOpenConfig,
+  onOpenTags,
   isOpen,
   onClose,
   installPrompt
@@ -36,8 +39,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <aside 
       className={`
-        bg-obsidian-soft border-r border-vault-border flex flex-col shrink-0 transition-transform duration-300 ease-in-out z-40
-        fixed md:static inset-y-0 left-0 h-full shadow-2xl md:shadow-none
+        bg-obsidian-soft border-r border-vault-border flex flex-col shrink-0 transition-transform duration-300 ease-in-out z-[70]
+        fixed md:static inset-y-0 left-0 h-full shadow-2xl md:shadow-none pointer-events-auto
         ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
         ${isCollapsed ? 'md:w-16 w-64' : 'w-72'}
       `}
@@ -52,18 +55,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         )}
         
-        {/* Mobile Close Button */}
         <button 
           onClick={onClose}
-          className="md:hidden w-8 h-8 rounded-full border border-white/10 flex items-center justify-center text-vault-dim hover:text-white transition-all bg-white/5"
+          className="md:hidden w-8 h-8 rounded-full border border-white/10 flex items-center justify-center text-vault-dim hover:text-white transition-all bg-white/5 active:scale-90"
         >
           <X size={16} />
         </button>
 
-        {/* Desktop Collapse Button */}
         <button 
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className={`hidden md:flex w-8 h-8 rounded-full border border-white/10 items-center justify-center text-vault-dim hover:text-emerald-vault transition-all bg-white/5 ${isCollapsed ? 'mx-auto' : ''}`}
+          className={`hidden md:flex w-8 h-8 rounded-full border border-white/10 items-center justify-center text-vault-dim hover:text-emerald-vault transition-all bg-white/5 ${isCollapsed ? 'mx-auto' : ''} active:scale-90`}
         >
           {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
         </button>
@@ -72,7 +73,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="px-5 mb-6">
         <button 
           onClick={onCreate}
-          className={`w-full flex items-center justify-center gap-3 py-3 md:py-3 py-4 rounded-xl bg-emerald-vault/5 border border-emerald-vault/20 text-emerald-vault hover:bg-emerald-vault/10 transition-all group overflow-hidden ${isCollapsed ? 'px-0' : 'px-4'}`}
+          className={`w-full flex items-center justify-center gap-3 py-3 md:py-3 rounded-xl bg-emerald-vault/5 border border-emerald-vault/20 text-emerald-vault hover:bg-emerald-vault/10 transition-all group overflow-hidden active:scale-[0.98] ${isCollapsed ? 'px-0' : 'px-4'}`}
           title="Create Draft"
         >
           <Plus size={18} className="shrink-0" />
@@ -91,7 +92,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div 
             key={doc.id}
             onClick={() => onSelect(doc.id)}
-            className={`group relative flex flex-col gap-1 rounded-xl cursor-pointer transition-all duration-200 border ${
+            className={`group relative flex flex-col gap-1 rounded-xl cursor-pointer transition-all duration-200 border active:scale-[0.98] ${
               isCollapsed && window.innerWidth >= 768 ? 'p-3 items-center' : 'px-4 py-3'
             } ${
               activeId === doc.id 
@@ -125,7 +126,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {(!isCollapsed || window.innerWidth < 768) && (
                 <button 
                   onClick={(e) => { e.stopPropagation(); onDelete(doc.id); }}
-                  className="opacity-0 group-hover:opacity-100 p-2 hover:text-red-500 transition-all hover:bg-red-500/10 rounded-lg ml-2 shrink-0 touch-target"
+                  className="opacity-0 group-hover:opacity-100 p-2 hover:text-red-500 transition-all hover:bg-red-500/10 rounded-lg ml-2 shrink-0 touch-target active:scale-90"
                   title="Purge Shard"
                 >
                   <Trash2 size={12} />
@@ -141,13 +142,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       <div className={`p-6 border-t border-vault-border space-y-4 ${isCollapsed && window.innerWidth >= 768 ? 'items-center flex flex-col' : ''}`}>
-        <SidebarStaticItem icon={<Hash size={18} />} label="Tags" isCollapsed={isCollapsed} />
-        <SidebarStaticItem icon={<Settings size={18} />} label="Config" isCollapsed={isCollapsed} />
+        <SidebarStaticItem 
+          icon={<Hash size={18} />} 
+          label="Tags" 
+          isCollapsed={isCollapsed} 
+          onClick={onOpenTags}
+        />
+        <SidebarStaticItem 
+          icon={<Settings size={18} />} 
+          label="Config" 
+          isCollapsed={isCollapsed} 
+          onClick={onOpenConfig}
+        />
         
         {installPrompt?.isInstallable && (
           <button 
             onClick={installPrompt.install}
-            className={`flex items-center gap-4 transition-all group w-full ${isCollapsed && window.innerWidth >= 768 ? 'justify-center p-2' : 'px-4 py-3 border border-emerald-vault text-emerald-vault rounded-xl hover:bg-emerald-vault/10 shadow-[0_0_15px_rgba(16,185,129,0.1)]'}`}
+            className={`flex items-center gap-4 transition-all group w-full active:scale-[0.98] ${isCollapsed && window.innerWidth >= 768 ? 'justify-center p-2' : 'px-4 py-3 border border-emerald-vault text-emerald-vault rounded-xl hover:bg-emerald-vault/10 shadow-[0_0_15px_rgba(16,185,129,0.1)]'}`}
             title="Install App"
           >
             <DownloadCloud size={18} />
@@ -159,12 +170,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
   );
 };
 
-const SidebarStaticItem = ({ icon, label, isCollapsed }: { icon: any, label: string, isCollapsed: boolean }) => (
+const SidebarStaticItem = ({ icon, label, isCollapsed, onClick }: { icon: any, label: string, isCollapsed: boolean, onClick: () => void }) => (
   <button 
-    className={`flex items-center gap-4 transition-all group ${isCollapsed && window.innerWidth >= 768 ? 'justify-center w-full p-2' : 'w-full px-4 py-3 md:py-2 text-vault-dim/50 hover:text-vault-text hover:bg-white/[0.02] rounded-lg'}`}
+    onClick={(e) => {
+      e.stopPropagation();
+      onClick();
+    }}
+    className={`
+      flex items-center gap-4 transition-all group relative z-[80] pointer-events-auto active:scale-[0.95]
+      ${isCollapsed && window.innerWidth >= 768 ? 'justify-center w-full p-2' : 'w-full px-4 py-3 md:py-2 text-vault-dim/50 hover:text-vault-text hover:bg-white/[0.04] rounded-lg'}
+    `}
     title={label}
   >
-    <div className="group-hover:text-emerald-vault transition-colors">{icon}</div>
-    {(!isCollapsed || window.innerWidth < 768) && <span className="text-[10px] font-black tracking-[0.3em] uppercase">{label}</span>}
+    <div className="group-hover:text-emerald-vault transition-colors pointer-events-none">{icon}</div>
+    {(!isCollapsed || window.innerWidth < 768) && <span className="text-[10px] font-black tracking-[0.3em] uppercase pointer-events-none">{label}</span>}
   </button>
 );

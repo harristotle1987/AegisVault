@@ -82,11 +82,18 @@
             -webkit-font-smoothing: antialiased;
             overscroll-behavior-y: none;
             user-select: none;
+            touch-action: manipulation;
         }
         
         #root {
           height: 100vh;
           height: 100svh;
+        }
+
+        button, a {
+            touch-action: manipulation;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
         }
 
         ::-webkit-scrollbar { width: 5px; height: 5px; }

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Editor } from './components/Editor';
 import { Preview } from './components/Preview';
@@ -5,12 +6,14 @@ import { Sidebar } from './components/Sidebar';
 import { Toolbar } from './components/Toolbar';
 import { MobileActionBar } from './components/MobileActionBar';
 import { ExportModal } from './components/modals/ExportModal';
+import { ConfigModal } from './components/modals/ConfigModal';
+import { TagsModal } from './components/modals/TagsModal';
 import { VaultConverter } from './services/exportService';
 import { StorageService } from './services/storageService';
-// Fix: Import using PascalCase to match consolidated VaultRefiner.ts file
-import { VaultRefiner } from './services/VaultRefiner';
+// Fix: Use lowercase path to match the primary included file and avoid casing collision errors
+import { VaultRefiner } from './services/vaultRefiner';
 import { SovereignDocument } from './types';
-import { Check, Shield, Cpu, Share2 } from 'lucide-react';
+import { Check, Shield, Cpu } from 'lucide-react';
 import { usePWAInstall } from './hooks/usePWAInstall';
 
 interface ExportTask {
@@ -19,12 +22,15 @@ interface ExportTask {
   status: 'pending' | 'active' | 'complete' | 'error';
 }
 
+type ModalType = 'export' | 'config' | 'tags' | null;
+
 export default function App() {
   const [documents, setDocuments] = useState<SovereignDocument[]>([]);
   const [activeDocId, setActiveDocId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [exportTasks, setExportTasks] = useState<ExportTask[]>([]);
   const [progress, setProgress] = useState(0);
+  const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [pendingFormat, setPendingFormat] = useState<'pdf' | 'docx' | null>(null);
   const [suggestedName, setSuggestedName] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
@@ -47,7 +53,7 @@ export default function App() {
       const allDocs = await refreshDocuments();
       if (allDocs.length === 0) {
         const firstDoc = await StorageService.createNewDocument();
-        firstDoc.content = `# Welcome to AegisVault\n\n**Sovereign Architecture** meets **Executive Typography**.\n\n### Why AegisVault?\n1. **Local Sovereignty**: Your drafts never leave your browser RAM.\n2. **Binary Sharding**: Export high-fidelity PDFs and DOCX files.\n3. **Hardened Refinement**: Auto-cleanup of vertical rhythm and typography.\n\n> "Privacy is not a feature; it is the foundation."\n\n--- \n\n### Commands\n- **Harden**: Standardizes typography and vertical rhythm.\n- **Export**: Generates binary assets from your markdown.\n- **Install**: Adds AegisVault to your home screen for native performance.\n\n*Begin your first archive shard now...*`;
+        firstDoc.content = `# Welcome to AegisVault\n\n**Sovereign Architecture** meets **Executive Typography**.\n\n### Why AegisVault?\n1. **Local Sovereignty**: Your drafts never leave your browser RAM.\n2. **Binary Sharding**: Export high-fidelity PDFs and DOCX files.\n3. **Hardened Refinement**: Auto-cleanup of vertical rhythm and typography.\n\n--- \n\n### Commands\n- **Harden**: Standardizes typography and vertical rhythm.\n- **Export**: Generates binary assets from your markdown.\n- **Beam**: Shares your vault entry instantly via Native OS APIs.\n\n*Begin your first archive shard now...*`;
         await StorageService.saveDocument(firstDoc);
         setDocuments([firstDoc]);
         setActiveDocId(firstDoc.id);
@@ -101,7 +107,6 @@ export default function App() {
     if (!activeDoc) return;
     const refined = VaultRefiner.refine(activeDoc.content);
     handleContentChange(refined);
-    
     if ('vibrate' in navigator) navigator.vibrate(15);
     setNotification({ message: 'Structural hardening complete', type: 'success' });
   };
@@ -122,12 +127,11 @@ export default function App() {
     setNotification({ message: 'Archive purged successfully', type: 'success' });
   };
 
-  const handleRenameDraft = (id: string, newTitle: string) => {
+  const handleRenameDraft = (id: string, name: string) => {
     const doc = documents.find(d => d.id === id);
     if (!doc) return;
-    const updated = { ...doc, title: newTitle, lastModified: Date.now() };
-    setDocuments(prev => prev.map(d => d.id === id ? updated : d).sort((a, b) => b.lastModified - a.lastModified));
-    StorageService.saveDocument(updated);
+    const updated = { ...doc, title: name };
+    persistChanges(updated);
   };
 
   const handleSelectDoc = (id: string) => {
@@ -140,6 +144,7 @@ export default function App() {
     const suggestion = VaultRefiner.suggestFilename(activeDoc.content);
     setSuggestedName(suggestion);
     setPendingFormat(format);
+    setActiveModal('export');
   };
 
   const handleShare = async () => {
@@ -156,7 +161,7 @@ export default function App() {
         console.error("Beam aborted", err);
       }
     } else {
-      setNotification({ message: "Sharing not supported in this environment", type: 'error' });
+      setNotification({ message: "Sharing not supported", type: 'error' });
     }
   };
 
@@ -167,6 +172,7 @@ export default function App() {
   const startExportSequence = async (customName: string) => {
     if (!activeDoc || !pendingFormat) return;
     const currentFormat = pendingFormat;
+    setActiveModal(null);
     setPendingFormat(null);
     setIsExporting(true);
     setProgress(0);
@@ -222,6 +228,8 @@ export default function App() {
         onCreate={handleCreateNew}
         onDelete={handleDelete}
         onRename={handleRenameDraft}
+        onOpenConfig={() => setActiveModal('config')}
+        onOpenTags={() => setActiveModal('tags')}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         installPrompt={{ isInstallable, install }}
@@ -229,7 +237,7 @@ export default function App() {
 
       {isSidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-md z-30 md:hidden animate-in fade-in duration-300"
+          className="fixed inset-0 bg-black/60 backdrop-blur-md z-[65] md:hidden animate-in fade-in duration-300 pointer-events-auto"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
@@ -275,8 +283,20 @@ export default function App() {
       <ExportModal 
         format={pendingFormat}
         initialName={suggestedName}
-        onCancel={() => setPendingFormat(null)}
+        onCancel={() => setActiveModal(null)}
         onConfirm={startExportSequence}
+      />
+
+      <ConfigModal 
+        isOpen={activeModal === 'config'} 
+        onClose={() => setActiveModal(null)}
+        docCount={documents.length}
+      />
+
+      <TagsModal
+        isOpen={activeModal === 'tags'}
+        onClose={() => setActiveModal(null)}
+        documents={documents}
       />
 
       {isExporting && (
@@ -312,7 +332,7 @@ export default function App() {
       )}
 
       {notification && (
-        <div className="fixed bottom-28 md:bottom-10 left-1/2 -translate-x-1/2 px-6 py-3.5 rounded-2xl border border-white/10 bg-obsidian-soft/90 flex items-center gap-4 shadow-sovereign z-[250] animate-in fade-in slide-in-from-bottom-6 backdrop-blur-2xl">
+        <div className="fixed bottom-28 md:bottom-10 left-1/2 -translate-x-1/2 px-6 py-3.5 rounded-2xl border border-white/10 bg-obsidian-soft/90 flex items-center gap-4 shadow-sovereign z-[250] animate-in fade-in slide-in-from-bottom-6 backdrop-blur-2xl pointer-events-none">
           <div className="w-6 h-6 rounded-full bg-emerald-vault/10 flex items-center justify-center">
             <Check className="w-3.5 h-3.5 text-emerald-vault" strokeWidth={3} />
           </div>
