@@ -1,5 +1,4 @@
-
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useEffect } from 'react';
 import { marked } from 'marked';
 import { VaultFont } from '../types';
 
@@ -9,6 +8,8 @@ interface PreviewProps {
 }
 
 export const Preview: React.FC<PreviewProps> = ({ content, font = 'sans' }) => {
+  const previewRef = useRef<HTMLDivElement>(null);
+
   const html = useMemo(() => {
     return marked.parse(content, { 
       breaks: true, 
@@ -17,6 +18,17 @@ export const Preview: React.FC<PreviewProps> = ({ content, font = 'sans' }) => {
       headerIds: false
     });
   }, [content]);
+
+  /**
+   * Renderer Reset: Explicitly clear the container before setting new HTML.
+   * This prevents duplication ghosts and ensures a clean architectural state.
+   */
+  useEffect(() => {
+    if (previewRef.current) {
+      previewRef.current.innerHTML = '';
+      previewRef.current.innerHTML = html;
+    }
+  }, [html]);
 
   const fontClass = font === 'mono' ? 'font-mono' : 'font-sans';
 
@@ -38,8 +50,8 @@ export const Preview: React.FC<PreviewProps> = ({ content, font = 'sans' }) => {
         <div className="max-w-4xl mx-auto min-h-full flex flex-col shadow-[0_0_100px_rgba(0,0,0,0.4)]">
           <div 
             id="preview-area"
+            ref={previewRef}
             className={`flex-1 p-16 md:p-24 prose-vault selection:bg-emerald-vault/20 transition-all duration-500 ease-in-out ${fontClass}`}
-            dangerouslySetInnerHTML={{ __html: html }}
           />
           
           <div className="h-32 flex items-center justify-center border-t border-vault-border/20 mt-8 mb-24">

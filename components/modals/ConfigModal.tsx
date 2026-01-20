@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X, Moon, Shield, Save, Database, EyeOff, Zap, Layout, Monitor } from 'lucide-react';
+import { X, Moon, Shield, Save, Database, EyeOff, Zap, Layout, Monitor, RefreshCcw } from 'lucide-react';
 import { VaultFont } from '../../types';
 
 interface ConfigModalProps {
@@ -34,6 +34,8 @@ const ToggleOption = ({ label, description, defaultOn, icon }: { label: string, 
 };
 
 export const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, onClose, docCount, activeFont, setActiveFont }) => {
+  const [isPurging, setIsPurging] = useState(false);
+
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -43,9 +45,30 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, onClose, docCo
     return () => { document.body.style.overflow = 'unset'; };
   }, [isOpen]);
 
+  const handlePurge = async () => {
+    setIsPurging(true);
+    try {
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const registration of registrations) {
+          await registration.unregister();
+        }
+        const cacheNames = await caches.keys();
+        for (const name of cacheNames) {
+          await caches.delete(name);
+        }
+      }
+      // Force reload to clean environment and re-cache
+      window.location.reload();
+    } catch (err) {
+      console.error('Purge sequence failure:', err);
+      setIsPurging(false);
+    }
+  };
+
   return (
     <>
-      {/* Hardened Backdrop with Interaction Defense */}
+      {/* Interaction Shield: invisible and pointer-events-none when closed to unblock main UI */}
       <div 
         className={`fixed inset-0 bg-obsidian/40 backdrop-blur-sm z-[150] transition-all duration-500 ease-in-out
           ${isOpen ? 'opacity-100 pointer-events-auto visible' : 'opacity-0 pointer-events-none invisible'}`}
@@ -104,6 +127,28 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, onClose, docCo
                 icon={<EyeOff size={14} />}
               />
             </div>
+          </section>
+
+          <section className="space-y-4">
+            <div className="flex items-center gap-2 px-1">
+              <Monitor size={12} className="text-vault-dim" />
+              <h3 className="text-[10px] font-black text-vault-dim uppercase tracking-[0.3em]">Maintenance Protocol</h3>
+            </div>
+            <button 
+              onClick={handlePurge}
+              disabled={isPurging}
+              className="w-full flex items-center justify-between p-4 rounded-xl bg-red-500/5 border border-red-500/20 hover:bg-red-500/10 transition-all group active:scale-[0.98] disabled:opacity-50"
+            >
+              <div className="flex items-center gap-4 text-left">
+                <div className="w-8 h-8 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center">
+                  <RefreshCcw size={14} className={isPurging ? 'animate-spin' : ''} />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-bold text-red-400 uppercase tracking-widest">Purge Cache & Update</span>
+                  <span className="text-[9px] text-vault-dim font-medium">Reset PWA shell & local assets</span>
+                </div>
+              </div>
+            </button>
           </section>
 
           <section className="space-y-4">

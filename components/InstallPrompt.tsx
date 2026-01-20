@@ -5,21 +5,38 @@ import { Download, X, Shield } from 'lucide-react';
 export const InstallPrompt: React.FC = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isVisible, setIsVisible] = useState(false);
+  const [isVaultReady, setIsVaultReady] = useState(false);
 
   useEffect(() => {
-    const handler = (e: any) => {
+    // Listen for the custom "vault-ready" signal from Service Worker registration
+    const readyHandler = () => setIsVaultReady(true);
+    window.addEventListener('vault-ready', readyHandler);
+
+    const promptHandler = (e: any) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      // Only show if the session is active and user hasn't dismissed it
+      
       const dismissed = localStorage.getItem('vault_install_dismissed');
-      if (!dismissed) {
+      // Only show if vault environment is ready and not previously dismissed
+      if (!dismissed && isVaultReady) {
         setIsVisible(true);
       }
     };
 
-    window.addEventListener('beforeinstallprompt', handler);
-    return () => window.removeEventListener('beforeinstallprompt', handler);
-  }, []);
+    window.addEventListener('beforeinstallprompt', promptHandler);
+    
+    return () => {
+      window.removeEventListener('vault-ready', readyHandler);
+      window.removeEventListener('beforeinstallprompt', promptHandler);
+    };
+  }, [isVaultReady]);
+
+  // Secondary check if vault becomes ready after prompt event stashed
+  useEffect(() => {
+    if (isVaultReady && deferredPrompt && !localStorage.getItem('vault_install_dismissed')) {
+      setIsVisible(true);
+    }
+  }, [isVaultReady, deferredPrompt]);
 
   const handleInstall = async () => {
     if (!deferredPrompt) return;

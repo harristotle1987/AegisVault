@@ -10,9 +10,13 @@ if (!rootElement) {
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    // Relative path for PWA asset reliability across dev environments
-    navigator.serviceWorker.register('./sw.js', { scope: './' })
-      .then(reg => console.log('🛡️ AegisVault: Secured', reg.scope))
+    // Registered at root for absolute PWA scope control
+    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+      .then(reg => {
+        console.log('🛡️ AegisVault: Secured', reg.scope);
+        // Signal to the UI that the sovereign environment is active
+        window.dispatchEvent(new CustomEvent('vault-ready'));
+      })
       .catch(err => {
         if (err.message.includes('404')) return; 
         console.warn('Vault Offline Mode:', err);
