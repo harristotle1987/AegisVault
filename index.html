@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
@@ -13,9 +12,9 @@
     
     <title>AegisVault | Sovereign Editor</title>
     
-    <link rel="icon" type="image/svg+xml" href="./favicon.svg">
-    <link rel="apple-touch-icon" href="./icon-512.svg">
-    <link rel="manifest" href="./manifest.json">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="apple-touch-icon" href="/icon-512.svg">
+    <link rel="manifest" href="/manifest.json">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -92,33 +91,21 @@
           z-index: 1;
         }
 
-        /* 
-          HARDENED INTERACTION LAYER
-          Role: Senior Architect
-          Logic: Ensure no "transparent wall" can block UI events.
-        */
-        button, a, input, textarea, select {
-            position: relative;
-            z-index: 5;
-            pointer-events: auto !important;
-            cursor: pointer !important;
-            -webkit-tap-highlight-color: transparent;
-            user-select: none;
+        /* Hardened Scrolling surface */
+        .vault-editor-scroll {
+          overflow-y: auto !important;
+          height: 100%;
+          -webkit-overflow-scrolling: touch;
         }
 
-        /* Prevent system backgrounds from intercepting clicks */
-        .bg-obsidian, .bg-obsidian-soft, .bg-obsidian-muted {
-            pointer-events: none;
-        }
-        
-        /* Modals and Sidebars must specifically re-enable pointer events */
-        aside, .fixed, .absolute {
-            pointer-events: auto;
-        }
+        /* Interaction Shield: Prevents accidental ghost clicks */
+        .pointer-events-none { pointer-events: none !important; }
+        .pointer-events-auto { pointer-events: auto !important; }
 
-        /* Hardened Backdrop Logic */
-        .pointer-events-none {
-          pointer-events: none !important;
+        /* Multi-page rendering layer */
+        .vault-pdf-container {
+          background-color: #050505 !important;
+          color: #e2e8f0 !important;
         }
 
         ::-webkit-scrollbar { width: 5px; height: 5px; }
@@ -214,31 +201,6 @@
           overflow-x: auto; 
           box-shadow: 0 10px 40px rgba(0,0,0,0.5);
         }
-        .prose-vault pre code { 
-          background-color: transparent; 
-          padding: 0; 
-          color: #e2e8f0; 
-          display: block; 
-          line-height: 1.6;
-        }
-        .prose-vault hr {
-          border: none;
-          border-top: 1px solid rgba(255, 255, 255, 0.05);
-          margin: 4rem 0;
-        }
-        .prose-vault ul, .prose-vault ol {
-          margin-bottom: 2rem;
-          padding-left: 1.5rem;
-        }
-        .prose-vault li {
-          margin-bottom: 0.75rem;
-          line-height: 1.8;
-          color: #cbd5e1;
-        }
-        .prose-vault ul li {
-          list-style-type: none;
-          position: relative;
-        }
         .prose-vault ul li::before {
           content: "—";
           position: absolute;
@@ -247,20 +209,11 @@
           font-weight: bold;
         }
 
-        @media (max-width: 768px) {
-          .prose-vault h1 { font-size: 2.2rem; margin-bottom: 1.5rem; }
-          .prose-vault h2 { font-size: 1.6rem; margin-top: 2rem; }
-          .prose-vault p { font-size: 1.05rem; line-height: 1.7; }
-          .prose-vault pre { padding: 1.25rem; }
-        }
-
-        :focus:not(:focus-visible) {
-          outline: none;
-        }
+        :focus:not(:focus-visible) { outline: none; }
     </style>
 </head>
 <body>
     <div id="root"></div>
-    <script type="module" src="index.tsx"></script>
+    <script type="module" src="/index.tsx"></script>
 </body>
 </html>

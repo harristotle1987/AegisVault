@@ -41,7 +41,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onOpenConfig
 }) => {
   return (
-    <div className="h-16 md:h-14 border-b border-vault-border bg-obsidian-soft/80 backdrop-blur-md flex items-center justify-between px-4 md:px-6 shrink-0 z-[100] relative pointer-events-none">
+    <div className="h-16 md:h-14 border-b border-vault-border bg-obsidian-soft/80 backdrop-blur-md flex items-center justify-between px-4 md:px-6 shrink-0 z-[110] relative pointer-events-none">
       <div className="flex items-center gap-4 md:gap-6 pointer-events-auto h-full">
         <button 
           onClick={onToggleSidebar}

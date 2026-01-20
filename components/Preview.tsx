@@ -30,7 +30,7 @@ export const Preview: React.FC<PreviewProps> = ({ content }) => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto bg-obsidian-soft no-scrollbar">
+      <div className="flex-1 overflow-y-auto bg-obsidian-soft no-scrollbar vault-editor-scroll">
         <div className="max-w-4xl mx-auto min-h-full flex flex-col shadow-[0_0_100px_rgba(0,0,0,0.4)]">
           <div 
             id="preview-area"

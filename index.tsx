@@ -10,7 +10,7 @@ if (!rootElement) {
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js')
+    navigator.serviceWorker.register('/sw.js')
       .then(reg => console.log('🛡️ AegisVault: Secured', reg.scope))
       .catch(err => {
         // Silently handle 404s/offline dev environments to prevent console noise

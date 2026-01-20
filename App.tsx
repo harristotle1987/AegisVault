@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Editor } from './components/Editor';
 import { Preview } from './components/Preview';
@@ -9,7 +10,8 @@ import { ConfigModal } from './components/modals/ConfigModal';
 import { TagsModal } from './components/modals/TagsModal';
 import { VaultConverter } from './services/exportService';
 import { StorageService } from './services/storageService';
-import { VaultRefiner } from './services/VaultRefiner';
+// Fix: Updated import casing to match the lowercase file name to resolve casing conflict errors.
+import { VaultRefiner } from './services/vaultRefiner';
 import { SovereignDocument } from './types';
 import { Check, Shield, FileText } from 'lucide-react';
 import { usePWAInstall } from './hooks/usePWAInstall';
@@ -30,7 +32,6 @@ export default function App() {
   
   const { isInstallable, install } = usePWAInstall();
 
-  // Safety ref to prevent state updates if component unmounts during async ops
   const isMounted = useRef(true);
   useEffect(() => {
     return () => { isMounted.current = false; };
@@ -115,6 +116,7 @@ export default function App() {
 
   const handleLocalRefine = () => {
     if (!activeDoc) return;
+    // Fix: Ensure we use the consistent naming for VaultRefiner service.
     const refined = VaultRefiner.refine(activeDoc.content);
     handleContentChange(refined);
     if ('vibrate' in navigator) navigator.vibrate(15);
@@ -149,13 +151,7 @@ export default function App() {
 
   const handleShare = async () => {
     if (!activeDoc) return;
-    
-    // STRICT: No URL field to prevent invalid URL errors on PWAs/Localhost
-    const shareData = {
-      title: activeDoc.title,
-      text: activeDoc.content
-    };
-
+    const shareData = { title: activeDoc.title, text: activeDoc.content };
     try {
       if (navigator.share && (typeof navigator.canShare !== 'function' || navigator.canShare(shareData))) {
         await navigator.share(shareData);
@@ -165,7 +161,6 @@ export default function App() {
       }
     } catch (err) {
       if ((err as Error).name !== 'AbortError') {
-         // Fallback to Clipboard
          try {
            await navigator.clipboard.writeText(activeDoc.content);
            if (isMounted.current) setNotification({ message: 'Copied to clipboard', type: 'success' });
@@ -182,9 +177,9 @@ export default function App() {
     setActiveModal(null);
     try {
       if (pendingFormat === 'pdf') {
-        await VaultConverter.toPDF('preview-area', name);
+        await VaultConverter.toPDF('preview-area', name + '.pdf');
       } else {
-        await VaultConverter.toDocx(activeDoc.content, name);
+        await VaultConverter.toDocx(activeDoc.content, name + '.docx');
       }
       if (isMounted.current) setNotification({ message: 'Export sequence complete', type: 'success' });
     } catch (e) {
@@ -234,16 +229,11 @@ export default function App() {
         <div className="flex-1 flex overflow-hidden relative">
           {activeDoc ? (
             <>
-              {/* Mobile: Toggle Visibility based on Tab State */}
               <div className={`flex-1 flex flex-col h-full overflow-hidden ${mobileTab === 'preview' ? 'hidden md:flex' : 'flex'}`}>
                 <Editor value={activeDoc.content} onChange={handleContentChange} />
               </div>
-              
-              {/* Vertical Divider (Desktop) */}
               <div className="hidden md:block w-px bg-vault-border z-10" />
-
-              {/* Preview Area: Always mount for PDF generation */}
-              <div className={`flex-1 flex flex-col h-full overflow-hidden bg-obsidian-soft ${mobileTab === 'editor' ? 'hidden md:flex' : 'flex'}`}>
+              <div className={`flex-1 flex flex-col h-full overflow-hidden bg-obsidian-soft no-scrollbar ${mobileTab === 'editor' ? 'hidden md:flex' : 'flex'}`}>
                 <Preview content={activeDoc.content} />
               </div>
             </>
@@ -254,7 +244,6 @@ export default function App() {
           )}
         </div>
 
-        {/* Mobile Action Bar */}
         <MobileActionBar 
           isExporting={isExporting}
           onExport={(format) => {
@@ -265,7 +254,6 @@ export default function App() {
           onLocalRefine={handleLocalRefine}
         />
         
-        {/* Mobile View Toggle (Floating) */}
         <div className="md:hidden fixed bottom-24 right-6 z-[120]">
            <button 
              onClick={() => setMobileTab(prev => prev === 'editor' ? 'preview' : 'editor')}
@@ -275,8 +263,7 @@ export default function App() {
            </button>
         </div>
 
-        {/* Global Notification Toast */}
-        <div className={`fixed top-20 right-6 z-[200] transition-all duration-500 transform ${notification ? 'translate-x-0 opacity-100' : 'translate-x-10 opacity-0 pointer-events-none'}`}>
+        <div className={`fixed top-20 right-6 z-[250] transition-all duration-500 transform ${notification ? 'translate-x-0 opacity-100' : 'translate-x-10 opacity-0 pointer-events-none'}`}>
           {notification && (
             <div className={`flex items-center gap-3 px-5 py-3 rounded-xl border backdrop-blur-md shadow-2xl ${
               notification.type === 'success' 
@@ -288,9 +275,26 @@ export default function App() {
             </div>
           )}
         </div>
+
+        {/* Export Loading Overlay - Hardened for 100% blocking */}
+        {isExporting && (
+          <div className="fixed inset-0 z-[500] bg-obsidian/90 backdrop-blur-md flex flex-col items-center justify-center pointer-events-auto cursor-wait">
+             <div className="p-10 rounded-3xl bg-obsidian-soft border border-emerald-vault/20 shadow-sovereign flex flex-col items-center gap-6 animate-in zoom-in-95 duration-300">
+                <div className="relative">
+                   <div className="w-16 h-16 rounded-full border-4 border-emerald-vault/10 border-t-emerald-vault animate-spin" />
+                   <div className="absolute inset-0 flex items-center justify-center">
+                      <Shield className="w-6 h-6 text-emerald-vault animate-pulse" />
+                   </div>
+                </div>
+                <div className="text-center space-y-2">
+                   <h3 className="text-white font-black uppercase tracking-[0.4em] text-xs">Architectural Sharding</h3>
+                   <p className="text-vault-dim text-[10px] font-mono uppercase tracking-widest opacity-60">Rendering Multi-page Binary Assets</p>
+                </div>
+             </div>
+          </div>
+        )}
       </main>
 
-      {/* Modals Layer */}
       <ExportModal 
         initialName={suggestedName}
         format={pendingFormat}
