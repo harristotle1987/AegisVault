@@ -1,0 +1,201 @@
+
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sovereign Vault | Markdown Converter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,700;0,800;1,700;1,800&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              obsidian: {
+                DEFAULT: "#050505",
+                soft: "#0A0A0A",
+                muted: "#111111",
+              },
+              emerald: {
+                vault: "#10B981",
+                glow: "rgba(16, 185, 129, 0.15)",
+              },
+              vault: {
+                border: "rgba(255, 255, 255, 0.08)",
+                text: "#E2E8F0",
+                dim: "#94A3B8",
+              },
+            },
+            fontFamily: {
+              sans: ["Inter", "system-ui", "sans-serif"],
+              mono: ["JetBrains Mono", "monospace"],
+              serif: ["Playfair Display", "serif"],
+            },
+            boxShadow: {
+              'sovereign': '0 0 20px 2px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05)',
+            },
+          },
+        },
+      }
+    </script>
+    <script type="importmap">
+    {
+      "imports": {
+        "react": "https://esm.sh/react@18.2.0",
+        "react/": "https://esm.sh/react@18.2.0/",
+        "react-dom": "https://esm.sh/react-dom@18.2.0",
+        "react-dom/": "https://esm.sh/react-dom@18.2.0/",
+        "marked": "https://esm.sh/marked@9.1.6",
+        "lucide-react": "https://esm.sh/lucide-react@0.344.0",
+        "jspdf": "https://esm.sh/jspdf@2.5.1",
+        "html2canvas": "https://esm.sh/html2canvas@1.4.1",
+        "docx": "https://esm.sh/docx@8.5.0",
+        "file-saver": "https://esm.sh/file-saver@2.0.5",
+        "dexie": "https://esm.sh/dexie@3.2.4",
+        "@google/genai": "https://esm.sh/@google/genai"
+      }
+    }
+    </script>
+    <style>
+        body {
+            background-color: #050505;
+            color: #e2e8f0;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Custom "Obsidian" Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #050505; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.08); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(16, 185, 129, 0.5); }
+
+        /* Executive Typography Engine (Prose-Vault) */
+        .prose-vault h1 { 
+          font-size: 3.5rem; 
+          font-weight: 800; 
+          margin-bottom: 2.5rem; 
+          color: #ffffff; 
+          border-bottom: 1px solid rgba(255,255,255,0.06); 
+          padding-bottom: 1rem; 
+          font-family: 'Playfair Display', serif; 
+          letter-spacing: -0.05em;
+          line-height: 1.1;
+        }
+        .prose-vault h2 { 
+          font-size: 2.25rem; 
+          font-weight: 700; 
+          margin-top: 3.5rem; 
+          margin-bottom: 1.5rem; 
+          color: #f8fafc; 
+          font-family: 'Playfair Display', serif; 
+          letter-spacing: -0.03em;
+        }
+        .prose-vault h3 { 
+          font-size: 1.6rem; 
+          font-weight: 700; 
+          margin-top: 2.5rem; 
+          margin-bottom: 1rem; 
+          color: #f1f5f9; 
+          letter-spacing: -0.02em;
+        }
+        .prose-vault p { 
+          margin-bottom: 1.75rem; 
+          line-height: 1.85; 
+          color: #cbd5e1; 
+          font-size: 1.1rem;
+          font-weight: 400;
+        }
+        .prose-vault table {
+          width: 100%;
+          border-collapse: collapse;
+          margin: 2.5rem 0;
+          background: rgba(255, 255, 255, 0.01);
+          border: 1px solid rgba(255, 255, 255, 0.04);
+          font-size: 0.95rem;
+        }
+        .prose-vault th, .prose-vault td {
+          border: 1px solid rgba(255, 255, 255, 0.04);
+          padding: 1.25rem;
+          text-align: left;
+        }
+        .prose-vault th {
+          background: rgba(255, 255, 255, 0.03);
+          font-weight: 700;
+          color: #ffffff;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          font-size: 0.75rem;
+        }
+        .prose-vault blockquote { 
+          border-left: 3px solid #10b981; 
+          padding: 2rem 2.5rem; 
+          color: #94a3b8; 
+          font-style: italic; 
+          margin: 2.5rem 0; 
+          background: rgba(16, 185, 129, 0.02); 
+          font-size: 1.2rem;
+          font-family: 'Playfair Display', serif;
+        }
+        .prose-vault code { 
+          font-family: 'JetBrains Mono', monospace; 
+          background-color: rgba(255,255,255,0.06); 
+          padding: 0.2rem 0.5rem; 
+          border-radius: 6px; 
+          font-size: 0.85em; 
+          color: #10b981; 
+          font-weight: 500;
+        }
+        .prose-vault pre { 
+          background-color: #111111; 
+          padding: 2rem; 
+          border-radius: 12px; 
+          border: 1px solid rgba(255,255,255,0.08); 
+          margin: 2.5rem 0; 
+          overflow-x: auto; 
+          box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+        .prose-vault pre code { 
+          background-color: transparent; 
+          padding: 0; 
+          color: #e2e8f0; 
+          display: block; 
+          line-height: 1.6;
+        }
+        .prose-vault hr {
+          border: none;
+          border-top: 1px solid rgba(255, 255, 255, 0.05);
+          margin: 4rem 0;
+        }
+        .prose-vault ul, .prose-vault ol {
+          margin-bottom: 2rem;
+          padding-left: 1.5rem;
+        }
+        .prose-vault li {
+          margin-bottom: 0.75rem;
+          line-height: 1.8;
+          color: #cbd5e1;
+        }
+        .prose-vault ul li {
+          list-style-type: none;
+          position: relative;
+        }
+        .prose-vault ul li::before {
+          content: "—";
+          position: absolute;
+          left: -1.5rem;
+          color: #10b981;
+          font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="module" src="index.tsx"></script>
+</body>
+</html>
