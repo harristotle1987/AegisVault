@@ -10,8 +10,8 @@ import { ConfigModal } from './components/modals/ConfigModal';
 import { TagsModal } from './components/modals/TagsModal';
 import { VaultConverter } from './services/exportService';
 import { StorageService } from './services/storageService';
-// Fix: Use PascalCase filename to match project root file standards and resolve casing conflict
-import { VaultRefiner } from './services/VaultRefiner';
+// Standardized on lowercase service filenames to resolve casing conflicts
+import { VaultRefiner } from './services/vaultRefiner';
 import { SovereignDocument, VaultFont } from './types';
 import { Check, Shield, Loader2, FileText } from 'lucide-react';
 import { usePWAInstall } from './hooks/usePWAInstall';

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { X, Moon, Shield, Save, Database, EyeOff, Zap, Layout, Monitor } from 'lucide-react';
 import { VaultFont } from '../../types';
@@ -114,10 +113,10 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, onClose, docCo
             </div>
             <div className="p-6 rounded-2xl bg-obsidian-muted border border-vault-border space-y-4">
               <p className="text-[10px] text-vault-dim leading-relaxed font-medium">Select the primary typeface for document generation. Binary sharding embeds these assets automatically.</p>
-              <div className="grid grid-cols-2 gap-3 relative z-[170]">
+              <div className="grid grid-cols-2 gap-3 relative z-[170] pointer-events-auto">
                 <button 
-                  onClick={(e) => { e.stopPropagation(); setActiveFont('sans'); }}
-                  className={`flex flex-col items-center gap-2 py-4 border rounded-xl transition-all pointer-events-auto active:scale-95 ${
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setActiveFont('sans'); }}
+                  className={`flex flex-col items-center gap-2 py-4 border rounded-xl transition-all active:scale-95 ${
                     activeFont === 'sans' 
                       ? 'border-emerald-vault/40 bg-emerald-vault/5 text-emerald-vault' 
                       : 'border-vault-border bg-white/[0.02] text-vault-dim hover:border-vault-border/50'
@@ -127,8 +126,8 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, onClose, docCo
                   <span className="text-[9px] font-black uppercase tracking-widest">Inter (Sans)</span>
                 </button>
                 <button 
-                  onClick={(e) => { e.stopPropagation(); setActiveFont('mono'); }}
-                  className={`flex flex-col items-center gap-2 py-4 border rounded-xl transition-all pointer-events-auto active:scale-95 ${
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setActiveFont('mono'); }}
+                  className={`flex flex-col items-center gap-2 py-4 border rounded-xl transition-all active:scale-95 ${
                     activeFont === 'mono' 
                       ? 'border-emerald-vault/40 bg-emerald-vault/5 text-emerald-vault' 
                       : 'border-vault-border bg-white/[0.02] text-vault-dim hover:border-vault-border/50'

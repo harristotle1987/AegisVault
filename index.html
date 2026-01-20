@@ -104,8 +104,8 @@
 
         /* Multi-page rendering layer */
         .vault-pdf-container {
-          background-color: #050505 !important;
-          color: #e2e8f0 !important;
+          background-color: #ffffff !important;
+          color: #000000 !important;
           width: 210mm !important;
           margin: 0 !important;
           position: absolute !important;
@@ -175,6 +175,19 @@
           font-size: 0.85em; 
           color: #10b981; 
           font-weight: 500;
+        }
+
+        /* Mono (Draft) Mode Refinement */
+        .prose-vault.font-mono h1, 
+        .prose-vault.font-mono h2, 
+        .prose-vault.font-mono h3 {
+           font-family: 'JetBrains Mono', monospace;
+           letter-spacing: -0.02em;
+           text-shadow: 0 0 10px rgba(16, 185, 129, 0.1);
+        }
+        .prose-vault.font-mono p {
+           font-size: 1rem;
+           letter-spacing: -0.01em;
         }
 
         :focus:not(:focus-visible) { outline: none; }

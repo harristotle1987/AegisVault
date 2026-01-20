@@ -37,14 +37,14 @@ const triggerSovereignDownload = (blob: Blob, filename: string) => {
 export class VaultConverter {
   /**
    * toPDF: High-fidelity Multi-page Slicing Engine.
-   * Renders the document to a high-res canvas, then slices it into A4 segments 
-   * to prevent vertical truncation in long drafts like Lesson Plans.
+   * Renders to a high-res canvas and slices into A4 segments (297mm height)
+   * to support long Lesson Plans without truncation.
    */
   static async toPDF(elementId: string, fileName: string = 'vault-export.pdf'): Promise<void> {
     const sourceElement = document.getElementById(elementId);
     if (!sourceElement) throw new Error("Source element not found");
 
-    // Hardened render container for PDF output
+    // Clone and harden for PDF rendering
     const container = document.createElement('div');
     container.className = 'vault-pdf-container';
     container.innerHTML = sourceElement.innerHTML;
@@ -59,38 +59,38 @@ export class VaultConverter {
         line-height: 1.6;
         width: 210mm;
       }
-      .vault-pdf-container h1 { font-size: 28pt; font-weight: 800; border-bottom: 2pt solid #10b981; padding-bottom: 10pt; margin-bottom: 24pt; color: #000000 !important; }
-      .vault-pdf-container h2 { font-size: 20pt; font-weight: 700; margin-top: 32pt; margin-bottom: 16pt; color: #111111 !important; }
+      .vault-pdf-container h1 { font-size: 32pt; font-weight: 800; border-bottom: 2pt solid #10b981; padding-bottom: 12pt; margin-bottom: 24pt; color: #000000 !important; font-family: 'Playfair Display', serif; }
+      .vault-pdf-container h2 { font-size: 22pt; font-weight: 700; margin-top: 32pt; margin-bottom: 16pt; color: #111111 !important; font-family: 'Playfair Display', serif; }
       .vault-pdf-container h3 { font-size: 16pt; font-weight: 700; margin-top: 24pt; color: #222222 !important; }
-      .vault-pdf-container p { font-size: 11pt; margin-bottom: 14pt; color: #333333 !important; }
-      .vault-pdf-container blockquote { border-left: 4pt solid #10b981; padding: 15pt 20pt; font-style: italic; color: #555555 !important; background: #f9f9f9; margin: 20pt 0; }
+      .vault-pdf-container p { font-size: 11pt; margin-bottom: 14pt; color: #333333 !important; text-align: justify; }
+      .vault-pdf-container blockquote { border-left: 4pt solid #10b981; padding: 15pt 20pt; font-style: italic; color: #555555 !important; background: #f9f9f9; margin: 20pt 0; font-family: 'Playfair Display', serif; font-size: 13pt; }
       .vault-pdf-container table { width: 100%; border-collapse: collapse; margin: 24pt 0; }
-      .vault-pdf-container th, .vault-pdf-container td { border: 1px solid #ddd; padding: 10pt; text-align: left; }
+      .vault-pdf-container th, .vault-pdf-container td { border: 1px solid #ddd; padding: 10pt; text-align: left; font-size: 10pt; }
       .vault-pdf-container ul, .vault-pdf-container ol { padding-left: 20pt; margin-bottom: 14pt; }
       .vault-pdf-container li { margin-bottom: 6pt; font-size: 11pt; }
+      .vault-pdf-container code { background: #f0f0f0; padding: 2pt 4pt; border-radius: 4pt; font-family: 'JetBrains Mono'; color: #10b981; }
     `;
     container.appendChild(style);
     document.body.appendChild(container);
 
     try {
       const canvas = await html2canvas(container, {
-        scale: 2, // 2x density for sharp typography
+        scale: 2, // Executive Fidelity
         useCORS: true,
         backgroundColor: '#ffffff',
         logging: false,
-        width: 210 * 3.78, // Approximate mm to px at 96dpi
+        width: 794, // 210mm at 96dpi
       });
 
       const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const pdfWidth = 210;
+      const pdfHeight = 297;
       
       const imgWidth = canvas.width;
       const imgHeight = canvas.height;
       
-      // Calculate height per page in canvas pixels
-      const ratio = pdfWidth / (imgWidth / 2); 
-      const canvasPageHeight = (pdfHeight / ratio) * 2;
+      // Canvas pixels per PDF page height
+      const pageHeightCanvas = (imgWidth * pdfHeight) / pdfWidth;
 
       let heightLeft = imgHeight;
       let position = 0;
@@ -98,19 +98,21 @@ export class VaultConverter {
       while (heightLeft > 0) {
         const pageCanvas = document.createElement('canvas');
         pageCanvas.width = imgWidth;
-        pageCanvas.height = Math.min(heightLeft, canvasPageHeight);
+        pageCanvas.height = Math.min(heightLeft, pageHeightCanvas);
         
         const ctx = pageCanvas.getContext('2d');
         if (ctx) {
           ctx.drawImage(canvas, 0, position, imgWidth, pageCanvas.height, 0, 0, imgWidth, pageCanvas.height);
-          const pageData = pageCanvas.toDataURL('image/jpeg', 0.95);
-          pdf.addImage(pageData, 'JPEG', 0, 0, pdfWidth, (pageCanvas.height * ratio) / 2);
+          const pageData = pageCanvas.toDataURL('image/jpeg', 0.98);
+          pdf.addImage(pageData, 'JPEG', 0, 0, pdfWidth, (pageCanvas.height * pdfWidth) / imgWidth);
         }
         
-        heightLeft -= canvasPageHeight;
-        position += canvasPageHeight;
+        heightLeft -= pageHeightCanvas;
+        position += pageHeightCanvas;
 
-        if (heightLeft > 0) pdf.addPage();
+        if (heightLeft > 0) {
+          pdf.addPage();
+        }
       }
 
       const blob = pdf.output('blob');
@@ -122,7 +124,7 @@ export class VaultConverter {
 
   /**
    * toDocx: Structural Native Word Transformation.
-   * Maps Markdown tokens to native DOCX objects for professional editing.
+   * Direct hierarchical mapping of Markdown tokens to Word Heading Levels.
    */
   static async toDocx(markdown: string, fileName: string = 'vault-export.docx'): Promise<void> {
     const tokens = marked.lexer(markdown);
@@ -141,7 +143,7 @@ export class VaultConverter {
           break;
         case 'paragraph':
           children.push(new Paragraph({
-            children: [new TextRun({ text: token.text, size: 24, font: 'Arial' })],
+            children: [new TextRun({ text: token.text, size: 24, font: 'Inter' })],
             spacing: { after: 240 },
           }));
           break;
@@ -156,9 +158,10 @@ export class VaultConverter {
           break;
         case 'blockquote':
           children.push(new Paragraph({
-            children: [new TextRun({ text: token.text, italic: true, color: '666666' })],
+            children: [new TextRun({ text: token.text, italic: true, color: '10b981' })],
             indent: { left: 720 },
             spacing: { before: 200, after: 200 },
+            shading: { fill: 'F9F9F9' }
           }));
           break;
         case 'hr':
