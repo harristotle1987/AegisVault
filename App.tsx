@@ -12,8 +12,8 @@ import { PurgeModal } from './components/modals/PurgeModal';
 import { DownloadSuccessModal } from './components/modals/DownloadSuccessModal';
 import { InstallPrompt } from './components/InstallPrompt';
 import { VaultConverter } from './services/exportService';
-// Fixed casing conflict: importing PascalCase to match VaultRefiner.ts
-import { VaultRefiner } from './services/VaultRefiner';
+// Consolidate logic to lowercase vaultRefiner to resolve naming collision
+import { VaultRefiner } from './services/vaultRefiner';
 import { useVault } from './hooks/useVault';
 import { VaultFont } from './types';
 import { Check, Shield, CheckCircle2, ShieldAlert } from 'lucide-react';

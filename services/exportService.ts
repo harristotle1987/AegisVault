@@ -1,3 +1,4 @@
+
 import { jsPDF } from 'jspdf';
 import { 
   Document, 
@@ -118,12 +119,21 @@ export class VaultConverter {
           break;
 
         case 'list':
+          const isOrdered = (token as any).ordered;
+          let itemCounter = (token as any).start || 1;
+
           token.items.forEach((item: any) => {
             checkPageBreak(11 * 0.3527 * 2);
             pdf.setFontSize(11);
             pdf.setFont(fontMode === 'mono' ? 'Courier' : 'Helvetica', 'normal');
-            pdf.text('•', margin + 2, cursorY + (11 * 0.3527));
-            renderStyledLine(item.tokens || [{ text: item.text }], 11, 'normal', 8);
+            
+            const indicator = isOrdered ? `${itemCounter}.` : '•';
+            pdf.text(indicator, margin + 2, cursorY + (11 * 0.3527));
+            
+            const textIndent = isOrdered ? 10 : 8;
+            renderStyledLine(item.tokens || [{ text: item.text }], 11, 'normal', textIndent);
+            
+            if (isOrdered) itemCounter++;
           });
           cursorY += 4;
           break;
@@ -194,12 +204,30 @@ export class VaultConverter {
           }));
           break;
         case 'list':
+          const isOrdered = (token as any).ordered;
+          let itemCounter = (token as any).start || 1;
+
           token.items.forEach((item: any) => {
-            children.push(new Paragraph({
-              bullet: { level: 0 },
+            const pConfig: any = {
               spacing: { after: 120, line: 360 },
               children: mapInlineTokens(item.tokens, 22)
-            }));
+            };
+
+            if (isOrdered) {
+              const prefix = new TextRun({ 
+                text: `${itemCounter}. `, 
+                bold: true, 
+                font: 'Inter', 
+                size: 22 
+              });
+              pConfig.children.unshift(prefix);
+              pConfig.indent = { left: 720, hanging: 360 };
+              itemCounter++;
+            } else {
+              pConfig.bullet = { level: 0 };
+            }
+
+            children.push(new Paragraph(pConfig));
           });
           break;
         case 'blockquote':
