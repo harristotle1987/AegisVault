@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Editor } from './components/Editor';
 import { Preview } from './components/Preview';
@@ -11,8 +10,8 @@ import { TagsModal } from './components/modals/TagsModal';
 import { PurgeModal } from './components/modals/PurgeModal';
 import { InstallPrompt } from './components/InstallPrompt';
 import { VaultConverter } from './services/exportService';
-// Fix: Use consistent uppercase casing for VaultRefiner import to resolve compiler conflict
-import { VaultRefiner } from './services/VaultRefiner';
+// Fix casing conflict by importing from lowercase vaultRefiner.ts
+import { VaultRefiner } from './services/vaultRefiner';
 import { useVault } from './hooks/useVault';
 import { VaultFont } from './types';
 import { Check, Shield, CheckCircle2 } from 'lucide-react';
@@ -201,10 +200,9 @@ export default function App() {
           )}
         </div>
 
-        {/* Sovereign Sync Status Indicator */}
-        <div className="fixed bottom-24 right-6 md:bottom-8 md:right-8 flex items-center gap-2 px-3 py-1.5 rounded-full bg-obsidian/60 backdrop-blur-md border border-emerald-vault/20 shadow-lg z-[130] pointer-events-none">
-          <CheckCircle2 size={12} className={vaultSynced ? "text-emerald-vault" : "text-emerald-vault/30"} />
-          <span className="text-[9px] font-black uppercase tracking-[0.2em] text-vault-dim">Vault {vaultSynced ? "Synced" : "Syncing"}</span>
+        {/* Sovereign Sync Status Indicator: Removed text label to avoid obstruction */}
+        <div className="fixed bottom-24 right-6 md:bottom-8 md:right-8 flex items-center justify-center p-2 rounded-full bg-obsidian/60 backdrop-blur-md border border-emerald-vault/20 shadow-lg z-[130] pointer-events-none">
+          <CheckCircle2 size={16} className={vaultSynced ? "text-emerald-vault" : "text-emerald-vault/30 animate-pulse"} />
         </div>
 
         <MobileActionBar 

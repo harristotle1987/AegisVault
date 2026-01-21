@@ -27,7 +27,7 @@ interface ToolbarProps {
 /**
  * Role: Senior Architect
  * Logic: Hardened TopBar with Refined Visibility Breakpoints.
- * Patch: Escalated Menu Z-Index and added Touch compatibility for Android shells.
+ * Patch: Removed text labels from sync indicators to clear visual obstruction.
  */
 export const Toolbar: React.FC<ToolbarProps> = ({ 
   markdown, 
@@ -63,17 +63,12 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           </span>
         </div>
         
+        {/* Desktop Status Indicator: Text purged */}
         <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.02] border border-vault-border hidden lg:flex transition-all">
           <div className={`w-1.5 h-1.5 rounded-full transition-all duration-500 ${isSaving ? 'bg-emerald-vault animate-pulse' : 'bg-emerald-vault/30'}`} />
-          <span className="text-[9px] font-mono text-vault-dim uppercase tracking-wider flex items-center gap-1.5">
-            {isSaving ? (
-              <>Syncing...</>
-            ) : (
-              <>
-                <CheckCircle2 size={10} className="text-emerald-vault" /> Vault Synced
-              </>
-            )}
-          </span>
+          <div className="flex items-center">
+            <CheckCircle2 size={10} className={isSaving ? 'text-emerald-vault/30' : 'text-emerald-vault'} />
+          </div>
         </div>
       </div>
 
@@ -135,11 +130,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           </button>
         </div>
         
-        <div className="sm:hidden flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.02] border border-vault-border">
+        {/* Mobile Mini Status: Text purged */}
+        <div className="sm:hidden flex items-center gap-2 px-3 py-2 rounded-full bg-white/[0.02] border border-vault-border">
           <div className={`w-1.5 h-1.5 rounded-full transition-all duration-500 ${isSaving ? 'bg-emerald-vault animate-pulse' : 'bg-emerald-vault/30'}`} />
-          <span className="text-[9px] font-mono text-vault-dim uppercase tracking-wider">
-            {isSaving ? 'Sync' : 'Ready'}
-          </span>
+          <CheckCircle2 size={12} className={isSaving ? 'text-emerald-vault/30' : 'text-emerald-vault'} />
         </div>
       </div>
     </div>
