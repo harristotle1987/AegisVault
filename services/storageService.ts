@@ -22,7 +22,7 @@ export const db = new VaultDatabase();
 const MOCK_ARCHIVES: Omit<SovereignDocument, 'id' | 'createdAt' | 'lastModified'>[] = [
   {
     title: 'Executive Manifesto: Digital Sovereignty',
-    // Added missing backtick to properly close the template literal
+    // Fix: Properly close the template literal with a backtick
     content: `# The Philosophy of Digital Sovereignty\n\n> "Privacy is not a feature; it is the foundation of the modern architect."\n\nIn an era of centralized sharding and data harvesting, the **Sovereign Vault** stands as a beacon of local-first integrity. Your ideas are not commodities; they are assets that require a hardened environment for refinement.\n\n## The Three Pillars\n\n1. **Absolute Locality**: Data never crosses the wire. Every byte of markdown is processed within the browser's volatile memory.\n2. **Typographic Integrity**: We utilize professional-grade sharding for Inter and JetBrains Mono to ensure your exports are executive-ready.\n3. **Volatile Processing**: Refinement occurs in-situ, leaving no forensic trace on external servers.\n\n### Implementation Protocol\n\n* **Render**: Live GFM translation with real-time feedback.\n* **Harden**: Structural refinement via VaultRefiner logic.\n* **Beam**: Secure binary delivery directly to the file system.\n\n--- \n\n### Confidential Notes\n*Draft Version: 1.0.4*\n*Security Clearance: ARCHITECT*"`,
     status: 'vault',
     metadata: { wordCount: 142, estimatedReadTime: 1, tags: ['Philosophy', 'Manifesto', 'Sovereignty'] },

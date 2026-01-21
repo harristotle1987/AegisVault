@@ -1,5 +1,5 @@
+
 /**
- * Deprecated duplicate file to resolve naming conflicts. 
- * Use services/VaultRefiner.ts for logic.
+ * Deprecated. Consolidated into services/VaultRefiner.ts
  */
 export {};

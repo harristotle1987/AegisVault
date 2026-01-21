@@ -3,12 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
-    <meta name="theme-color" content="#0A0A0A">
+    <meta name="theme-color" content="#050505">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="AegisVault">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="format-detection" content="telephone=no">
+    
+    <!-- Android specific metadata -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="AegisVault">
+    <meta name="msapplication-TileColor" content="#050505">
     
     <title>AegisVault | Sovereign Editor</title>
     
@@ -78,8 +83,9 @@
             margin: 0;
             padding: 0;
             overflow: hidden;
-            position: fixed; /* Critical for preventing mobile keyboard jump */
+            position: fixed;
             background-color: #050505;
+            color-scheme: dark; /* Signals Android to use dark system colors */
         }
 
         body {
@@ -88,7 +94,8 @@
             -webkit-font-smoothing: antialiased;
             overscroll-behavior: none;
             user-select: auto;
-            touch-action: none; /* Disables browser-level gestures that cause shifts */
+            touch-action: none;
+            -webkit-tap-highlight-color: transparent; /* Removes Android blue box */
         }
         
         #root {
@@ -116,7 +123,7 @@
           overscroll-behavior: contain;
         }
 
-        /* Interaction Shield: Prevents accidental ghost clicks */
+        /* Interaction Shield */
         .pointer-events-none { pointer-events: none !important; }
         .pointer-events-auto { pointer-events: auto !important; }
 
@@ -129,6 +136,7 @@
           user-select: text;
           pointer-events: auto;
         }
+        /* Prose Typography Sharding */
         .prose-vault h1 { 
           font-size: clamp(2.5rem, 8vw, 3.5rem); 
           font-weight: 800; 
@@ -182,18 +190,6 @@
           font-size: 0.85em; 
           color: #10b981; 
           font-weight: 500;
-        }
-
-        .prose-vault.font-mono h1, 
-        .prose-vault.font-mono h2, 
-        .prose-vault.font-mono h3 {
-           font-family: 'JetBrains Mono', monospace;
-           letter-spacing: -0.02em;
-           text-shadow: 0 0 10px rgba(16, 185, 129, 0.1);
-        }
-        .prose-vault.font-mono p {
-           font-size: 1rem;
-           letter-spacing: -0.01em;
         }
 
         :focus:not(:focus-visible) { outline: none; }

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Editor } from './components/Editor';
 import { Preview } from './components/Preview';
@@ -11,7 +12,7 @@ import { PurgeModal } from './components/modals/PurgeModal';
 import { DownloadSuccessModal } from './components/modals/DownloadSuccessModal';
 import { InstallPrompt } from './components/InstallPrompt';
 import { VaultConverter } from './services/exportService';
-// Fix: Use PascalCase for VaultRefiner import to align with the intended service file structure and resolve casing conflicts
+// Fix: Import from PascalCase filename to resolve casing conflicts
 import { VaultRefiner } from './services/VaultRefiner';
 import { useVault } from './hooks/useVault';
 import { VaultFont } from './types';
@@ -51,13 +52,42 @@ export default function App() {
   });
 
   const saveTimeoutRef = useRef<number | null>(null);
+  const { isInstallable, install } = usePWAInstall();
+
+  // History State Protocol for Android Back Button Handling
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      // If we are popping state and a modal or sidebar is open, close it instead of navigating
+      if (activeModal || isSidebarOpen) {
+        event.preventDefault();
+        setActiveModal(null);
+        setIsSidebarOpen(false);
+        // Re-push state to keep the back-button functional for the next overlay
+        window.history.pushState({ overlay: false }, '');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    
+    // Initial state push to enable the first "back" capture
+    if (window.history.state?.overlay !== false) {
+      window.history.replaceState({ overlay: false }, '');
+    }
+
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [activeModal, isSidebarOpen]);
+
+  // Push state whenever an overlay opens
+  useEffect(() => {
+    if (activeModal || isSidebarOpen) {
+      window.history.pushState({ overlay: true }, '');
+    }
+  }, [activeModal, isSidebarOpen]);
 
   useEffect(() => {
     document.body.setAttribute('data-font-mode', activeFont);
   }, [activeFont]);
   
-  const { isInstallable, install } = usePWAInstall();
-
   useEffect(() => {
     const integrityInterval = setInterval(() => {
       if (activeDoc && !isSaving && !vaultSynced) {
@@ -165,7 +195,6 @@ export default function App() {
 
   return (
     <div className="fixed inset-0 bg-obsidian text-vault-text overflow-hidden selection:bg-emerald-vault/30 flex flex-row">
-      {/* Sidebar Overlay for Mobile */}
       {isSidebarOpen && (
         <div 
           className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[9998] animate-in fade-in duration-300" 
