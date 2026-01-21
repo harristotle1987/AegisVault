@@ -11,11 +11,11 @@ import { PurgeModal } from './components/modals/PurgeModal';
 import { DownloadSuccessModal } from './components/modals/DownloadSuccessModal';
 import { InstallPrompt } from './components/InstallPrompt';
 import { VaultConverter } from './services/exportService';
-// Fix: Use consistent PascalCase filename for VaultRefiner to resolve casing conflicts in project registry
-import { VaultRefiner } from './services/VaultRefiner';
+// Fix: Use lowercase filename for vaultRefiner to match project registry and resolve casing conflicts
+import { VaultRefiner } from './services/vaultRefiner';
 import { useVault } from './hooks/useVault';
 import { VaultFont } from './types';
-import { Check, Shield, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { Check, Shield, ShieldAlert } from 'lucide-react';
 import { usePWAInstall } from './hooks/usePWAInstall';
 
 type ModalType = 'export' | 'config' | 'tags' | 'purge' | 'success' | null;
@@ -56,27 +56,20 @@ export default function App() {
   // History State Protocol for Android Back Button Handling
   useEffect(() => {
     const handlePopState = (event: PopStateEvent) => {
-      // If we are popping state and a modal or sidebar is open, close it instead of navigating
       if (activeModal || isSidebarOpen) {
         event.preventDefault();
         setActiveModal(null);
         setIsSidebarOpen(false);
-        // Re-push state to keep the back-button functional for the next overlay
         window.history.pushState({ overlay: false }, '');
       }
     };
-
     window.addEventListener('popstate', handlePopState);
-    
-    // Initial state push to enable the first "back" capture
     if (window.history.state?.overlay !== false) {
       window.history.replaceState({ overlay: false }, '');
     }
-
     return () => window.removeEventListener('popstate', handlePopState);
   }, [activeModal, isSidebarOpen]);
 
-  // Push state whenever an overlay opens
   useEffect(() => {
     if (activeModal || isSidebarOpen) {
       window.history.pushState({ overlay: true }, '');
@@ -261,8 +254,9 @@ export default function App() {
           )}
         </div>
 
-        <div className="fixed bottom-24 right-6 md:bottom-8 md:right-8 flex items-center justify-center p-2 rounded-full bg-obsidian/60 backdrop-blur-md border border-emerald-vault/20 shadow-lg z-[130] pointer-events-none">
-          <CheckCircle2 size={16} className={vaultSynced ? "text-emerald-vault" : "text-emerald-vault/30 animate-pulse"} />
+        {/* Minimal Status Dot: Replaced CheckCircle2 with a simple emerald dot */}
+        <div className="fixed bottom-24 right-6 md:bottom-8 md:right-8 flex items-center justify-center p-2 rounded-full z-[130] pointer-events-none">
+          <div className={`w-2 h-2 rounded-full transition-all duration-500 shadow-emerald-glow ${vaultSynced ? "bg-emerald-vault" : "bg-emerald-vault/20 animate-pulse"}`} />
         </div>
 
         <MobileActionBar 

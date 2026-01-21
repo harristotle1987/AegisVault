@@ -34,8 +34,6 @@ export const Preview: React.FC<PreviewProps> = ({ content, font = 'sans', active
   /**
    * Sovereign Scroll Stability Protocol:
    * Sync to bottom ONLY when switching shards.
-   * This ensures the user is oriented to latest changes upon opening,
-   * but prevents the view from jumping away during active editing.
    */
   useLayoutEffect(() => {
     if (activeDocId && activeDocId !== lastScrolledId.current) {
@@ -74,7 +72,7 @@ export const Preview: React.FC<PreviewProps> = ({ content, font = 'sans', active
           <div 
             id="preview-area"
             ref={previewRef}
-            className={`flex-1 p-16 md:p-24 prose-vault selection:bg-emerald-vault/20 transition-all duration-500 ease-in-out ${fontClass}`}
+            className={`flex-1 p-16 md:p-24 pb-[150px] md:pb-[150px] prose-vault selection:bg-emerald-vault/20 transition-all duration-500 ease-in-out ${fontClass}`}
           />
           
           <div className="h-32 flex items-center justify-center border-t border-vault-border/20 mt-8 mb-24">

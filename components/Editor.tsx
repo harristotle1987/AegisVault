@@ -17,11 +17,10 @@ export const Editor: React.FC<EditorProps> = ({ value, onChange, font = 'mono', 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lastScrolledId = useRef<string | null>(null);
   
-  // Internal state to handle rapid typing without waiting for the Dexie/App cycle
-  // This prevents cursor jumping and ensures the view stays stable.
+  // Internal state to handle rapid typing without cursor jumps
   const [internalValue, setInternalValue] = useState(value);
 
-  // Sync internal value when the prop changes (e.g., shard switch or external refinement)
+  // Sync internal value when switching documents or external refinement
   useEffect(() => {
     setInternalValue(value);
   }, [value]);
@@ -32,7 +31,6 @@ export const Editor: React.FC<EditorProps> = ({ value, onChange, font = 'mono', 
     if (activeDocId && activeDocId !== lastScrolledId.current) {
       if (textareaRef.current) {
         const el = textareaRef.current;
-        // Immediate scroll on doc switch for efficiency
         requestAnimationFrame(() => {
           el.scrollTop = el.scrollHeight;
           lastScrolledId.current = activeDocId;
@@ -57,11 +55,12 @@ export const Editor: React.FC<EditorProps> = ({ value, onChange, font = 'mono', 
         <span className="text-[9px] opacity-50 font-mono">MD.GFM</span>
       </div>
       <div className="flex-1 relative overflow-hidden">
+        {/* pb-[150px] provides the necessary buffer for mobile action bars and keyboards */}
         <textarea
           ref={textareaRef}
           value={internalValue}
           onChange={handleChange}
-          className={`absolute inset-0 w-full h-full bg-obsidian p-8 md:p-12 focus:outline-none resize-none text-sm leading-relaxed text-vault-text placeholder:text-zinc-800 caret-emerald-vault transition-colors overflow-y-auto vault-editor-scroll ${fontClass}`}
+          className={`absolute inset-0 w-full h-full bg-obsidian p-8 md:p-12 pb-[150px] md:pb-[150px] focus:outline-none resize-none text-sm leading-relaxed text-vault-text placeholder:text-zinc-800 caret-emerald-vault transition-colors overflow-y-auto vault-editor-scroll ${fontClass}`}
           placeholder="Commence entry..."
           spellCheck={false}
           autoComplete="off"
