@@ -1,3 +1,3 @@
-
-// Deprecated. Use VaultRefiner.ts
-export {};
+/**
+ * Deprecated. Logic consolidated into vaultRefiner.ts
+ */

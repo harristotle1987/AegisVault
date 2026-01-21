@@ -1,3 +1,3 @@
-
-// Consolidated into FontLoader.ts
-export {};
+/**
+ * Consolidated into FontLoader.ts
+ */

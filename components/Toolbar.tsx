@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { 
   FileText, 
@@ -28,6 +27,7 @@ interface ToolbarProps {
 /**
  * Role: Senior Architect
  * Logic: Hardened TopBar with Refined Visibility Breakpoints.
+ * Patch: Escalated Menu Z-Index and added Touch compatibility for Android shells.
  */
 export const Toolbar: React.FC<ToolbarProps> = ({ 
   markdown, 
@@ -43,9 +43,11 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   return (
     <div className="h-16 md:h-14 border-b border-vault-border bg-obsidian-soft/80 backdrop-blur-md flex items-center justify-between px-4 md:px-6 shrink-0 z-[110] relative pointer-events-none">
       <div className="flex items-center gap-4 md:gap-6 pointer-events-auto h-full">
+        {/* MOBILE HAMBURGER FIX: Higher Z-Index + Touch Event Support */}
         <button 
           onClick={onToggleSidebar}
-          className="md:hidden p-2 -ml-2 text-vault-dim hover:text-white transition-colors min-h-[48px] min-w-[48px] flex items-center justify-center active:scale-95 touch-manipulation relative z-10"
+          onTouchEnd={(e) => { e.preventDefault(); onToggleSidebar(); }}
+          className="md:hidden p-2 -ml-2 text-vault-dim hover:text-white transition-colors min-h-[48px] min-w-[48px] flex items-center justify-center active:scale-95 touch-manipulation relative z-[9999] cursor-pointer pointer-events-auto"
           aria-label="Toggle Sidebar"
         >
           <Menu size={20} />

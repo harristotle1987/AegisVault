@@ -11,8 +11,8 @@ import { TagsModal } from './components/modals/TagsModal';
 import { PurgeModal } from './components/modals/PurgeModal';
 import { InstallPrompt } from './components/InstallPrompt';
 import { VaultConverter } from './services/exportService';
-// Fix: Use consistent lowercase casing for vaultRefiner import to resolve compiler conflict
-import { VaultRefiner } from './services/vaultRefiner';
+// Fix: Use consistent uppercase casing for VaultRefiner import to resolve compiler conflict
+import { VaultRefiner } from './services/VaultRefiner';
 import { useVault } from './hooks/useVault';
 import { VaultFont } from './types';
 import { Check, Shield, CheckCircle2 } from 'lucide-react';
@@ -57,13 +57,13 @@ export default function App() {
    */
   useEffect(() => {
     const integrityInterval = setInterval(() => {
-      if (activeDoc && !isSaving) {
+      if (activeDoc && !isSaving && !vaultSynced) {
         saveDraft(activeDoc);
         setVaultSynced(true);
       }
     }, 30000);
     return () => clearInterval(integrityInterval);
-  }, [activeDoc, isSaving, saveDraft]);
+  }, [activeDoc, isSaving, vaultSynced, saveDraft]);
 
   useEffect(() => {
     if (notification) {
@@ -150,7 +150,7 @@ export default function App() {
 
   return (
     <div className="flex h-screen bg-obsidian text-vault-text overflow-hidden selection:bg-emerald-vault/30">
-      <div className="sidebar">
+      <div className="sidebar z-[10000]">
         <Sidebar 
           documents={documents}
           activeId={activeDocId}
@@ -202,9 +202,9 @@ export default function App() {
         </div>
 
         {/* Sovereign Sync Status Indicator */}
-        <div className="fixed bottom-24 right-6 md:bottom-8 md:right-8 flex items-center gap-2 px-3 py-1.5 rounded-full bg-obsidian/60 backdrop-blur-md border border-emerald-vault/20 shadow-lg z-[130]">
-          <CheckCircle2 size={12} className="text-emerald-vault" />
-          <span className="text-[9px] font-black uppercase tracking-[0.2em] text-vault-dim">Vault Synced</span>
+        <div className="fixed bottom-24 right-6 md:bottom-8 md:right-8 flex items-center gap-2 px-3 py-1.5 rounded-full bg-obsidian/60 backdrop-blur-md border border-emerald-vault/20 shadow-lg z-[130] pointer-events-none">
+          <CheckCircle2 size={12} className={vaultSynced ? "text-emerald-vault" : "text-emerald-vault/30"} />
+          <span className="text-[9px] font-black uppercase tracking-[0.2em] text-vault-dim">Vault {vaultSynced ? "Synced" : "Syncing"}</span>
         </div>
 
         <MobileActionBar 
