@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Editor } from './components/Editor';
 import { Preview } from './components/Preview';
@@ -12,8 +11,8 @@ import { PurgeModal } from './components/modals/PurgeModal';
 import { DownloadSuccessModal } from './components/modals/DownloadSuccessModal';
 import { InstallPrompt } from './components/InstallPrompt';
 import { VaultConverter } from './services/exportService';
-// Fix: Import from PascalCase filename to resolve casing conflicts
-import { VaultRefiner } from './services/VaultRefiner';
+// Fix: Use lowercase filename for VaultRefiner to resolve casing conflicts in project registry
+import { VaultRefiner } from './services/vaultRefiner';
 import { useVault } from './hooks/useVault';
 import { VaultFont } from './types';
 import { Check, Shield, CheckCircle2, ShieldAlert } from 'lucide-react';
