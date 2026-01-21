@@ -11,8 +11,8 @@ import { PurgeModal } from './components/modals/PurgeModal';
 import { DownloadSuccessModal } from './components/modals/DownloadSuccessModal';
 import { InstallPrompt } from './components/InstallPrompt';
 import { VaultConverter } from './services/exportService';
-// Fix: Use lowercase filename for vaultRefiner to match project registry and resolve casing conflicts
-import { VaultRefiner } from './services/vaultRefiner';
+// Fix: Use uppercase filename to match the primary registered asset in the compiler context and resolve TS1149
+import { VaultRefiner } from './services/VaultRefiner';
 import { useVault } from './hooks/useVault';
 import { VaultFont } from './types';
 import { Check, Shield, ShieldAlert } from 'lucide-react';

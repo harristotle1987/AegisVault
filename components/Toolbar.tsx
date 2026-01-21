@@ -8,8 +8,7 @@ import {
   Menu,
   Share2,
   Tag,
-  Settings,
-  CheckCircle2
+  Settings
 } from 'lucide-react';
 
 interface ToolbarProps {
@@ -41,9 +40,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onOpenConfig
 }) => {
   return (
-    <div className="h-16 md:h-14 border-b border-vault-border bg-obsidian-soft/80 backdrop-blur-md flex items-center justify-between px-4 md:px-6 shrink-0 z-[110] relative">
+    <div className="h-16 md:h-14 border-b border-vault-border bg-obsidian-soft/80 backdrop-blur-md flex items-center justify-between px-4 md:px-6 shrink-0 z-[9999] relative">
       <div className="flex items-center gap-4 md:gap-6 h-full">
-        {/* Mobile Menu Trigger: Simplified to onClick for Android stability */}
+        {/* Mobile Menu Trigger */}
         <button 
           onClick={(e) => {
             e.preventDefault();
@@ -65,10 +64,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           </span>
         </div>
         
-        {/* Desktop Status Indicator */}
+        {/* Desktop Status Indicator: Only a dot as per spec */}
         <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.02] border border-vault-border hidden lg:flex transition-all">
           <div className={`w-1.5 h-1.5 rounded-full transition-all duration-500 ${isSaving ? 'bg-emerald-vault animate-pulse' : 'bg-emerald-vault/30'}`} />
-          <CheckCircle2 size={10} className={isSaving ? 'text-emerald-vault/30' : 'text-emerald-vault'} />
         </div>
       </div>
 
@@ -128,10 +126,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           </button>
         </div>
         
-        {/* Mobile Mini Status */}
+        {/* Mobile Mini Status Dot */}
         <div className="sm:hidden flex items-center gap-2 px-3 py-2 rounded-full bg-white/[0.02] border border-vault-border">
           <div className={`w-1.5 h-1.5 rounded-full transition-all duration-500 ${isSaving ? 'bg-emerald-vault animate-pulse' : 'bg-emerald-vault/30'}`} />
-          <CheckCircle2 size={14} className={isSaving ? 'text-emerald-vault/30' : 'text-emerald-vault'} />
         </div>
       </div>
     </div>

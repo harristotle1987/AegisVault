@@ -54,13 +54,14 @@ export class VaultConverter {
       }
     };
 
-    const renderStyledLine = (inlineTokens: any[], fontSize: number, baseStyle: string = 'normal', indent: number = 0) => {
+    const renderStyledLine = (inlineTokens: any[], fontSize: number, baseStyle: string = 'normal', indent: number = 0, color: [number, number, number] = [0, 0, 0]) => {
       let cursorX = margin + indent;
       const lineHeight = (fontSize * 0.3527) * 1.6;
       const fontName = fontMode === 'mono' ? 'Courier' : 'Helvetica';
       
       pdf.setFont(fontName, baseStyle);
       pdf.setFontSize(fontSize);
+      pdf.setTextColor(color[0], color[1], color[2]);
 
       const words: { text: string; style: string }[] = [];
       inlineTokens.forEach(token => {
@@ -73,8 +74,6 @@ export class VaultConverter {
           if (word) words.push({ text: word, style });
         });
       });
-
-      pdf.setTextColor(0, 0, 0); 
 
       words.forEach((wordObj) => {
         pdf.setFont(fontName, wordObj.style);
@@ -101,7 +100,8 @@ export class VaultConverter {
           cursorY += spacingBefore;
           checkPageBreak(hSize * 0.3527 + 10);
           
-          renderStyledLine(token.tokens || [{ text: token.text }], hSize, 'bold');
+          // Force bold black for all headings to ensure 1:1 vector parity
+          renderStyledLine(token.tokens || [{ text: token.text }], hSize, 'bold', 0, [0, 0, 0]);
           
           if (token.depth <= 2) {
             pdf.setDrawColor(0, 0, 0);
@@ -142,7 +142,7 @@ export class VaultConverter {
           const startY = cursorY;
           pdf.setDrawColor(16, 185, 129); 
           pdf.setLineWidth(1.5);
-          renderStyledLine([{ text: token.text }], 11, 'italic', 12);
+          renderStyledLine([{ text: token.text }], 11, 'italic', 12, [80, 80, 80]);
           pdf.line(margin, startY, margin, cursorY - 2);
           cursorY += 4;
           break;
@@ -190,7 +190,7 @@ export class VaultConverter {
         case 'heading':
           const hSize = token.depth === 1 ? 48 : (token.depth === 2 ? 36 : 28);
           children.push(new Paragraph({
-            children: mapInlineTokens(token.tokens, hSize, token.depth <= 2),
+            children: mapInlineTokens(token.tokens, hSize, true),
             heading: token.depth === 1 ? HeadingLevel.HEADING_1 : 
                      token.depth === 2 ? HeadingLevel.HEADING_2 : 
                      HeadingLevel.HEADING_3,

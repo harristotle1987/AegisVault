@@ -61,7 +61,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <aside 
       className={`
-        bg-obsidian border-r border-vault-border flex flex-col shrink-0 transition-all duration-300 ease-in-out z-[110]
+        bg-obsidian border-r border-vault-border flex flex-col shrink-0 transition-all duration-300 ease-in-out z-[9999]
         fixed md:static inset-y-0 left-0 h-full shadow-2xl md:shadow-none pointer-events-auto
         overflow-y-auto overflow-x-hidden
         ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}

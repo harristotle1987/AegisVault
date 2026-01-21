@@ -55,12 +55,12 @@ export const Editor: React.FC<EditorProps> = ({ value, onChange, font = 'mono', 
         <span className="text-[9px] opacity-50 font-mono">MD.GFM</span>
       </div>
       <div className="flex-1 relative overflow-hidden">
-        {/* pb-[150px] provides the necessary buffer for mobile action bars and keyboards */}
+        {/* pb-[180px] provides absolute buffer for high-action mobile overlays */}
         <textarea
           ref={textareaRef}
           value={internalValue}
           onChange={handleChange}
-          className={`absolute inset-0 w-full h-full bg-obsidian p-8 md:p-12 pb-[150px] md:pb-[150px] focus:outline-none resize-none text-sm leading-relaxed text-vault-text placeholder:text-zinc-800 caret-emerald-vault transition-colors overflow-y-auto vault-editor-scroll ${fontClass}`}
+          className={`absolute inset-0 w-full h-full bg-obsidian p-8 md:p-12 pb-[180px] md:pb-[180px] focus:outline-none resize-none text-sm leading-relaxed text-vault-text placeholder:text-zinc-800 caret-emerald-vault transition-colors overflow-y-auto vault-editor-scroll ${fontClass}`}
           placeholder="Commence entry..."
           spellCheck={false}
           autoComplete="off"
