@@ -10,8 +10,8 @@ import { TagsModal } from './components/modals/TagsModal';
 import { PurgeModal } from './components/modals/PurgeModal';
 import { InstallPrompt } from './components/InstallPrompt';
 import { VaultConverter } from './services/exportService';
-// Fix casing conflict by importing from lowercase vaultRefiner.ts
-import { VaultRefiner } from './services/vaultRefiner';
+// Casing Conflict Resolution: Import matches the root file definition found in program context
+import { VaultRefiner } from './services/VaultRefiner';
 import { useVault } from './hooks/useVault';
 import { VaultFont } from './types';
 import { Check, Shield, CheckCircle2 } from 'lucide-react';
@@ -149,7 +149,15 @@ export default function App() {
 
   return (
     <div className="flex h-screen bg-obsidian text-vault-text overflow-hidden selection:bg-emerald-vault/30">
-      <div className="sidebar z-[10000]">
+      {/* Sidebar Overlay for Mobile */}
+      {isSidebarOpen && (
+        <div 
+          className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[9998] animate-in fade-in duration-300" 
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      <div className="sidebar relative z-[9999]">
         <Sidebar 
           documents={documents}
           activeId={activeDocId}
@@ -200,7 +208,7 @@ export default function App() {
           )}
         </div>
 
-        {/* Sovereign Sync Status Indicator: Removed text label to avoid obstruction */}
+        {/* Sovereign Sync Status Indicator */}
         <div className="fixed bottom-24 right-6 md:bottom-8 md:right-8 flex items-center justify-center p-2 rounded-full bg-obsidian/60 backdrop-blur-md border border-emerald-vault/20 shadow-lg z-[130] pointer-events-none">
           <CheckCircle2 size={16} className={vaultSynced ? "text-emerald-vault" : "text-emerald-vault/30 animate-pulse"} />
         </div>
