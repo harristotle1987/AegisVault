@@ -1,6 +1,5 @@
 
 import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
 import { 
   Document, 
   Packer, 
@@ -30,101 +29,141 @@ const triggerSovereignDownload = (blob: Blob, filename: string) => {
 export class VaultConverter {
   /**
    * Role: Senior Lead Architect
-   * Feature: Precise PDF Slicing & Executive Black Headings
+   * Feature: Vector-Based PDF Mirroring
+   * Logic: Native text rendering with inline style support to match DOCX high-fidelity output.
    */
-  static async toPDF(elementId: string, fileName: string = 'vault-export.pdf', fontMode: VaultFont = 'sans'): Promise<void> {
-    const sourceElement = document.getElementById(elementId);
-    if (!sourceElement) throw new Error("Source element not found");
+  static async toPDF(markdown: string, fileName: string = 'vault-export.pdf', fontMode: VaultFont = 'sans'): Promise<void> {
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    await FontLoader.loadForPDF(pdf);
 
-    // Hide UI chrome during capture
-    const elementsToHide = document.querySelectorAll('.fixed, .sidebar, button, .md\\:hidden');
-    elementsToHide.forEach(el => (el as HTMLElement).style.opacity = '0');
+    const tokens = marked.lexer(markdown);
+    const margin = 25.4; // 1 inch to match DOCX default
+    const pageWidth = 210;
+    const contentWidth = pageWidth - (margin * 2);
+    const pageHeight = 297;
+    let cursorY = margin;
 
-    try {
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      await FontLoader.loadForPDF(pdf);
+    const addNewPage = () => {
+      pdf.addPage();
+      cursorY = margin;
+    };
 
-      const canvas = await html2canvas(sourceElement, {
-        scale: 2, // Required: High-density for large, readable fonts
-        width: 794, // Standard A4 pixel width at 96 DPI
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        logging: false,
-        onclone: (clonedDoc) => {
-          const area = clonedDoc.getElementById(elementId);
-          if (area) {
-            area.style.backgroundColor = '#ffffff';
-            area.style.color = '#000000';
-            area.style.padding = '20mm';
-            area.style.width = '794px';
-            area.style.height = 'auto';
-            area.style.fontFamily = fontMode === 'mono' ? "'JetBrains Mono', monospace" : "'Inter', sans-serif";
+    const checkPageBreak = (neededHeight: number) => {
+      if (cursorY + neededHeight > pageHeight - margin) {
+        addNewPage();
+      }
+    };
 
-            // Hardened Black Heading Constraint
-            area.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(h => {
-              const el = h as HTMLElement;
-              el.style.color = '#000000';
-              el.style.fontWeight = 'bold';
-              if (el.tagName === 'H1' || el.tagName === 'H2') {
-                el.style.fontSize = el.tagName === 'H1' ? '28pt' : '22pt';
-                el.style.borderBottom = '1px solid #000000';
-                el.style.paddingBottom = '5mm';
-              }
-            });
+    /**
+     * Renders a block of text containing potential inline styles (bold/italic)
+     * Tracks cursor position precisely across multiple lines.
+     */
+    const renderBlock = (inlineTokens: any[], baseSize: number, baseStyle: string = 'normal', indent: number = 0) => {
+      let cursorX = margin + indent;
+      const lineHeight = (baseSize * 0.3527) * 1.5;
+      
+      pdf.setFont(fontMode === 'mono' ? 'Courier' : 'Helvetica', baseStyle);
+      pdf.setFontSize(baseSize);
 
-            area.querySelectorAll('p, li, strong, b').forEach(el => {
-              (el as HTMLElement).style.color = '#000000';
-            });
-          }
-        }
+      // Simple word-wrap engine for multi-style lines
+      const words: { text: string; style: string }[] = [];
+      
+      inlineTokens.forEach(t => {
+        let style = baseStyle;
+        if (t.type === 'strong') style = 'bold';
+        if (t.type === 'em') style = 'italic';
+        
+        const rawText = t.text || t.raw || '';
+        rawText.split(/(\s+)/).forEach((word: string) => {
+          if (word) words.push({ text: word, style });
+        });
       });
 
-      const imgData = canvas.toDataURL('image/jpeg', 0.75); // Compressed JPEG for sovereignty
-      const pdfWidth = 210;
-      const pdfHeight = 297;
-      const imgProps = pdf.getImageProperties(imgData);
-      const pdfImgHeight = (imgProps.height * pdfWidth) / imgProps.width;
-      
-      let heightLeft = pdfImgHeight;
-      let position = 0;
+      words.forEach((wordObj) => {
+        pdf.setFont(fontMode === 'mono' ? 'Courier' : 'Helvetica', wordObj.style);
+        const wordWidth = pdf.getTextWidth(wordObj.text);
 
-      // Vertical Slicing Loop with Micro-Bleed Overlap
-      while (heightLeft > 0) {
-        // Use a 0.5mm overlap as requested to hide page-break lines, 
-        // while tracking real height for page termination
-        pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, pdfImgHeight, undefined, 'FAST');
-        heightLeft -= pdfHeight;
-        
-        // The overlap ensures we don't get white gaps between slices
-        // but we subtract slightly less than a full page to "stitch" the edge
-        position -= (pdfHeight - 0.5); 
-        
-        if (heightLeft > 0) {
-          pdf.addPage();
+        if (cursorX + wordWidth > margin + contentWidth) {
+          cursorY += lineHeight;
+          cursorX = margin + indent;
+          checkPageBreak(lineHeight);
         }
-      }
 
-      triggerSovereignDownload(pdf.output('blob'), fileName);
-    } finally {
-      elementsToHide.forEach(el => (el as HTMLElement).style.opacity = '');
-    }
+        pdf.text(wordObj.text, cursorX, cursorY + (baseSize * 0.3527));
+        cursorX += wordWidth;
+      });
+
+      cursorY += lineHeight;
+    };
+
+    tokens.forEach((token) => {
+      switch (token.type) {
+        case 'heading':
+          // Match DOCX sizing exactly (h1=24pt, h2=18pt, h3=14pt)
+          const hSize = token.depth === 1 ? 24 : (token.depth === 2 ? 18 : 14);
+          cursorY += 6;
+          checkPageBreak(hSize * 0.3527 + 10);
+          renderBlock(token.tokens || [{ text: token.text }], hSize, 'bold');
+          
+          if (token.depth <= 2) {
+            pdf.setDrawColor(0, 0, 0);
+            pdf.setLineWidth(0.1);
+            pdf.line(margin, cursorY - 2, margin + contentWidth, cursorY - 2);
+            cursorY += 2;
+          }
+          cursorY += 4;
+          break;
+
+        case 'paragraph':
+          checkPageBreak(11 * 0.3527 * 2);
+          renderBlock(token.tokens || [{ text: token.text }], 11);
+          cursorY += 4;
+          break;
+
+        case 'list':
+          token.items.forEach((item: any) => {
+            checkPageBreak(11 * 0.3527 * 2);
+            pdf.setFontSize(11);
+            pdf.text('•', margin + 2, cursorY + (11 * 0.3527));
+            renderBlock(item.tokens || [{ text: item.text }], 11, 'normal', 7);
+          });
+          cursorY += 4;
+          break;
+
+        case 'blockquote':
+          const startY = cursorY;
+          pdf.setDrawColor(16, 185, 129);
+          pdf.setLineWidth(1);
+          renderBlock([{ text: token.text }], 11, 'italic', 10);
+          pdf.line(margin, startY, margin, cursorY - 2);
+          cursorY += 4;
+          break;
+
+        case 'hr':
+          cursorY += 4;
+          pdf.setDrawColor(200, 200, 200);
+          pdf.line(margin, cursorY, margin + contentWidth, cursorY);
+          cursorY += 8;
+          break;
+      }
+    });
+
+    triggerSovereignDownload(pdf.output('blob'), fileName);
   }
 
   /**
    * Role: Senior Lead Architect
-   * Feature: Hardened Recursive Bold Recognition for DOCX
+   * Logic: Native DOCX mapping for high-fidelity Microsoft Word assets.
    */
   static async toDocx(markdown: string, fileName: string = 'vault-export.docx'): Promise<void> {
     const tokens = marked.lexer(markdown);
     const children: any[] = [];
 
-    // Recursive walker to catch bold even in nested spans
     const mapInlineTokens = (inlineTokens: any[] = [], defaultSize: number = 24, parentBold: boolean = false): TextRun[] => {
       return inlineTokens.flatMap(t => {
         const isStrong = t.type === 'strong' || parentBold;
         const isEm = t.type === 'em';
         
-        // Catch-all bold logic: recursively apply bold if parent is bold or token is strong
         if (t.tokens && t.tokens.length > 0) {
           return mapInlineTokens(t.tokens, defaultSize, isStrong);
         }
@@ -135,7 +174,7 @@ export class VaultConverter {
           italic: isEm,
           size: defaultSize, 
           font: 'Inter',
-          color: '000000' // Force Black Typography
+          color: '000000'
         })];
       });
     };
@@ -154,7 +193,7 @@ export class VaultConverter {
           break;
         case 'paragraph':
           children.push(new Paragraph({
-            children: mapInlineTokens(token.tokens, 24),
+            children: mapInlineTokens(token.tokens, 22),
             spacing: { after: 240, line: 360 },
           }));
           break;
@@ -163,13 +202,13 @@ export class VaultConverter {
             children.push(new Paragraph({
               bullet: { level: 0 },
               spacing: { after: 120, line: 360 },
-              children: mapInlineTokens(item.tokens, 24)
+              children: mapInlineTokens(item.tokens, 22)
             }));
           });
           break;
         case 'blockquote':
           children.push(new Paragraph({
-            children: [new TextRun({ text: token.text, italic: true, color: '000000', font: 'Inter', size: 24 })],
+            children: [new TextRun({ text: token.text, italic: true, color: '666666', font: 'Inter', size: 22 })],
             indent: { left: 720 },
             spacing: { before: 200, after: 200, line: 360 },
           }));
@@ -179,7 +218,7 @@ export class VaultConverter {
           break;
         default:
           if ('tokens' in token) {
-            children.push(new Paragraph({ children: mapInlineTokens((token as any).tokens, 24) }));
+            children.push(new Paragraph({ children: mapInlineTokens((token as any).tokens, 22) }));
           }
       }
     });

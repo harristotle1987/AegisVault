@@ -2,10 +2,10 @@
 /**
  * Role: Senior Architect
  * Logic: Offline-First Sovereign Routing for AegisVault
- * Version: 1.0.4 - Reinforced Integrity
+ * Version: 1.0.8 - Zero-Latency Integrity Refined
  */
 
-const CACHE_NAME = 'aegis-vault-v1.0.4';
+const CACHE_NAME = 'aegis-vault-v1.0.8';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -13,6 +13,7 @@ const ASSETS_TO_CACHE = [
   '/favicon.svg',
   '/icon-192.svg',
   '/icon-512.svg',
+  '/icon-maskable.svg',
   '/index.tsx',
   '/App.tsx',
   '/types.ts',
@@ -20,7 +21,7 @@ const ASSETS_TO_CACHE = [
   '/hooks/usePWAInstall.ts',
   '/services/storageService.ts',
   '/services/exportService.ts',
-  '/services/VaultRefiner.ts',
+  '/services/vaultRefiner.ts',
   '/services/FontLoader.ts',
   'https://cdn.tailwindcss.com',
   'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,700;0,800;1,700;1,800&display=swap',
@@ -39,7 +40,7 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('SW: Pre-caching core assets for offline sovereignty...');
+      console.log('SW: Pre-caching core assets for absolute offline sovereignty...');
       return cache.addAll(ASSETS_TO_CACHE);
     })
   );
@@ -64,7 +65,24 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+  
   event.respondWith(
-    caches.match(event.request).then((response) => response || fetch(event.request))
+    caches.match(event.request).then((response) => {
+      // Return cached response if found, else fetch from network and cache
+      return response || fetch(event.request).then(networkResponse => {
+        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+          return networkResponse;
+        }
+
+        const responseToCache = networkResponse.clone();
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, responseToCache);
+        });
+
+        return networkResponse;
+      }).catch(() => {
+        return new Response('Offline: Resource not available');
+      });
+    })
   );
 });

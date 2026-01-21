@@ -10,8 +10,8 @@ import { ConfigModal } from './components/modals/ConfigModal';
 import { TagsModal } from './components/modals/TagsModal';
 import { InstallPrompt } from './components/InstallPrompt';
 import { VaultConverter } from './services/exportService';
-// Fix casing conflict by importing from the PascalCase version
-import { VaultRefiner } from './services/VaultRefiner';
+// Resolved casing conflict: use the lowercase version 'vaultRefiner.ts' to match compiler expectations
+import { VaultRefiner } from './services/vaultRefiner';
 import { useVault } from './hooks/useVault';
 import { VaultFont } from './types';
 import { Check, Shield } from 'lucide-react';
@@ -59,7 +59,6 @@ export default function App() {
   const handleContentChange = (content: string) => {
     if (!activeDoc) return;
     const updated = { ...activeDoc, content };
-    // Optimistic update for UI fluidness
     if (saveTimeoutRef.current) window.clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = window.setTimeout(() => saveDraft(updated), 800);
   };
@@ -67,7 +66,6 @@ export default function App() {
   const handleLocalRefine = () => {
     if (!activeDoc) return;
     const refined = VaultRefiner.refine(activeDoc.content);
-    // Directly save refined content
     saveDraft({ ...activeDoc, content: refined });
     if ('vibrate' in navigator) navigator.vibrate(15);
     setNotification({ message: 'Structural hardening complete', type: 'success' });
@@ -95,12 +93,14 @@ export default function App() {
     setActiveModal(null);
     try {
       if (pendingFormat === 'pdf') {
-        await VaultConverter.toPDF('preview-area', name + '.pdf', activeFont);
+        // Use vector-based token rendering for selectable text
+        await VaultConverter.toPDF(activeDoc.content, name + '.pdf', activeFont);
       } else {
         await VaultConverter.toDocx(activeDoc.content, name + '.docx');
       }
       setNotification({ message: 'Export sequence complete', type: 'success' });
     } catch (e) {
+      console.error(e);
       setNotification({ message: 'Export failed', type: 'error' });
     } finally {
       setIsExporting(false);
@@ -199,8 +199,8 @@ export default function App() {
                    </div>
                 </div>
                 <div className="text-center space-y-2">
-                   <h3 className="text-white font-black uppercase tracking-[0.4em] text-xs">Architectural Sharding</h3>
-                   <p className="text-vault-dim text-[10px] font-mono uppercase tracking-widest opacity-60">Rendering Multi-page Binary Assets</p>
+                   <h3 className="text-white font-black uppercase tracking-[0.4em] text-xs text-center">Architectural Sharding</h3>
+                   <p className="text-vault-dim text-[10px] font-mono uppercase tracking-widest opacity-60 text-center">Rendering Vector-Based Binary Assets</p>
                 </div>
              </div>
           </div>
