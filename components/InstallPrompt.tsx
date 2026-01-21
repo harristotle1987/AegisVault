@@ -46,7 +46,6 @@ export const InstallPrompt: React.FC = () => {
   const handleInstall = async () => {
     if (isIOS) return; 
     if (!deferredPrompt) {
-      // Fallback if the prompt event was missed or not supported
       setIsVisible(false);
       localStorage.setItem('bunker_onboarded', 'true');
       return;
@@ -69,7 +68,7 @@ export const InstallPrompt: React.FC = () => {
   if (!isVisible) return null;
 
   return (
-    <div className="fixed bottom-24 left-6 right-6 md:left-auto md:bottom-10 md:right-10 md:w-96 z-[99999] bg-obsidian-soft border border-emerald-vault/30 p-6 rounded-2xl shadow-sovereign animate-in fade-in slide-in-from-bottom-8 duration-700">
+    <div className="fixed bottom-24 left-6 right-6 md:left-auto md:bottom-10 md:right-10 md:w-96 z-[99999] bg-obsidian-soft border border-emerald-vault/40 p-6 rounded-2xl shadow-sovereign animate-in fade-in slide-in-from-bottom-8 duration-700">
       <div className="flex items-start gap-5">
         <div className="w-12 h-12 rounded-xl bg-emerald-vault/10 flex items-center justify-center border border-emerald-vault/20 shrink-0">
           <Download className="w-6 h-6 text-emerald-vault" strokeWidth={2.5} />
@@ -87,13 +86,13 @@ export const InstallPrompt: React.FC = () => {
               <p className="text-vault-dim text-[11px] leading-relaxed font-medium">
                 To secure this archive as a standalone app on iOS:
               </p>
-              <div className="flex flex-col gap-2 bg-black/40 p-3 rounded-xl border border-white/5">
+              <div className="flex flex-col gap-2 bg-black/40 p-3 rounded-xl border border-emerald-vault/20">
                 <div className="flex items-center gap-3 text-[10px] text-white/80 font-black uppercase tracking-wider">
-                  <div className="p-1.5 bg-white/10 rounded"><Share size={12} /></div>
+                  <div className="p-1.5 bg-white/10 rounded"><Share size={12} className="text-emerald-vault" /></div>
                   <span>1. Tap Share in Safari</span>
                 </div>
                 <div className="flex items-center gap-3 text-[10px] text-white/80 font-black uppercase tracking-wider">
-                  <div className="p-1.5 bg-white/10 rounded"><PlusSquare size={12} /></div>
+                  <div className="p-1.5 bg-white/10 rounded"><PlusSquare size={12} className="text-emerald-vault" /></div>
                   <span>2. "Add to Home Screen"</span>
                 </div>
               </div>

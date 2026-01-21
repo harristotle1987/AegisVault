@@ -69,7 +69,7 @@ export const Preview: React.FC<PreviewProps> = ({ content, font = 'sans', active
         className="flex-1 overflow-y-auto bg-obsidian-soft no-scrollbar vault-editor-scroll"
       >
         <div className="max-w-4xl mx-auto min-h-full flex flex-col shadow-[0_0_100px_rgba(0,0,0,0.4)]">
-          {/* pb-[200px] ensures the final line of text clears the action bar perfectly */}
+          {/* pb-[200px] ensures text clears the bottom navigation area completely */}
           <div 
             id="preview-area"
             ref={previewRef}

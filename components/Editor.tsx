@@ -55,7 +55,7 @@ export const Editor: React.FC<EditorProps> = ({ value, onChange, font = 'mono', 
         <span className="text-[9px] opacity-50 font-mono">MD.GFM</span>
       </div>
       <div className="flex-1 relative overflow-hidden">
-        {/* pb-[200px] provides absolute scroll headroom above floating UI */}
+        {/* pb-[200px] provides absolute scroll clearance for mobile UI bars */}
         <textarea
           ref={textareaRef}
           value={internalValue}

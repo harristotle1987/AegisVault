@@ -22,7 +22,7 @@ export const db = new VaultDatabase();
 const MOCK_ARCHIVES: Omit<SovereignDocument, 'id' | 'createdAt' | 'lastModified'>[] = [
   {
     title: 'Executive Manifesto: Digital Sovereignty',
-    // Fix: Properly close the template literal with a backtick and remove the syntax-breaking trailing double quote
+    // Fixed template literal closure by removing backslash before the backtick
     content: `# The Philosophy of Digital Sovereignty
 
 > "Privacy is not a feature; it is the foundation of the modern architect."
