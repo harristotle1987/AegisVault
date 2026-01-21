@@ -1,14 +1,16 @@
-import React, { useMemo, useRef, useEffect } from 'react';
+import React, { useMemo, useRef, useEffect, useLayoutEffect } from 'react';
 import { marked } from 'marked';
 import { VaultFont } from '../types';
 
 interface PreviewProps {
   content: string;
   font?: VaultFont;
+  activeDocId?: string | null;
 }
 
-export const Preview: React.FC<PreviewProps> = ({ content, font = 'sans' }) => {
+export const Preview: React.FC<PreviewProps> = ({ content, font = 'sans', activeDocId }) => {
   const previewRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const html = useMemo(() => {
     return marked.parse(content, { 
@@ -20,8 +22,7 @@ export const Preview: React.FC<PreviewProps> = ({ content, font = 'sans' }) => {
   }, [content]);
 
   /**
-   * Renderer Reset: Explicitly clear the container before setting new HTML.
-   * This prevents duplication ghosts and ensures a clean architectural state.
+   * Renderer Reset & Terminal Focus Optimization
    */
   useEffect(() => {
     if (previewRef.current) {
@@ -29,6 +30,18 @@ export const Preview: React.FC<PreviewProps> = ({ content, font = 'sans' }) => {
       previewRef.current.innerHTML = html;
     }
   }, [html]);
+
+  // Sovereign Scroll Optimization: Sync to bottom when content or doc changes
+  useLayoutEffect(() => {
+    if (scrollContainerRef.current) {
+      const container = scrollContainerRef.current;
+      // Immediate scroll for shard switching, smooth for hardening
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: 'auto'
+      });
+    }
+  }, [activeDocId, html]);
 
   const fontClass = font === 'mono' ? 'font-mono' : 'font-sans';
 
@@ -46,7 +59,10 @@ export const Preview: React.FC<PreviewProps> = ({ content, font = 'sans' }) => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto bg-obsidian-soft no-scrollbar vault-editor-scroll">
+      <div 
+        ref={scrollContainerRef}
+        className="flex-1 overflow-y-auto bg-obsidian-soft no-scrollbar vault-editor-scroll scroll-smooth"
+      >
         <div className="max-w-4xl mx-auto min-h-full flex flex-col shadow-[0_0_100px_rgba(0,0,0,0.4)]">
           <div 
             id="preview-area"

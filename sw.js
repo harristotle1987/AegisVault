@@ -1,4 +1,3 @@
-
 /**
  * Role: Senior Architect
  * Logic: Offline-First Sovereign Routing for AegisVault
@@ -18,7 +17,7 @@ const ASSETS_TO_CACHE = [
   '/hooks/usePWAInstall.ts',
   '/services/storageService.ts',
   '/services/exportService.ts',
-  '/services/vaultRefiner.ts',
+  '/services/VaultRefiner.ts',
   '/services/FontLoader.ts',
   'https://cdn.tailwindcss.com',
   'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,700;0,800;1,700;1,800&display=swap',

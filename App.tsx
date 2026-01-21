@@ -11,8 +11,8 @@ import { PurgeModal } from './components/modals/PurgeModal';
 import { DownloadSuccessModal } from './components/modals/DownloadSuccessModal';
 import { InstallPrompt } from './components/InstallPrompt';
 import { VaultConverter } from './services/exportService';
-// Fix: Use lowercase filename for VaultRefiner to resolve casing conflicts in project registry
-import { VaultRefiner } from './services/vaultRefiner';
+// Fix: Use consistent PascalCase filename for VaultRefiner to resolve casing conflicts in project registry
+import { VaultRefiner } from './services/VaultRefiner';
 import { useVault } from './hooks/useVault';
 import { VaultFont } from './types';
 import { Check, Shield, CheckCircle2, ShieldAlert } from 'lucide-react';
@@ -238,11 +238,20 @@ export default function App() {
           {activeDoc ? (
             <>
               <div className={`flex-1 flex flex-col h-full overflow-hidden ${mobileTab === 'preview' ? 'hidden md:flex' : 'flex'}`}>
-                <Editor font={activeFont} value={activeDoc.content} onChange={handleContentChange} />
+                <Editor 
+                  font={activeFont} 
+                  value={activeDoc.content} 
+                  onChange={handleContentChange} 
+                  activeDocId={activeDocId}
+                />
               </div>
               <div className="hidden md:block w-px bg-vault-border z-10 h-full" />
               <div className={`flex-1 flex flex-col h-full overflow-hidden bg-obsidian-soft ${mobileTab === 'editor' ? 'hidden md:flex' : 'flex'}`}>
-                <Preview font={activeFont} content={activeDoc.content} />
+                <Preview 
+                  font={activeFont} 
+                  content={activeDoc.content} 
+                  activeDocId={activeDocId}
+                />
               </div>
             </>
           ) : (

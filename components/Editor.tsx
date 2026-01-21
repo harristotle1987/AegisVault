@@ -1,18 +1,29 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { VaultFont } from '../types';
 
 interface EditorProps {
   value: string;
   onChange: (value: string) => void;
   font?: VaultFont;
+  activeDocId?: string | null;
 }
 
-export const Editor: React.FC<EditorProps> = ({ value, onChange, font = 'mono' }) => {
+export const Editor: React.FC<EditorProps> = ({ value, onChange, font = 'mono', activeDocId }) => {
   const fontClass = font === 'mono' ? 'font-mono' : 'font-sans';
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // Sovereign Scroll Optimization: Focus on latest text when switching shards
+  useEffect(() => {
+    if (textareaRef.current) {
+      const el = textareaRef.current;
+      // Use requestAnimationFrame to ensure the DOM has painted the content
+      requestAnimationFrame(() => {
+        el.scrollTop = el.scrollHeight;
+      });
+    }
+  }, [activeDocId]);
+
   const handleFocus = () => {
-    // Explicitly prevent browser from attempting to scroll the page body
     window.scrollTo(0, 0);
   };
 
@@ -31,7 +42,7 @@ export const Editor: React.FC<EditorProps> = ({ value, onChange, font = 'mono' }
           value={value}
           onFocus={handleFocus}
           onChange={(e) => onChange(e.target.value)}
-          className={`absolute inset-0 w-full h-full bg-obsidian p-8 md:p-12 focus:outline-none resize-none text-sm leading-relaxed text-vault-text placeholder:text-zinc-800 caret-emerald-vault transition-colors overflow-y-auto vault-editor-scroll ${fontClass}`}
+          className={`absolute inset-0 w-full h-full bg-obsidian p-8 md:p-12 focus:outline-none resize-none text-sm leading-relaxed text-vault-text placeholder:text-zinc-800 caret-emerald-vault transition-colors overflow-y-auto vault-editor-scroll scroll-smooth ${fontClass}`}
           placeholder="Commence entry..."
           spellCheck={false}
           autoComplete="off"
