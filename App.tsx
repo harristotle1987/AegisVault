@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Editor } from './components/Editor';
 import { Preview } from './components/Preview';
@@ -8,16 +9,17 @@ import { ExportModal } from './components/modals/ExportModal';
 import { ConfigModal } from './components/modals/ConfigModal';
 import { TagsModal } from './components/modals/TagsModal';
 import { PurgeModal } from './components/modals/PurgeModal';
+import { DownloadSuccessModal } from './components/modals/DownloadSuccessModal';
 import { InstallPrompt } from './components/InstallPrompt';
 import { VaultConverter } from './services/exportService';
-// Casing Conflict Resolution: Import matches the root file definition found in program context
-import { VaultRefiner } from './services/VaultRefiner';
+// Fix: Use lowercase filename to match filesystem-preferred casing and resolve TS casing conflict error on line 16
+import { VaultRefiner } from './services/vaultRefiner';
 import { useVault } from './hooks/useVault';
 import { VaultFont } from './types';
-import { Check, Shield, CheckCircle2 } from 'lucide-react';
+import { Check, Shield, CheckCircle2, ShieldAlert } from 'lucide-react';
 import { usePWAInstall } from './hooks/usePWAInstall';
 
-type ModalType = 'export' | 'config' | 'tags' | 'purge' | null;
+type ModalType = 'export' | 'config' | 'tags' | 'purge' | 'success' | null;
 
 export default function App() {
   const { 
@@ -42,6 +44,9 @@ export default function App() {
   const [activeFont, setActiveFont] = useState<VaultFont>('sans');
   const [docToPurge, setDocToPurge] = useState<string | null>(null);
   const [vaultSynced, setVaultSynced] = useState(true);
+  
+  // Track successful export for final popup
+  const [lastExportedFile, setLastExportedFile] = useState<{name: string, format: 'pdf' | 'docx' | null}>({name: "", format: null});
 
   const saveTimeoutRef = useRef<number | null>(null);
 
@@ -116,7 +121,8 @@ export default function App() {
       } else {
         await VaultConverter.toDocx(activeDoc.content, name + '.docx');
       }
-      setNotification({ message: 'Export sequence complete', type: 'success' });
+      setLastExportedFile({ name, format: pendingFormat });
+      setActiveModal('success');
     } catch (e) {
       console.error(e);
       setNotification({ message: 'Export failed', type: 'error' });
@@ -237,25 +243,32 @@ export default function App() {
             <div className={`flex items-center gap-3 px-5 py-3 rounded-xl border backdrop-blur-md shadow-2xl ${
               notification.type === 'success' ? 'bg-emerald-vault/10 border-emerald-vault/30 text-emerald-vault' : 'bg-red-500/10 border-red-500/30 text-red-400'
             }`}>
-              {notification.type === 'success' ? <Check size={16} /> : <Shield size={16} />}
+              {notification.type === 'success' ? <Check size={16} /> : <ShieldAlert size={16} />}
               <span className="text-xs font-bold uppercase tracking-wider">{notification.message}</span>
             </div>
           )}
         </div>
 
+        {/* Processing Protocol Pop up */}
         {isExporting && (
-          <div className="fixed inset-0 z-[600] bg-obsidian/90 backdrop-blur-md flex flex-col items-center justify-center pointer-events-auto cursor-wait">
-             <div className="p-10 rounded-3xl bg-obsidian-soft border border-emerald-vault/20 shadow-sovereign flex flex-col items-center gap-6 animate-in zoom-in-95 duration-300">
+          <div className="fixed inset-0 z-[600] bg-obsidian/80 backdrop-blur-xl flex items-center justify-center pointer-events-auto cursor-wait animate-in fade-in duration-300">
+             <div className="w-full max-w-sm p-10 rounded-3xl bg-obsidian-soft border border-emerald-vault/20 shadow-sovereign flex flex-col items-center gap-8 animate-in zoom-in-95 duration-300">
                 <div className="relative">
-                   <div className="w-16 h-16 rounded-full border-4 border-emerald-vault/10 border-t-emerald-vault animate-spin" />
+                   <div className="w-20 h-20 rounded-full border-4 border-emerald-vault/5 border-t-emerald-vault animate-spin" />
                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Shield className="w-6 h-6 text-emerald-vault animate-pulse" />
+                      <Shield className="w-8 h-8 text-emerald-vault animate-pulse" />
                    </div>
                 </div>
-                <div className="text-center space-y-2">
-                   <h3 className="text-white font-black uppercase tracking-[0.4em] text-xs text-center">Architectural Sharding</h3>
-                   <p className="text-vault-dim text-[10px] font-mono uppercase tracking-widest opacity-60 text-center">Rendering Vector-Based Binary Assets</p>
+                <div className="text-center space-y-3">
+                   <h3 className="text-white font-black uppercase tracking-[0.4em] text-xs">Binary Sharding</h3>
+                   <div className="flex flex-col gap-1">
+                      <p className="text-vault-dim text-[10px] font-mono uppercase tracking-widest opacity-60">Rendering Vector Asset</p>
+                      <div className="w-32 h-0.5 bg-white/5 mx-auto rounded-full overflow-hidden">
+                        <div className="h-full bg-emerald-vault w-1/2 animate-[shimmer_1.5s_infinite]" />
+                      </div>
+                   </div>
                 </div>
+                <p className="text-[9px] text-vault-dim italic opacity-40">Hardening typographic rhythm within local memory...</p>
              </div>
           </div>
         )}
@@ -284,6 +297,20 @@ export default function App() {
         onCancel={() => { setActiveModal(null); setDocToPurge(null); }}
         draftTitle={documents.find(d => d.id === docToPurge)?.title || "Unknown Shard"}
       />
+
+      <DownloadSuccessModal 
+        isOpen={activeModal === 'success'}
+        onClose={() => setActiveModal(null)}
+        fileName={lastExportedFile.name}
+        format={lastExportedFile.format}
+      />
+
+      <style>{`
+        @keyframes shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(200%); }
+        }
+      `}</style>
     </div>
   );
 }
