@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle2, X, ShieldCheck, ArrowRight, Maximize2 } from 'lucide-react';
+import { CheckCircle2, X, ShieldCheck, ArrowRight, Maximize2, Share2 } from 'lucide-react';
 
 interface DownloadSuccessModalProps {
   isOpen: boolean;
@@ -12,10 +12,54 @@ interface DownloadSuccessModalProps {
 export const DownloadSuccessModal: React.FC<DownloadSuccessModalProps> = ({ isOpen, onClose, fileName, format, blobUrl }) => {
   if (!isOpen) return null;
 
-  const handleOpen = () => {
-    if (blobUrl) {
-      window.open(blobUrl, '_blank');
+  /**
+   * Role: Senior Architect
+   * Feature: Sovereign File Activation
+   * Logic: Navigates the limitation of browser DOCX rendering by leveraging 
+   * native system handlers (Share API) or high-fidelity download triggers.
+   */
+  const handleViewOrOpen = async () => {
+    if (!blobUrl) return;
+
+    // Construct the file object if we want to attempt native sharing (Best mobile experience)
+    if (navigator.share && navigator.canShare) {
+      try {
+        const response = await fetch(blobUrl);
+        const blob = await response.blob();
+        const file = new File([blob], `${fileName}.${format}`, { 
+          type: format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
+        });
+
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: fileName,
+            text: `Sovereign Shard: ${fileName}`
+          });
+          return; // Protocol handled by OS
+        }
+      } catch (e) {
+        console.warn('Native sharing protocol bypassed, falling back to browser link.');
+      }
     }
+
+    // Standard Browser Fallback
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.target = '_blank';
+    
+    // For DOCX, we must hint the browser to download/open externally
+    if (format === 'docx') {
+      link.download = `${fileName}.docx`;
+    }
+    
+    document.body.appendChild(link);
+    link.click();
+    
+    // Cleanup temporary link
+    setTimeout(() => {
+      document.body.removeChild(link);
+    }, 100);
   };
 
   return (
@@ -46,10 +90,15 @@ export const DownloadSuccessModal: React.FC<DownloadSuccessModalProps> = ({ isOp
 
           <div className="w-full flex flex-col gap-3">
             <button 
-              onClick={handleOpen}
+              onClick={handleViewOrOpen}
               className="group w-full py-4 bg-emerald-vault hover:bg-emerald-vault/90 text-black rounded-2xl text-[11px] font-black uppercase tracking-[0.3em] transition-all flex items-center justify-center gap-3 active:scale-95 shadow-[0_10px_30px_rgba(16,185,129,0.3)]"
             >
-              <Maximize2 size={14} className="group-hover:scale-110 transition-transform" /> View Shard
+              {format === 'pdf' ? (
+                <Maximize2 size={14} className="group-hover:scale-110 transition-transform" />
+              ) : (
+                <Share2 size={14} className="group-hover:rotate-12 transition-transform" />
+              )}
+              {format === 'pdf' ? 'View Shard' : 'Open / Share Shard'}
             </button>
             
             <button 

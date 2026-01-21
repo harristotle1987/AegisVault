@@ -12,9 +12,8 @@ import { PurgeModal } from './components/modals/PurgeModal';
 import { DownloadSuccessModal } from './components/modals/DownloadSuccessModal';
 import { InstallPrompt } from './components/InstallPrompt';
 import { VaultConverter } from './services/exportService';
-// Consolidated casing to vaultRefiner.ts to resolve TS casing conflict
-// Importing lowercase to match vaultRefiner.ts
-import { VaultRefiner } from './services/vaultRefiner';
+// Fixed casing conflict: importing PascalCase to match VaultRefiner.ts
+import { VaultRefiner } from './services/VaultRefiner';
 import { useVault } from './hooks/useVault';
 import { VaultFont } from './types';
 import { Check, Shield, CheckCircle2, ShieldAlert } from 'lucide-react';
