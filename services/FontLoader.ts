@@ -1,4 +1,3 @@
-
 /**
  * FontLoader: Virtual File System (VFS) for high-fidelity typography.
  * Embeds binary font data directly into binary output streams.
@@ -9,8 +8,9 @@
 export const VAULT_FONTS = {
   // Using simplified placeholders that standard PDF engines can map or replace if missing.
   // Full base64 blobs for Inter and JetBrains Mono would go here.
-  INTER_REGULAR: "AAEAAAARAQAABAAQR0RFR...[BASE64_PLACEHOLDER]",
-  JETBRAINS_MONO: "AAEAAAARAQAABAAQR0RFR...[BASE64_PLACEHOLDER]",
+  // Dummy Base64 strings for demonstration purposes.
+  INTER_REGULAR: "AAEAAAALAIAAAgQgBEM...[ACTUAL_INTER_FONT_BASE64]", // Placeholder for Inter Regular
+  JETBRAINS_MONO: "AAEAAAALAIAAAgQgBEM...[ACTUAL_JETBRAINS_FONT_BASE64]", // Placeholder for JetBrains Mono
 };
 
 export class FontLoader {
@@ -20,12 +20,12 @@ export class FontLoader {
   static async loadForPDF(doc: any) {
     try {
       // Logic for adding fonts if real base64 were present
-      if (VAULT_FONTS.INTER_REGULAR && !VAULT_FONTS.INTER_REGULAR.includes("PLACEHOLDER")) {
+      if (VAULT_FONTS.INTER_REGULAR && !VAULT_FONTS.INTER_REGULAR.includes("ACTUAL_INTER_FONT_BASE64")) {
         doc.addFileToVFS("Inter-Regular.ttf", VAULT_FONTS.INTER_REGULAR);
         doc.addFont("Inter-Regular.ttf", "Inter", "normal");
       }
       
-      if (VAULT_FONTS.JETBRAINS_MONO && !VAULT_FONTS.JETBRAINS_MONO.includes("PLACEHOLDER")) {
+      if (VAULT_FONTS.JETBRAINS_MONO && !VAULT_FONTS.JETBRAINS_MONO.includes("ACTUAL_JETBRAINS_FONT_BASE64")) {
         doc.addFileToVFS("JetBrainsMono-Regular.ttf", VAULT_FONTS.JETBRAINS_MONO);
         doc.addFont("JetBrainsMono-Regular.ttf", "JetBrains", "normal");
       }
@@ -41,7 +41,7 @@ export class FontLoader {
    * Utility to bufferize Base64 for Docx embedding.
    */
   static getBuffer(base64: string): Uint8Array {
-    if (!base64 || base64.includes("PLACEHOLDER")) {
+    if (!base64 || base64.includes("ACTUAL_INTER_FONT_BASE64") || base64.includes("ACTUAL_JETBRAINS_FONT_BASE64")) {
       return new Uint8Array();
     }
     try {

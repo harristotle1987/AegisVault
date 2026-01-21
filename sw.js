@@ -10,7 +10,12 @@ const ASSETS_TO_CACHE = [
   '/manifest.json',
   '/favicon.svg',
   '/icon-192.svg',
-  '/icon-512.svg'
+  '/icon-512.svg',
+  // Conceptual font files for offline binary integrity.
+  // These paths assume corresponding .ttf files exist at the root level if they were to be dynamically fetched.
+  // For jspdf's VFS, the base64 content embedded in FontLoader.ts is used directly.
+  '/Inter-Regular.ttf',
+  '/JetBrainsMono-Regular.ttf'
 ];
 
 self.addEventListener('install', (event) => {
