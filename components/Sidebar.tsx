@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { 
   Plus, 
   Trash2, 
-  Shield, 
   Settings, 
   ChevronLeft, 
   ChevronRight, 
@@ -30,6 +29,19 @@ interface SidebarProps {
   onClose: () => void;
   installPrompt?: { isInstallable: boolean; install: () => void };
 }
+
+/**
+ * AegisLogo: Custom Sovereign Brand Asset
+ */
+const AegisLogo = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <path d="M256 70C210 70 140 95 100 120V270C100 370 256 462 256 462C256 462 412 370 412 270V120C372 95 302 70 256 70ZM392 268C392 350 256 428 256 428C256 428 120 350 120 268V134C155 112 215 90 256 90C297 90 357 112 392 134V268Z" fill="currentColor"/>
+    <path d="M256 110C220 110 170 128 140 148V255C140 325 256 397 256 397C256 397 372 325 372 255V148C342 128 292 110 256 110ZM352 253C352 310 256 367 256 367C256 367 160 310 160 253V164C185 148 230 130 256 130C282 130 327 148 352 164V253Z" fill="currentColor"/>
+    <path d="M256 185L228 205V275L256 295L284 275V205L256 185Z" fill="currentColor"/>
+    <rect x="252" y="295" width="8" height="25" fill="currentColor"/>
+    <circle cx="256" cy="340" r="18" fill="currentColor"/>
+  </svg>
+);
 
 export const Sidebar: React.FC<SidebarProps> = ({ 
   documents, 
@@ -70,8 +82,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className={`flex items-center justify-between transition-all duration-300 ${isCollapsed ? 'p-4' : 'p-6 md:p-8'}`}>
         {(!isCollapsed || window.innerWidth < 768) && (
           <div className="flex items-center gap-3 animate-in fade-in slide-in-from-left-2 duration-300">
-            <div className="w-8 h-8 bg-emerald-vault rounded flex items-center justify-center shadow-emerald-glow">
-              <Shield className="w-5 h-5 text-black" strokeWidth={2.5} />
+            <div className="w-9 h-9 bg-emerald-vault rounded flex items-center justify-center shadow-emerald-glow">
+              <AegisLogo className="w-6 h-6 text-black" />
             </div>
             <div className="flex flex-col">
               <span className="font-extrabold text-white tracking-[-0.05em] text-lg uppercase leading-none">AegisVault</span>
