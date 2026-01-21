@@ -69,10 +69,11 @@ export const Preview: React.FC<PreviewProps> = ({ content, font = 'sans', active
         className="flex-1 overflow-y-auto bg-obsidian-soft no-scrollbar vault-editor-scroll"
       >
         <div className="max-w-4xl mx-auto min-h-full flex flex-col shadow-[0_0_100px_rgba(0,0,0,0.4)]">
+          {/* pb-[200px] ensures the final line of text clears the action bar perfectly */}
           <div 
             id="preview-area"
             ref={previewRef}
-            className={`flex-1 p-16 md:p-24 pb-[180px] md:pb-[180px] prose-vault selection:bg-emerald-vault/20 transition-all duration-500 ease-in-out ${fontClass}`}
+            className={`flex-1 p-16 md:p-24 pb-[200px] md:pb-[200px] prose-vault selection:bg-emerald-vault/20 transition-all duration-500 ease-in-out ${fontClass}`}
           />
           
           <div className="h-32 flex items-center justify-center border-t border-vault-border/20 mt-8 mb-24">

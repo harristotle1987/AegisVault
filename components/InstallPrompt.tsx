@@ -1,62 +1,63 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Download, X, Shield, Share, PlusSquare } from 'lucide-react';
 
+/**
+ * InstallPrompt: Sovereign Onboarding Protocol
+ * Logic: Implements a 30-second delayed entry for high-fidelity engagement.
+ */
 export const InstallPrompt: React.FC = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isVisible, setIsVisible] = useState(false);
-  const [isVaultReady, setIsVaultReady] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
+  const timerRef = useRef<number | null>(null);
 
   useEffect(() => {
-    // Detect iOS
+    // 1. Identification Protocol
     const userAgent = window.navigator.userAgent.toLowerCase();
     const ios = /iphone|ipad|ipod/.test(userAgent);
     const isStandalone = (window.navigator as any).standalone || window.matchMedia('(display-mode: standalone)').matches;
     
     setIsIOS(ios);
 
-    // Listen for the custom "vault-ready" signal from Service Worker registration
-    const readyHandler = () => setIsVaultReady(true);
-    window.addEventListener('vault-ready', readyHandler);
+    // If already in standalone or already onboarded, abort protocol
+    if (isStandalone || localStorage.getItem('bunker_onboarded') === 'true') {
+      return;
+    }
 
+    // 2. Android/Chrome Event Capture
     const promptHandler = (e: any) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      
-      const onboarded = localStorage.getItem('bunker_onboarded');
-      // Only show if vault environment is ready and not previously onboarded
-      if (!onboarded && isVaultReady) {
-        setIsVisible(true);
-      }
     };
-
-    // Standard PWA prompt (Android/Chrome/Edge)
     window.addEventListener('beforeinstallprompt', promptHandler);
-    
-    // Manual iOS Prompt Logic
-    if (ios && !isStandalone && !localStorage.getItem('bunker_onboarded')) {
-      const timer = setTimeout(() => {
-        if (isVaultReady) setIsVisible(true);
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
+
+    // 3. The 30-Second Sovereign Delay
+    // We wait 30 seconds after mounting to ensure the user is engaged with the vault.
+    timerRef.current = window.setTimeout(() => {
+      setIsVisible(true);
+    }, 30000);
 
     return () => {
-      window.removeEventListener('vault-ready', readyHandler);
       window.removeEventListener('beforeinstallprompt', promptHandler);
+      if (timerRef.current) window.clearTimeout(timerRef.current);
     };
-  }, [isVaultReady]);
+  }, []);
 
   const handleInstall = async () => {
-    if (isIOS) return; // iOS users follow manual instructions displayed in UI
-    if (!deferredPrompt) return;
+    if (isIOS) return; 
+    if (!deferredPrompt) {
+      // Fallback if the prompt event was missed or not supported
+      setIsVisible(false);
+      localStorage.setItem('bunker_onboarded', 'true');
+      return;
+    }
+    
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
     if (outcome === 'accepted') {
-      setIsVisible(false);
       localStorage.setItem('bunker_onboarded', 'true');
     }
+    setIsVisible(false);
     setDeferredPrompt(null);
   };
 
@@ -68,7 +69,7 @@ export const InstallPrompt: React.FC = () => {
   if (!isVisible) return null;
 
   return (
-    <div className="fixed bottom-24 left-6 right-6 md:left-auto md:bottom-10 md:right-10 md:w-96 z-[99999] bg-obsidian-soft border border-emerald-vault/30 p-6 rounded-2xl shadow-sovereign animate-in fade-in slide-in-from-bottom-8 duration-500">
+    <div className="fixed bottom-24 left-6 right-6 md:left-auto md:bottom-10 md:right-10 md:w-96 z-[99999] bg-obsidian-soft border border-emerald-vault/30 p-6 rounded-2xl shadow-sovereign animate-in fade-in slide-in-from-bottom-8 duration-700">
       <div className="flex items-start gap-5">
         <div className="w-12 h-12 rounded-xl bg-emerald-vault/10 flex items-center justify-center border border-emerald-vault/20 shrink-0">
           <Download className="w-6 h-6 text-emerald-vault" strokeWidth={2.5} />
