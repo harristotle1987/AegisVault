@@ -46,13 +46,7 @@ export class VaultConverter {
         onclone: (clonedDoc) => {
           const area = clonedDoc.getElementById(elementId);
           if (area) {
-            // ROLE: Senior Lead Architect
-            // Task: Final Sovereign Integrity Deployment
-            // Logic: CLEAR CONTAINER FIRST TO STOP DUPLICATION
-            const rawContent = area.innerHTML;
-            area.innerHTML = ""; 
-            area.innerHTML = rawContent;
-
+            area.innerHTML = area.innerHTML; // Reset content for a clean state
             area.style.backgroundColor = '#ffffff';
             area.style.color = '#000000';
             area.style.padding = '20mm';
@@ -64,15 +58,22 @@ export class VaultConverter {
             area.querySelectorAll('*').forEach(child => {
               const el = child as HTMLElement;
               el.style.color = '#000000';
-              if (el.tagName.startsWith('H')) {
-                el.style.color = '#10B981';
-                el.style.borderBottom = '1px solid rgba(16, 185, 129, 0.2)';
+              
+              // Force H1/H2 to Bold and Black for professional export integrity
+              if (el.tagName === 'H1' || el.tagName === 'H2') {
+                el.style.color = '#000000';
+                el.style.fontWeight = 'bold';
+                el.style.borderBottom = '1px solid rgba(0, 0, 0, 0.1)';
+              } else if (el.tagName.startsWith('H')) {
+                el.style.color = '#000000';
+                el.style.fontWeight = 'bold';
               }
             });
           }
         }
       });
 
+      // JPEG 0.75 compression for optimized binary weight
       const imgData = canvas.toDataURL('image/jpeg', 0.75); 
       const pdfWidth = 210;
       const pdfHeight = 297;
@@ -83,7 +84,7 @@ export class VaultConverter {
       let position = 0;
 
       while (heightLeft > 0) {
-        // 0.5mm overlap to remove stitching lines
+        // -0.5mm overlap shift to eliminate white stitching lines
         pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, pdfImgHeight, undefined, 'FAST');
         heightLeft -= (pdfHeight - 0.5); 
         position -= (pdfHeight - 0.5);
@@ -100,17 +101,23 @@ export class VaultConverter {
     const tokens = marked.lexer(markdown);
     const children: any[] = [];
 
+    const mapInlineTokens = (inlineTokens: any[] = [], defaultSize: number = 24) => {
+      return inlineTokens.map(t => {
+        switch(t.type) {
+          case 'strong': return new TextRun({ text: t.text, bold: true, size: defaultSize, font: 'Inter' });
+          case 'em': return new TextRun({ text: t.text, italic: true, size: defaultSize, font: 'Inter' });
+          case 'codespan': return new TextRun({ text: t.text, font: 'Courier New', size: defaultSize - 2 });
+          default: return new TextRun({ text: t.text || t.raw || '', size: defaultSize, font: 'Inter' });
+        }
+      });
+    };
+
     tokens.forEach((token) => {
       switch (token.type) {
         case 'heading':
+          const hSize = token.depth === 1 ? 48 : (token.depth === 2 ? 36 : 28);
           children.push(new Paragraph({
-            children: [new TextRun({ 
-              text: token.text, 
-              color: '10B981', 
-              bold: true,
-              font: 'Inter',
-              size: token.depth === 1 ? 48 : (token.depth === 2 ? 36 : 28)
-            })],
+            children: mapInlineTokens(token.tokens, hSize),
             heading: token.depth === 1 ? HeadingLevel.HEADING_1 : 
                      token.depth === 2 ? HeadingLevel.HEADING_2 : 
                      HeadingLevel.HEADING_3,
@@ -119,7 +126,7 @@ export class VaultConverter {
           break;
         case 'paragraph':
           children.push(new Paragraph({
-            children: [new TextRun({ text: token.text, size: 24, font: 'Inter' })],
+            children: mapInlineTokens(token.tokens, 24),
             spacing: { after: 240, line: 360 },
           }));
           break;
@@ -128,8 +135,7 @@ export class VaultConverter {
             children.push(new Paragraph({
               bullet: { level: 0 },
               spacing: { after: 120, line: 360 },
-              // Removed 'text' property from Paragraph to stop DOCX duplication bug
-              children: [new TextRun({ text: item.text, font: 'Inter', size: 24 })]
+              children: mapInlineTokens(item.tokens, 24)
             }));
           });
           break;
@@ -144,9 +150,13 @@ export class VaultConverter {
           children.push(new ThematicBreak());
           break;
         default:
-          if ('text' in token) {
+          if ('tokens' in token) {
             children.push(new Paragraph({ 
-              children: [new TextRun({ text: token.text, font: 'Inter', size: 24 })] 
+              children: mapInlineTokens((token as any).tokens, 24)
+            }));
+          } else if ('text' in token) {
+             children.push(new Paragraph({ 
+              children: [new TextRun({ text: (token as any).text, font: 'Inter', size: 24 })] 
             }));
           }
       }
