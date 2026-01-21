@@ -1,16 +1,22 @@
-
 import React from 'react';
-import { CheckCircle2, X, ShieldCheck, ArrowRight } from 'lucide-react';
+import { CheckCircle2, X, ShieldCheck, ArrowRight, Maximize2 } from 'lucide-react';
 
 interface DownloadSuccessModalProps {
   isOpen: boolean;
   onClose: () => void;
   fileName: string;
   format: 'pdf' | 'docx' | null;
+  blobUrl: string | null;
 }
 
-export const DownloadSuccessModal: React.FC<DownloadSuccessModalProps> = ({ isOpen, onClose, fileName, format }) => {
+export const DownloadSuccessModal: React.FC<DownloadSuccessModalProps> = ({ isOpen, onClose, fileName, format, blobUrl }) => {
   if (!isOpen) return null;
+
+  const handleOpen = () => {
+    if (blobUrl) {
+      window.open(blobUrl, '_blank');
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-obsidian/90 backdrop-blur-2xl animate-in fade-in duration-500">
@@ -38,12 +44,21 @@ export const DownloadSuccessModal: React.FC<DownloadSuccessModalProps> = ({ isOp
             </div>
           </div>
 
-          <button 
-            onClick={onClose}
-            className="group w-full py-4 bg-emerald-vault hover:bg-emerald-vault/90 text-black rounded-2xl text-[11px] font-black uppercase tracking-[0.3em] transition-all flex items-center justify-center gap-3 active:scale-95 shadow-[0_10px_30px_rgba(16,185,129,0.3)]"
-          >
-            Close Protocol <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-          </button>
+          <div className="w-full flex flex-col gap-3">
+            <button 
+              onClick={handleOpen}
+              className="group w-full py-4 bg-emerald-vault hover:bg-emerald-vault/90 text-black rounded-2xl text-[11px] font-black uppercase tracking-[0.3em] transition-all flex items-center justify-center gap-3 active:scale-95 shadow-[0_10px_30px_rgba(16,185,129,0.3)]"
+            >
+              <Maximize2 size={14} className="group-hover:scale-110 transition-transform" /> View Shard
+            </button>
+            
+            <button 
+              onClick={onClose}
+              className="group w-full py-3 bg-white/5 hover:bg-white/10 text-vault-dim hover:text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] transition-all flex items-center justify-center gap-3 active:scale-95"
+            >
+              Close Protocol <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+            </button>
+          </div>
         </div>
         
         <div className="p-4 bg-white/[0.02] border-t border-vault-border flex justify-center">

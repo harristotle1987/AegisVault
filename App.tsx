@@ -12,7 +12,7 @@ import { PurgeModal } from './components/modals/PurgeModal';
 import { DownloadSuccessModal } from './components/modals/DownloadSuccessModal';
 import { InstallPrompt } from './components/InstallPrompt';
 import { VaultConverter } from './services/exportService';
-// Fix: Use lowercase filename to match filesystem-preferred casing and resolve TS casing conflict error on line 16
+// Consolidated casing to vaultRefiner.ts to resolve TS casing conflict
 import { VaultRefiner } from './services/vaultRefiner';
 import { useVault } from './hooks/useVault';
 import { VaultFont } from './types';
@@ -46,7 +46,11 @@ export default function App() {
   const [vaultSynced, setVaultSynced] = useState(true);
   
   // Track successful export for final popup
-  const [lastExportedFile, setLastExportedFile] = useState<{name: string, format: 'pdf' | 'docx' | null}>({name: "", format: null});
+  const [lastExportedFile, setLastExportedFile] = useState<{name: string, format: 'pdf' | 'docx' | null, blobUrl: string | null}>({
+    name: "", 
+    format: null, 
+    blobUrl: null
+  });
 
   const saveTimeoutRef = useRef<number | null>(null);
 
@@ -116,12 +120,15 @@ export default function App() {
     setIsExporting(true);
     setActiveModal(null);
     try {
+      let blob: Blob;
       if (pendingFormat === 'pdf') {
-        await VaultConverter.toPDF(activeDoc.content, name + '.pdf', activeFont);
+        blob = await VaultConverter.toPDF(activeDoc.content, name + '.pdf', activeFont);
       } else {
-        await VaultConverter.toDocx(activeDoc.content, name + '.docx');
+        blob = await VaultConverter.toDocx(activeDoc.content, name + '.docx');
       }
-      setLastExportedFile({ name, format: pendingFormat });
+      
+      const blobUrl = URL.createObjectURL(blob);
+      setLastExportedFile({ name, format: pendingFormat, blobUrl });
       setActiveModal('success');
     } catch (e) {
       console.error(e);
@@ -130,6 +137,14 @@ export default function App() {
       setIsExporting(false);
       setPendingFormat(null);
     }
+  };
+
+  const closeSuccessModal = () => {
+    if (lastExportedFile.blobUrl) {
+      URL.revokeObjectURL(lastExportedFile.blobUrl);
+    }
+    setLastExportedFile(prev => ({ ...prev, blobUrl: null }));
+    setActiveModal(null);
   };
 
   const triggerPurge = (id: string) => {
@@ -300,9 +315,10 @@ export default function App() {
 
       <DownloadSuccessModal 
         isOpen={activeModal === 'success'}
-        onClose={() => setActiveModal(null)}
+        onClose={closeSuccessModal}
         fileName={lastExportedFile.name}
         format={lastExportedFile.format}
+        blobUrl={lastExportedFile.blobUrl}
       />
 
       <style>{`

@@ -29,14 +29,14 @@ export class VaultConverter {
   /**
    * Role: Senior Lead Architect
    * Feature: High-Fidelity Vector PDF Mirror
-   * Logic: Native text-object layout. Ensures 1:1 parity with DOCX styling.
+   * Returns: The generated Blob for UI-level opening/previewing.
    */
-  static async toPDF(markdown: string, fileName: string = 'vault-export.pdf', fontMode: VaultFont = 'sans'): Promise<void> {
+  static async toPDF(markdown: string, fileName: string = 'vault-export.pdf', fontMode: VaultFont = 'sans'): Promise<Blob> {
     const pdf = new jsPDF('p', 'mm', 'a4');
     await FontLoader.loadForPDF(pdf);
 
     const tokens = marked.lexer(markdown);
-    const margin = 25.4; // 1 inch standard for professional parity
+    const margin = 25.4; 
     const pageWidth = 210;
     const contentWidth = pageWidth - (margin * 2);
     const pageHeight = 297;
@@ -73,7 +73,6 @@ export class VaultConverter {
         });
       });
 
-      // MIRROR LOGIC: Force Bold Black for Headings
       pdf.setTextColor(0, 0, 0); 
 
       words.forEach((wordObj) => {
@@ -101,7 +100,6 @@ export class VaultConverter {
           cursorY += spacingBefore;
           checkPageBreak(hSize * 0.3527 + 10);
           
-          // Force Bold Black for Headers
           renderStyledLine(token.tokens || [{ text: token.text }], hSize, 'bold');
           
           if (token.depth <= 2) {
@@ -132,7 +130,7 @@ export class VaultConverter {
 
         case 'blockquote':
           const startY = cursorY;
-          pdf.setDrawColor(16, 185, 129); // Sovereign Green Border
+          pdf.setDrawColor(16, 185, 129); 
           pdf.setLineWidth(1.5);
           renderStyledLine([{ text: token.text }], 11, 'italic', 12);
           pdf.line(margin, startY, margin, cursorY - 2);
@@ -148,10 +146,12 @@ export class VaultConverter {
       }
     });
 
-    triggerSovereignDownload(pdf.output('blob'), fileName);
+    const blob = pdf.output('blob');
+    triggerSovereignDownload(blob, fileName);
+    return blob;
   }
 
-  static async toDocx(markdown: string, fileName: string = 'vault-export.docx'): Promise<void> {
+  static async toDocx(markdown: string, fileName: string = 'vault-export.docx'): Promise<Blob> {
     const tokens = marked.lexer(markdown);
     const children: any[] = [];
 
@@ -226,6 +226,8 @@ export class VaultConverter {
       }],
     });
 
-    triggerSovereignDownload(await Packer.toBlob(doc), fileName);
+    const blob = await Packer.toBlob(doc);
+    triggerSovereignDownload(blob, fileName);
+    return blob;
   }
 }
