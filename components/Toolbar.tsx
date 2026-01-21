@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { 
   FileText, 
@@ -26,8 +25,7 @@ interface ToolbarProps {
 
 /**
  * Role: Senior Architect
- * Logic: Hardened TopBar with Layered Interaction Defense.
- * Standardized z-index for guaranteed availability.
+ * Logic: Hardened TopBar with Refined Visibility Breakpoints.
  */
 export const Toolbar: React.FC<ToolbarProps> = ({ 
   markdown, 
@@ -61,7 +59,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           </span>
         </div>
         
-        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.02] border border-vault-border hidden sm:flex">
+        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.02] border border-vault-border hidden lg:flex">
           <div className={`w-1.5 h-1.5 rounded-full transition-all duration-500 ${isSaving ? 'bg-emerald-vault animate-pulse' : 'bg-emerald-vault/30'}`} />
           <span className="text-[9px] font-mono text-vault-dim uppercase tracking-wider">
             {isSaving ? 'Syncing...' : 'Encrypted'}
@@ -70,7 +68,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       </div>
 
       <div className="flex gap-2 pointer-events-auto h-full items-center">
-        {/* Hardened Tags & Config Buttons */}
+        {/* Harden Toggle & System Config Buttons */}
         <div className="flex items-center gap-2 mr-2 md:mr-4 border-r border-white/5 pr-2 md:pr-4">
           <button 
             onClick={(e) => { e.stopPropagation(); onOpenTags(); }}
@@ -88,45 +86,46 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           </button>
         </div>
 
-        <div className="hidden md:flex gap-2 h-full items-center">
+        {/* Action Group: Visible from SM breakpoint upwards to cover desktop view */}
+        <div className="hidden sm:flex gap-2 h-full items-center">
           <button 
             onClick={onLocalRefine}
-            className="relative z-10 flex items-center gap-2 px-3 md:px-4 py-2 md:py-1.5 rounded-md bg-white/5 hover:bg-white/10 transition text-[11px] font-bold uppercase tracking-widest text-vault-dim border border-vault-border active:scale-95 touch-manipulation"
+            className="relative z-10 flex items-center gap-2 px-3 py-1.5 rounded-md bg-white/5 hover:bg-white/10 transition text-[10px] font-bold uppercase tracking-widest text-vault-dim border border-vault-border active:scale-95 touch-manipulation"
             title="Structural Clean"
           >
-            <Brush size={14} className="md:w-3 md:h-3" /> <span className="hidden sm:inline">Harden</span>
+            <Brush size={14} className="w-3.5 h-3.5" /> <span className="hidden lg:inline">Harden</span>
           </button>
 
           <button 
             onClick={onShare}
-            className="relative z-10 flex items-center gap-2 px-3 md:px-4 py-2 md:py-1.5 rounded-md bg-white/5 hover:bg-white/10 transition text-[11px] font-bold uppercase tracking-widest text-vault-dim border border-vault-border active:scale-95 touch-manipulation"
-            title="Beam Archive (Share)"
+            className="relative z-10 flex items-center gap-2 px-3 py-1.5 rounded-md bg-white/5 hover:bg-white/10 transition text-[10px] font-bold uppercase tracking-widest text-vault-dim border border-vault-border active:scale-95 touch-manipulation"
+            title="Beam Archive"
           >
-            <Share2 size={14} className="md:w-3 md:h-3" /> <span className="hidden sm:inline">Beam</span>
+            <Share2 size={14} className="w-3.5 h-3.5" /> <span className="hidden lg:inline">Beam</span>
           </button>
 
-          <div className="w-px h-6 bg-vault-border mx-1 md:mx-2 hidden sm:block" />
+          <div className="w-px h-6 bg-vault-border mx-1 md:mx-2 hidden lg:block" />
 
           <button 
             onClick={() => onExport('docx')}
             disabled={isExporting}
-            className="relative z-10 flex items-center gap-2 px-3 md:px-4 py-2 md:py-1.5 rounded-md bg-white/5 hover:bg-white/10 transition text-xs font-semibold border border-vault-border text-vault-text disabled:opacity-50 active:scale-95 touch-manipulation"
+            className="relative z-10 flex items-center gap-2 px-3 py-1.5 rounded-md bg-white/5 hover:bg-white/10 transition text-[10px] font-black uppercase tracking-widest border border-vault-border text-vault-text disabled:opacity-50 active:scale-95 touch-manipulation"
           >
-            <FileText size={16} className="md:w-3.5 md:h-3.5" /> <span className="hidden sm:inline">DOCX</span>
+            <FileText size={16} className="w-3.5 h-3.5" /> <span className="hidden md:inline">DOCX</span>
           </button>
           
           <button 
             onClick={() => onExport('pdf')}
             disabled={isExporting}
-            className="relative z-10 flex items-center gap-2 px-3 md:px-4 py-2 md:py-1.5 rounded-md bg-emerald-vault hover:bg-emerald-vault/90 text-black rounded-xl text-xs font-bold disabled:opacity-50 shadow-lg shadow-emerald-vault/10 active:scale-95 touch-manipulation"
+            className="relative z-10 min-w-[110px] flex items-center justify-center gap-2 px-4 py-1.5 bg-emerald-vault hover:bg-emerald-vault/90 text-black rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-50 shadow-lg shadow-emerald-vault/10 active:scale-95 touch-manipulation transition-all"
           >
-            {isExporting ? <Loader2 size={16} className="animate-spin md:w-3.5 md:h-3.5" /> : <Download size={16} className="md:w-3.5 md:h-3.5" />}
-            <span className="hidden sm:inline">Export PDF</span>
-            <span className="sm:hidden">PDF</span>
+            {isExporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+            <span className="hidden md:inline">Export PDF</span>
+            <span className="md:hidden">PDF</span>
           </button>
         </div>
         
-        <div className="md:hidden flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.02] border border-vault-border">
+        <div className="sm:hidden flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.02] border border-vault-border">
           <div className={`w-1.5 h-1.5 rounded-full transition-all duration-500 ${isSaving ? 'bg-emerald-vault animate-pulse' : 'bg-emerald-vault/30'}`} />
           <span className="text-[9px] font-mono text-vault-dim uppercase tracking-wider">
             {isSaving ? 'Sync' : 'Ready'}
