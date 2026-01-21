@@ -72,23 +72,34 @@
     }
     </script>
     <style>
-        body {
+        html, body {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            position: fixed; /* Critical for preventing mobile keyboard jump */
             background-color: #050505;
+        }
+
+        body {
             color: #e2e8f0;
             font-family: 'Inter', sans-serif;
-            margin: 0;
-            overflow: hidden;
             -webkit-font-smoothing: antialiased;
-            overscroll-behavior-y: none;
+            overscroll-behavior: none;
             user-select: auto;
-            touch-action: manipulation;
+            touch-action: none; /* Disables browser-level gestures that cause shifts */
         }
         
         #root {
           height: 100vh;
           height: 100svh;
+          width: 100vw;
           position: relative;
           z-index: 1;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
         }
 
         /* Mono Button Overrides */
@@ -102,6 +113,7 @@
           overflow-y: auto !important;
           height: 100%;
           -webkit-overflow-scrolling: touch;
+          overscroll-behavior: contain;
         }
 
         /* Interaction Shield: Prevents accidental ghost clicks */
@@ -172,7 +184,6 @@
           font-weight: 500;
         }
 
-        /* Mono (Draft) Mode Refinement */
         .prose-vault.font-mono h1, 
         .prose-vault.font-mono h2, 
         .prose-vault.font-mono h3 {

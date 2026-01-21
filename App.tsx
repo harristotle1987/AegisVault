@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Editor } from './components/Editor';
 import { Preview } from './components/Preview';
@@ -12,8 +11,8 @@ import { PurgeModal } from './components/modals/PurgeModal';
 import { DownloadSuccessModal } from './components/modals/DownloadSuccessModal';
 import { InstallPrompt } from './components/InstallPrompt';
 import { VaultConverter } from './services/exportService';
-// Consolidate logic to lowercase vaultRefiner to resolve naming collision
-import { VaultRefiner } from './services/vaultRefiner';
+// Fix: Use PascalCase for VaultRefiner import to align with the intended service file structure and resolve casing conflicts
+import { VaultRefiner } from './services/VaultRefiner';
 import { useVault } from './hooks/useVault';
 import { VaultFont } from './types';
 import { Check, Shield, CheckCircle2, ShieldAlert } from 'lucide-react';
@@ -45,7 +44,6 @@ export default function App() {
   const [docToPurge, setDocToPurge] = useState<string | null>(null);
   const [vaultSynced, setVaultSynced] = useState(true);
   
-  // Track successful export for final popup
   const [lastExportedFile, setLastExportedFile] = useState<{name: string, format: 'pdf' | 'docx' | null, blobUrl: string | null}>({
     name: "", 
     format: null, 
@@ -60,9 +58,6 @@ export default function App() {
   
   const { isInstallable, install } = usePWAInstall();
 
-  /**
-   * Redundant Integrity Protocol: 30-second Auto-Save Loop
-   */
   useEffect(() => {
     const integrityInterval = setInterval(() => {
       if (activeDoc && !isSaving && !vaultSynced) {
@@ -169,7 +164,7 @@ export default function App() {
   };
 
   return (
-    <div className="flex h-screen bg-obsidian text-vault-text overflow-hidden selection:bg-emerald-vault/30">
+    <div className="fixed inset-0 bg-obsidian text-vault-text overflow-hidden selection:bg-emerald-vault/30 flex flex-row">
       {/* Sidebar Overlay for Mobile */}
       {isSidebarOpen && (
         <div 
@@ -178,7 +173,7 @@ export default function App() {
         />
       )}
 
-      <div className="sidebar relative z-[9999]">
+      <div className="sidebar relative z-[9999] h-full shrink-0">
         <Sidebar 
           documents={documents}
           activeId={activeDocId}
@@ -194,7 +189,7 @@ export default function App() {
         />
       </div>
 
-      <main className="flex-1 flex flex-col relative overflow-hidden transition-all duration-300">
+      <main className="flex-1 flex flex-col relative overflow-hidden transition-all duration-300 h-full">
         <Toolbar 
           markdown={activeDoc?.content || ''}
           isExporting={isExporting}
@@ -211,14 +206,14 @@ export default function App() {
           onOpenConfig={() => setActiveModal('config')}
         />
 
-        <div className="flex-1 flex overflow-hidden relative">
+        <div className="flex-1 flex overflow-hidden relative min-h-0">
           {activeDoc ? (
             <>
               <div className={`flex-1 flex flex-col h-full overflow-hidden ${mobileTab === 'preview' ? 'hidden md:flex' : 'flex'}`}>
                 <Editor font={activeFont} value={activeDoc.content} onChange={handleContentChange} />
               </div>
-              <div className="hidden md:block w-px bg-vault-border z-10" />
-              <div className={`flex-1 flex flex-col h-full overflow-hidden bg-obsidian-soft no-scrollbar ${mobileTab === 'editor' ? 'hidden md:flex' : 'flex'}`}>
+              <div className="hidden md:block w-px bg-vault-border z-10 h-full" />
+              <div className={`flex-1 flex flex-col h-full overflow-hidden bg-obsidian-soft ${mobileTab === 'editor' ? 'hidden md:flex' : 'flex'}`}>
                 <Preview font={activeFont} content={activeDoc.content} />
               </div>
             </>
@@ -229,7 +224,6 @@ export default function App() {
           )}
         </div>
 
-        {/* Sovereign Sync Status Indicator */}
         <div className="fixed bottom-24 right-6 md:bottom-8 md:right-8 flex items-center justify-center p-2 rounded-full bg-obsidian/60 backdrop-blur-md border border-emerald-vault/20 shadow-lg z-[130] pointer-events-none">
           <CheckCircle2 size={16} className={vaultSynced ? "text-emerald-vault" : "text-emerald-vault/30 animate-pulse"} />
         </div>
@@ -264,7 +258,6 @@ export default function App() {
           )}
         </div>
 
-        {/* Processing Protocol Pop up */}
         {isExporting && (
           <div className="fixed inset-0 z-[600] bg-obsidian/80 backdrop-blur-xl flex items-center justify-center pointer-events-auto cursor-wait animate-in fade-in duration-300">
              <div className="w-full max-w-sm p-10 rounded-3xl bg-obsidian-soft border border-emerald-vault/20 shadow-sovereign flex flex-col items-center gap-8 animate-in zoom-in-95 duration-300">
