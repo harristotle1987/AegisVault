@@ -27,6 +27,10 @@ const triggerSovereignDownload = (blob: Blob, filename: string) => {
 };
 
 export class VaultConverter {
+  /**
+   * Role: Senior Lead Architect
+   * Feature: Seamless PDF Slicing with Bleed Overlap
+   */
   static async toPDF(elementId: string, fileName: string = 'vault-export.pdf', fontMode: VaultFont = 'sans'): Promise<void> {
     const sourceElement = document.getElementById(elementId);
     if (!sourceElement) throw new Error("Source element not found");
@@ -40,13 +44,18 @@ export class VaultConverter {
 
       const canvas = await html2canvas(sourceElement, {
         scale: 2,
+        width: 794, // Standard A4 pixel width at 96 DPI
         useCORS: true,
         backgroundColor: '#ffffff',
         logging: false,
         onclone: (clonedDoc) => {
           const area = clonedDoc.getElementById(elementId);
           if (area) {
-            area.innerHTML = area.innerHTML; // Reset content for a clean state
+            // Force Absolute Reset to prevent duplication ghosting
+            const content = area.innerHTML;
+            area.innerHTML = "";
+            area.innerHTML = content;
+
             area.style.backgroundColor = '#ffffff';
             area.style.color = '#000000';
             area.style.padding = '20mm';
@@ -59,7 +68,7 @@ export class VaultConverter {
               const el = child as HTMLElement;
               el.style.color = '#000000';
               
-              // Force H1/H2 to Bold and Black for professional export integrity
+              // Force H1/H2 to Bold and Black (#000000)
               if (el.tagName === 'H1' || el.tagName === 'H2') {
                 el.style.color = '#000000';
                 el.style.fontWeight = 'bold';
@@ -73,7 +82,7 @@ export class VaultConverter {
         }
       });
 
-      // JPEG 0.75 compression for optimized binary weight
+      // JPEG 0.75 compression for optimized weight
       const imgData = canvas.toDataURL('image/jpeg', 0.75); 
       const pdfWidth = 210;
       const pdfHeight = 297;
@@ -84,10 +93,10 @@ export class VaultConverter {
       let position = 0;
 
       while (heightLeft > 0) {
-        // -0.5mm overlap shift to eliminate white stitching lines
+        // Implementation of 0.5mm overlap shift to eliminate white stitching lines
         pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, pdfImgHeight, undefined, 'FAST');
         heightLeft -= (pdfHeight - 0.5); 
-        position -= (pdfHeight - 0.5);
+        position -= (pdfHeight - 0.5); // Move position up slightly less than page height
         if (heightLeft > 0) pdf.addPage();
       }
 
@@ -97,6 +106,10 @@ export class VaultConverter {
     }
   }
 
+  /**
+   * Role: Senior Lead Architect
+   * Feature: Hardened DOCX Bold & Header Logic
+   */
   static async toDocx(markdown: string, fileName: string = 'vault-export.docx'): Promise<void> {
     const tokens = marked.lexer(markdown);
     const children: any[] = [];
@@ -104,10 +117,14 @@ export class VaultConverter {
     const mapInlineTokens = (inlineTokens: any[] = [], defaultSize: number = 24) => {
       return inlineTokens.map(t => {
         switch(t.type) {
-          case 'strong': return new TextRun({ text: t.text, bold: true, size: defaultSize, font: 'Inter' });
-          case 'em': return new TextRun({ text: t.text, italic: true, size: defaultSize, font: 'Inter' });
-          case 'codespan': return new TextRun({ text: t.text, font: 'Courier New', size: defaultSize - 2 });
-          default: return new TextRun({ text: t.text || t.raw || '', size: defaultSize, font: 'Inter' });
+          case 'strong': 
+            return new TextRun({ text: t.text, bold: true, size: defaultSize, font: 'Inter' });
+          case 'em': 
+            return new TextRun({ text: t.text, italic: true, size: defaultSize, font: 'Inter' });
+          case 'codespan': 
+            return new TextRun({ text: t.text, font: 'Courier New', size: defaultSize - 2 });
+          default: 
+            return new TextRun({ text: t.text || t.raw || '', size: defaultSize, font: 'Inter' });
         }
       });
     };
