@@ -8,16 +8,17 @@ import { MobileActionBar } from './components/MobileActionBar';
 import { ExportModal } from './components/modals/ExportModal';
 import { ConfigModal } from './components/modals/ConfigModal';
 import { TagsModal } from './components/modals/TagsModal';
+import { PurgeModal } from './components/modals/PurgeModal';
 import { InstallPrompt } from './components/InstallPrompt';
 import { VaultConverter } from './services/exportService';
-// Resolved casing conflict: use the lowercase version 'vaultRefiner.ts' to match compiler expectations
+// Fix: Use consistent lowercase casing for vaultRefiner import to resolve compiler conflict
 import { VaultRefiner } from './services/vaultRefiner';
 import { useVault } from './hooks/useVault';
 import { VaultFont } from './types';
-import { Check, Shield } from 'lucide-react';
+import { Check, Shield, CheckCircle2 } from 'lucide-react';
 import { usePWAInstall } from './hooks/usePWAInstall';
 
-type ModalType = 'export' | 'config' | 'tags' | null;
+type ModalType = 'export' | 'config' | 'tags' | 'purge' | null;
 
 export default function App() {
   const { 
@@ -40,6 +41,8 @@ export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [mobileTab, setMobileTab] = useState<'editor' | 'preview'>('editor');
   const [activeFont, setActiveFont] = useState<VaultFont>('sans');
+  const [docToPurge, setDocToPurge] = useState<string | null>(null);
+  const [vaultSynced, setVaultSynced] = useState(true);
 
   const saveTimeoutRef = useRef<number | null>(null);
 
@@ -48,6 +51,19 @@ export default function App() {
   }, [activeFont]);
   
   const { isInstallable, install } = usePWAInstall();
+
+  /**
+   * Redundant Integrity Protocol: 30-second Auto-Save Loop
+   */
+  useEffect(() => {
+    const integrityInterval = setInterval(() => {
+      if (activeDoc && !isSaving) {
+        saveDraft(activeDoc);
+        setVaultSynced(true);
+      }
+    }, 30000);
+    return () => clearInterval(integrityInterval);
+  }, [activeDoc, isSaving, saveDraft]);
 
   useEffect(() => {
     if (notification) {
@@ -58,9 +74,13 @@ export default function App() {
 
   const handleContentChange = (content: string) => {
     if (!activeDoc) return;
+    setVaultSynced(false);
     const updated = { ...activeDoc, content };
     if (saveTimeoutRef.current) window.clearTimeout(saveTimeoutRef.current);
-    saveTimeoutRef.current = window.setTimeout(() => saveDraft(updated), 800);
+    saveTimeoutRef.current = window.setTimeout(() => {
+      saveDraft(updated);
+      setVaultSynced(true);
+    }, 800);
   };
 
   const handleLocalRefine = () => {
@@ -93,7 +113,6 @@ export default function App() {
     setActiveModal(null);
     try {
       if (pendingFormat === 'pdf') {
-        // Use vector-based token rendering for selectable text
         await VaultConverter.toPDF(activeDoc.content, name + '.pdf', activeFont);
       } else {
         await VaultConverter.toDocx(activeDoc.content, name + '.docx');
@@ -108,27 +127,50 @@ export default function App() {
     }
   };
 
+  const triggerPurge = (id: string) => {
+    setDocToPurge(id);
+    setActiveModal('purge');
+  };
+
+  const executePurge = async () => {
+    if (docToPurge) {
+      await deleteDraft(docToPurge);
+      setNotification({ message: 'Archive shard purged', type: 'success' });
+    }
+    setActiveModal(null);
+    setDocToPurge(null);
+  };
+
+  const handleSelectShard = (id: string, mode: 'view' | 'edit' = 'edit') => {
+    setActiveDocId(id);
+    setIsSidebarOpen(false);
+    if (mode === 'view') setMobileTab('preview');
+    else setMobileTab('editor');
+  };
+
   return (
     <div className="flex h-screen bg-obsidian text-vault-text overflow-hidden selection:bg-emerald-vault/30">
-      <Sidebar 
-        documents={documents}
-        activeId={activeDocId}
-        onSelect={(id) => { setActiveDocId(id); setIsSidebarOpen(false); }}
-        onCreate={createDraft}
-        onDelete={deleteDraft}
-        onRename={renameDraft}
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-        onOpenConfig={() => setActiveModal('config')}
-        onOpenTags={() => setActiveModal('tags')}
-        installPrompt={{ isInstallable, install }}
-      />
+      <div className="sidebar">
+        <Sidebar 
+          documents={documents}
+          activeId={activeDocId}
+          onSelect={(id, mode) => handleSelectShard(id, mode)}
+          onCreate={createDraft}
+          onDelete={triggerPurge}
+          onRename={renameDraft}
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+          onOpenConfig={() => setActiveModal('config')}
+          onOpenTags={() => setActiveModal('tags')}
+          installPrompt={{ isInstallable, install }}
+        />
+      </div>
 
       <main className="flex-1 flex flex-col relative overflow-hidden transition-all duration-300">
         <Toolbar 
           markdown={activeDoc?.content || ''}
           isExporting={isExporting}
-          isSaving={isSaving}
+          isSaving={isSaving || !vaultSynced}
           onExport={(format) => {
              setPendingFormat(format);
              setSuggestedName(activeDoc?.title || "vault-export");
@@ -159,6 +201,12 @@ export default function App() {
           )}
         </div>
 
+        {/* Sovereign Sync Status Indicator */}
+        <div className="fixed bottom-24 right-6 md:bottom-8 md:right-8 flex items-center gap-2 px-3 py-1.5 rounded-full bg-obsidian/60 backdrop-blur-md border border-emerald-vault/20 shadow-lg z-[130]">
+          <CheckCircle2 size={12} className="text-emerald-vault" />
+          <span className="text-[9px] font-black uppercase tracking-[0.2em] text-vault-dim">Vault Synced</span>
+        </div>
+
         <MobileActionBar 
           isExporting={isExporting}
           onExport={(format) => {
@@ -169,7 +217,7 @@ export default function App() {
           onLocalRefine={handleLocalRefine}
         />
         
-        <div className="md:hidden fixed bottom-24 right-6 z-[120]">
+        <div className="md:hidden fixed bottom-24 right-20 z-[120]">
            <button 
              onClick={() => setMobileTab(prev => prev === 'editor' ? 'preview' : 'editor')}
              className="w-12 h-12 rounded-full bg-emerald-vault text-black flex items-center justify-center shadow-lg shadow-emerald-vault/30 active:scale-90 transition-transform"
@@ -223,6 +271,13 @@ export default function App() {
         setActiveFont={setActiveFont}
       />
       <TagsModal isOpen={activeModal === 'tags'} onClose={() => setActiveModal(null)} documents={documents} />
+      
+      <PurgeModal 
+        isOpen={activeModal === 'purge'}
+        onConfirm={executePurge}
+        onCancel={() => { setActiveModal(null); setDocToPurge(null); }}
+        draftTitle={documents.find(d => d.id === docToPurge)?.title || "Unknown Shard"}
+      />
     </div>
   );
 }

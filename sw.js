@@ -2,18 +2,15 @@
 /**
  * Role: Senior Architect
  * Logic: Offline-First Sovereign Routing for AegisVault
- * Version: 1.0.8 - Zero-Latency Integrity Refined
+ * Version: 1.1.0 - Absolute Offline Sovereignty Finalized
  */
 
-const CACHE_NAME = 'aegis-vault-v1.0.8';
+const CACHE_NAME = 'aegis-vault-v1.1.0';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/manifest.json',
   '/favicon.svg',
-  '/icon-192.svg',
-  '/icon-512.svg',
-  '/icon-maskable.svg',
   '/index.tsx',
   '/App.tsx',
   '/types.ts',
@@ -81,7 +78,7 @@ self.addEventListener('fetch', (event) => {
 
         return networkResponse;
       }).catch(() => {
-        return new Response('Offline: Resource not available');
+        return new Response('Offline: Sovereign state active, resource unavailable.');
       });
     })
   );

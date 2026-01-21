@@ -1,7 +1,7 @@
 
 /**
  * VaultRefiner: Sovereign Structural Intelligence Engine.
- * Implementation restored in lowercase filename to resolve casing conflicts in project environments.
+ * Consolidated implementation in lowercase filename to resolve casing conflicts.
  */
 export class VaultRefiner {
   /**

@@ -1,6 +1,6 @@
 
 /**
- * DEPRECATED: Implementation has been moved to vaultRefiner.ts (lowercase)
- * to resolve casing conflicts in the build environment.
+ * VaultRefiner: Sovereign Structural Intelligence Engine.
+ * DEPRECATED: Use vaultRefiner.ts (lowercase) to avoid casing conflicts.
  */
 export {};

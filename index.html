@@ -91,6 +91,13 @@
           z-index: 1;
         }
 
+        /* Standalone Isolation Protocol */
+        @media (display-mode: standalone) {
+          .sidebar { 
+            display: none !important; 
+          }
+        }
+
         /* Mono Button Overrides */
         body[data-font-mode="mono"] textarea,
         body[data-font-mode="mono"] .prose-vault {
@@ -107,17 +114,6 @@
         /* Interaction Shield: Prevents accidental ghost clicks */
         .pointer-events-none { pointer-events: none !important; }
         .pointer-events-auto { pointer-events: auto !important; }
-
-        /* Multi-page rendering layer */
-        .vault-pdf-container {
-          background-color: #ffffff !important;
-          color: #000000 !important;
-          width: 210mm !important;
-          margin: 0 !important;
-          position: absolute !important;
-          left: -10000px !important;
-          top: 0 !important;
-        }
 
         ::-webkit-scrollbar { width: 5px; height: 5px; }
         ::-webkit-scrollbar-track { background: #050505; }

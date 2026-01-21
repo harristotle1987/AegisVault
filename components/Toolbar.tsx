@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { 
   FileText, 
@@ -8,7 +9,8 @@ import {
   Menu,
   Share2,
   Tag,
-  Settings
+  Settings,
+  CheckCircle2
 } from 'lucide-react';
 
 interface ToolbarProps {
@@ -59,10 +61,16 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           </span>
         </div>
         
-        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.02] border border-vault-border hidden lg:flex">
+        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.02] border border-vault-border hidden lg:flex transition-all">
           <div className={`w-1.5 h-1.5 rounded-full transition-all duration-500 ${isSaving ? 'bg-emerald-vault animate-pulse' : 'bg-emerald-vault/30'}`} />
-          <span className="text-[9px] font-mono text-vault-dim uppercase tracking-wider">
-            {isSaving ? 'Syncing...' : 'Encrypted'}
+          <span className="text-[9px] font-mono text-vault-dim uppercase tracking-wider flex items-center gap-1.5">
+            {isSaving ? (
+              <>Syncing...</>
+            ) : (
+              <>
+                <CheckCircle2 size={10} className="text-emerald-vault" /> Vault Synced
+              </>
+            )}
           </span>
         </div>
       </div>

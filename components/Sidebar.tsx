@@ -14,14 +14,15 @@ import {
   Search,
   Hash,
   Eye,
-  Edit3
+  Edit3,
+  FileText
 } from 'lucide-react';
 import { SovereignDocument } from '../types';
 
 interface SidebarProps {
   documents: SovereignDocument[];
   activeId: string | null;
-  onSelect: (id: string) => void;
+  onSelect: (id: string, mode?: 'view' | 'edit') => void;
   onCreate: () => void;
   onDelete: (id: string) => void;
   onRename: (id: string, name: string) => void;
@@ -115,7 +116,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-vault-dim/40 group-focus-within:text-emerald-vault transition-colors" size={12} />
             <input 
               type="text"
-              placeholder="Query Shards..."
+              placeholder="Query Registry..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-obsidian-muted border border-vault-border rounded-lg pl-9 pr-4 py-2 text-[10px] font-mono uppercase tracking-widest text-vault-text focus:outline-none focus:border-emerald-vault/30 transition-all placeholder:text-vault-dim/20"
@@ -128,7 +129,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="flex-1 overflow-y-auto px-4 space-y-2 no-scrollbar pb-10">
         {(!isCollapsed || window.innerWidth < 768) && (
           <div className="px-4 py-2 mb-1 flex items-center justify-between border-b border-vault-border/50">
-            <span className="text-[9px] uppercase tracking-[0.3em] text-vault-dim font-black text-white/40">Archive Registry</span>
+            <span className="text-[9px] uppercase tracking-[0.3em] text-vault-dim font-black text-white/40 uppercase tracking-widest">Vault Registry</span>
             <span className="text-[8px] font-mono text-vault-dim/30">{filteredDocs.length} Shards</span>
           </div>
         )}
@@ -148,7 +149,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="flex items-center justify-between w-full">
               {isCollapsed && window.innerWidth >= 768 ? (
                 <div className="w-6 h-6 flex items-center justify-center shrink-0">
-                  <Database size={16} className={activeId === doc.id ? 'text-emerald-vault' : ''} />
+                  <FileText size={16} className={activeId === doc.id ? 'text-emerald-vault' : ''} />
                 </div>
               ) : (
                 <div className="flex flex-col gap-1 w-full overflow-hidden">
@@ -158,7 +159,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       value={doc.title}
                       onChange={(e) => onRename(doc.id, e.target.value)}
                       onClick={(e) => e.stopPropagation()}
-                      placeholder="Untitled Archive"
+                      placeholder="Untitled Shard"
                     />
                     {activeId === doc.id && (
                       <div className="px-1.5 py-0.5 rounded-sm bg-emerald-vault/10 border border-emerald-vault/20 text-[7px] font-black text-emerald-vault uppercase tracking-tighter shrink-0 animate-pulse">
@@ -178,15 +179,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {(!isCollapsed || window.innerWidth < 768) && (
                 <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button 
-                    onClick={(e) => { e.stopPropagation(); onSelect(doc.id); }}
-                    className="p-1.5 hover:text-[#10B981] text-gray-500 rounded-md hover:bg-white/5"
-                    title="View/Edit"
+                    onClick={(e) => { e.stopPropagation(); onSelect(doc.id, 'view'); }}
+                    className="p-1.5 hover:text-emerald-vault text-vault-dim rounded-md hover:bg-white/5"
+                    title="View"
+                  >
+                    <Eye size={14} />
+                  </button>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); onSelect(doc.id, 'edit'); }}
+                    className="p-1.5 hover:text-emerald-vault text-vault-dim rounded-md hover:bg-white/5"
+                    title="Edit"
                   >
                     <Edit3 size={14} />
                   </button>
                   <button 
                     onClick={(e) => { e.stopPropagation(); onDelete(doc.id); }}
-                    className="p-1.5 hover:text-red-500 text-gray-500 rounded-md hover:bg-red-500/10"
+                    className="p-1.5 hover:text-red-500 text-vault-dim rounded-md hover:bg-red-500/10"
                     title="Purge Shard"
                   >
                     <Trash2 size={14} />

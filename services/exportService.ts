@@ -1,4 +1,3 @@
-
 import { jsPDF } from 'jspdf';
 import { 
   Document, 
@@ -29,15 +28,15 @@ const triggerSovereignDownload = (blob: Blob, filename: string) => {
 export class VaultConverter {
   /**
    * Role: Senior Lead Architect
-   * Feature: Vector-Based PDF Mirroring
-   * Logic: Native text rendering with inline style support to match DOCX high-fidelity output.
+   * Feature: High-Fidelity Vector PDF Mirror
+   * Logic: Native text-object layout. Ensures 1:1 parity with DOCX styling.
    */
   static async toPDF(markdown: string, fileName: string = 'vault-export.pdf', fontMode: VaultFont = 'sans'): Promise<void> {
     const pdf = new jsPDF('p', 'mm', 'a4');
     await FontLoader.loadForPDF(pdf);
 
     const tokens = marked.lexer(markdown);
-    const margin = 25.4; // 1 inch to match DOCX default
+    const margin = 25.4; // 1 inch standard for professional parity
     const pageWidth = 210;
     const contentWidth = pageWidth - (margin * 2);
     const pageHeight = 297;
@@ -54,33 +53,31 @@ export class VaultConverter {
       }
     };
 
-    /**
-     * Renders a block of text containing potential inline styles (bold/italic)
-     * Tracks cursor position precisely across multiple lines.
-     */
-    const renderBlock = (inlineTokens: any[], baseSize: number, baseStyle: string = 'normal', indent: number = 0) => {
+    const renderStyledLine = (inlineTokens: any[], fontSize: number, baseStyle: string = 'normal', indent: number = 0) => {
       let cursorX = margin + indent;
-      const lineHeight = (baseSize * 0.3527) * 1.5;
+      const lineHeight = (fontSize * 0.3527) * 1.6;
+      const fontName = fontMode === 'mono' ? 'Courier' : 'Helvetica';
       
-      pdf.setFont(fontMode === 'mono' ? 'Courier' : 'Helvetica', baseStyle);
-      pdf.setFontSize(baseSize);
+      pdf.setFont(fontName, baseStyle);
+      pdf.setFontSize(fontSize);
 
-      // Simple word-wrap engine for multi-style lines
       const words: { text: string; style: string }[] = [];
-      
-      inlineTokens.forEach(t => {
+      inlineTokens.forEach(token => {
         let style = baseStyle;
-        if (t.type === 'strong') style = 'bold';
-        if (t.type === 'em') style = 'italic';
+        if (token.type === 'strong') style = 'bold';
+        if (token.type === 'em') style = 'italic';
         
-        const rawText = t.text || t.raw || '';
-        rawText.split(/(\s+)/).forEach((word: string) => {
+        const content = token.text || token.raw || '';
+        content.split(/(\s+)/).forEach((word: string) => {
           if (word) words.push({ text: word, style });
         });
       });
 
+      // MIRROR LOGIC: Force Bold Black for Headings
+      pdf.setTextColor(0, 0, 0); 
+
       words.forEach((wordObj) => {
-        pdf.setFont(fontMode === 'mono' ? 'Courier' : 'Helvetica', wordObj.style);
+        pdf.setFont(fontName, wordObj.style);
         const wordWidth = pdf.getTextWidth(wordObj.text);
 
         if (cursorX + wordWidth > margin + contentWidth) {
@@ -89,7 +86,7 @@ export class VaultConverter {
           checkPageBreak(lineHeight);
         }
 
-        pdf.text(wordObj.text, cursorX, cursorY + (baseSize * 0.3527));
+        pdf.text(wordObj.text, cursorX, cursorY + (fontSize * 0.3527));
         cursorX += wordWidth;
       });
 
@@ -99,16 +96,18 @@ export class VaultConverter {
     tokens.forEach((token) => {
       switch (token.type) {
         case 'heading':
-          // Match DOCX sizing exactly (h1=24pt, h2=18pt, h3=14pt)
           const hSize = token.depth === 1 ? 24 : (token.depth === 2 ? 18 : 14);
-          cursorY += 6;
+          const spacingBefore = token.depth === 1 ? 12 : 8;
+          cursorY += spacingBefore;
           checkPageBreak(hSize * 0.3527 + 10);
-          renderBlock(token.tokens || [{ text: token.text }], hSize, 'bold');
+          
+          // Force Bold Black for Headers
+          renderStyledLine(token.tokens || [{ text: token.text }], hSize, 'bold');
           
           if (token.depth <= 2) {
             pdf.setDrawColor(0, 0, 0);
-            pdf.setLineWidth(0.1);
-            pdf.line(margin, cursorY - 2, margin + contentWidth, cursorY - 2);
+            pdf.setLineWidth(0.3);
+            pdf.line(margin, cursorY - 1, margin + contentWidth, cursorY - 1);
             cursorY += 2;
           }
           cursorY += 4;
@@ -116,7 +115,7 @@ export class VaultConverter {
 
         case 'paragraph':
           checkPageBreak(11 * 0.3527 * 2);
-          renderBlock(token.tokens || [{ text: token.text }], 11);
+          renderStyledLine(token.tokens || [{ text: token.text }], 11);
           cursorY += 4;
           break;
 
@@ -124,26 +123,27 @@ export class VaultConverter {
           token.items.forEach((item: any) => {
             checkPageBreak(11 * 0.3527 * 2);
             pdf.setFontSize(11);
+            pdf.setFont(fontMode === 'mono' ? 'Courier' : 'Helvetica', 'normal');
             pdf.text('•', margin + 2, cursorY + (11 * 0.3527));
-            renderBlock(item.tokens || [{ text: item.text }], 11, 'normal', 7);
+            renderStyledLine(item.tokens || [{ text: item.text }], 11, 'normal', 8);
           });
           cursorY += 4;
           break;
 
         case 'blockquote':
           const startY = cursorY;
-          pdf.setDrawColor(16, 185, 129);
-          pdf.setLineWidth(1);
-          renderBlock([{ text: token.text }], 11, 'italic', 10);
+          pdf.setDrawColor(16, 185, 129); // Sovereign Green Border
+          pdf.setLineWidth(1.5);
+          renderStyledLine([{ text: token.text }], 11, 'italic', 12);
           pdf.line(margin, startY, margin, cursorY - 2);
           cursorY += 4;
           break;
 
         case 'hr':
-          cursorY += 4;
-          pdf.setDrawColor(200, 200, 200);
+          cursorY += 6;
+          pdf.setDrawColor(230, 230, 230);
           pdf.line(margin, cursorY, margin + contentWidth, cursorY);
-          cursorY += 8;
+          cursorY += 10;
           break;
       }
     });
@@ -151,10 +151,6 @@ export class VaultConverter {
     triggerSovereignDownload(pdf.output('blob'), fileName);
   }
 
-  /**
-   * Role: Senior Lead Architect
-   * Logic: Native DOCX mapping for high-fidelity Microsoft Word assets.
-   */
   static async toDocx(markdown: string, fileName: string = 'vault-export.docx'): Promise<void> {
     const tokens = marked.lexer(markdown);
     const children: any[] = [];
