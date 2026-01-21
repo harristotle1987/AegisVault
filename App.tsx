@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Editor } from './components/Editor';
 import { Preview } from './components/Preview';
@@ -11,7 +12,7 @@ import { TagsModal } from './components/modals/TagsModal';
 import { InstallPrompt } from './components/InstallPrompt';
 import { VaultConverter } from './services/exportService';
 import { StorageService } from './services/storageService';
-// Standardizing on PascalCase to match root file casing detected by compiler
+// Aligning import with PascalCase root file to resolve case-sensitivity conflict in the program
 import { VaultRefiner } from './services/VaultRefiner';
 import { SovereignDocument, VaultFont } from './types';
 import { Check, Shield, Loader2, FileText } from 'lucide-react';
