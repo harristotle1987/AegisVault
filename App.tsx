@@ -11,8 +11,8 @@ import { TagsModal } from './components/modals/TagsModal';
 import { InstallPrompt } from './components/InstallPrompt';
 import { VaultConverter } from './services/exportService';
 import { StorageService } from './services/storageService';
-// Standardizing on lowercase import to match root file casing and resolve compiler conflicts
-import { VaultRefiner } from './services/vaultRefiner';
+// Standardizing on PascalCase to match root file casing detected by compiler
+import { VaultRefiner } from './services/VaultRefiner';
 import { SovereignDocument, VaultFont } from './types';
 import { Check, Shield, Loader2, FileText } from 'lucide-react';
 import { usePWAInstall } from './hooks/usePWAInstall';

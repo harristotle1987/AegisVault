@@ -1,4 +1,3 @@
-
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { 
@@ -7,8 +6,7 @@ import {
   Paragraph, 
   TextRun, 
   HeadingLevel, 
-  ThematicBreak,
-  AlignmentType
+  ThematicBreak
 } from 'docx';
 import { marked } from 'marked';
 import { FontLoader } from './FontLoader';
@@ -31,7 +29,7 @@ const triggerSovereignDownload = (blob: Blob, filename: string) => {
 export class VaultConverter {
   /**
    * Role: Senior Lead Architect
-   * Feature: Seamless PDF Slicing & Black Heading Force
+   * Feature: Precise PDF Slicing (Eliminating Ghost Repeats)
    */
   static async toPDF(elementId: string, fileName: string = 'vault-export.pdf', fontMode: VaultFont = 'sans'): Promise<void> {
     const sourceElement = document.getElementById(elementId);
@@ -45,8 +43,8 @@ export class VaultConverter {
       await FontLoader.loadForPDF(pdf);
 
       const canvas = await html2canvas(sourceElement, {
-        scale: 2,
-        width: 794, 
+        scale: 1.5, // Optimized high-density rendering
+        width: 794, // Hardened A4 Pixel Width (96DPI)
         useCORS: true,
         backgroundColor: '#ffffff',
         logging: false,
@@ -60,8 +58,7 @@ export class VaultConverter {
             area.style.height = 'auto';
             area.style.fontFamily = fontMode === 'mono' ? "'JetBrains Mono', monospace" : "'Inter', sans-serif";
 
-            // Hardened Heading Styles for Professional Integrity
-            area.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(h => {
+            area.querySelectorAll('h1, h2, h3').forEach(h => {
               const el = h as HTMLElement;
               el.style.color = '#000000';
               el.style.fontWeight = '800';
@@ -72,13 +69,13 @@ export class VaultConverter {
 
             area.querySelectorAll('p, li, blockquote').forEach(p => {
               (p as HTMLElement).style.color = '#000000';
-              (p as HTMLElement).style.lineHeight = '1.6';
+              (p as HTMLElement).style.lineHeight = '1.7';
             });
           }
         }
       });
 
-      const imgData = canvas.toDataURL('image/jpeg', 0.7); // Optimized size
+      const imgData = canvas.toDataURL('image/jpeg', 0.8);
       const pdfWidth = 210;
       const pdfHeight = 297;
       const imgProps = pdf.getImageProperties(imgData);
@@ -87,11 +84,11 @@ export class VaultConverter {
       let heightLeft = pdfImgHeight;
       let position = 0;
 
-      // Logic: Slicing with 0.2mm precision overlap to prevent stitching lines
+      // Logic: Slicing with exact page mapping to prevent "header repeats"
       while (heightLeft > 0) {
         pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, pdfImgHeight, undefined, 'FAST');
         heightLeft -= pdfHeight;
-        position -= (pdfHeight - 0.2); // Micro-overlap for seamless stitching
+        position -= pdfHeight; // Exact shift - remove overlap to solve repetition issues
         if (heightLeft > 0) {
           pdf.addPage();
         }
@@ -105,26 +102,26 @@ export class VaultConverter {
 
   /**
    * Role: Senior Lead Architect
-   * Feature: Hardened Recursive Bold Logic
+   * Feature: Hardened Recursive Bold Recognition for DOCX
    */
   static async toDocx(markdown: string, fileName: string = 'vault-export.docx'): Promise<void> {
     const tokens = marked.lexer(markdown);
     const children: any[] = [];
 
-    const mapInlineTokens = (inlineTokens: any[] = [], defaultSize: number = 24, isBold: boolean = false): TextRun[] => {
+    const mapInlineTokens = (inlineTokens: any[] = [], defaultSize: number = 24, forceBold: boolean = false): TextRun[] => {
       return inlineTokens.flatMap(t => {
-        const content = t.text || t.raw || '';
-        const currentBold = isBold || t.type === 'strong';
-        const currentItalic = t.type === 'em';
-
+        const isStrong = t.type === 'strong' || forceBold;
+        const isEm = t.type === 'em';
+        
+        // If nested, recurse and pass down the bold/italic state
         if (t.tokens && t.tokens.length > 0) {
-          return mapInlineTokens(t.tokens, defaultSize, currentBold);
+          return mapInlineTokens(t.tokens, defaultSize, isStrong);
         }
 
         return [new TextRun({ 
-          text: content, 
-          bold: currentBold, 
-          italic: currentItalic,
+          text: t.text || t.raw || '', 
+          bold: isStrong, 
+          italic: isEm,
           size: defaultSize, 
           font: 'Inter',
           color: '000000'
