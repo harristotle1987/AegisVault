@@ -1,7 +1,4 @@
 
-/**
- * VaultRefiner: Sovereign Structural Intelligence Engine.
- * 
- * @deprecated This file is deprecated in favor of 'VaultRefiner.ts' to resolve case-sensitivity conflicts in the build environment.
- */
+// This file is deprecated to resolve casing conflicts. 
+// Use VaultRefiner.ts (PascalCase) for implementation.
 export {};

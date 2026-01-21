@@ -10,28 +10,38 @@ import { ConfigModal } from './components/modals/ConfigModal';
 import { TagsModal } from './components/modals/TagsModal';
 import { InstallPrompt } from './components/InstallPrompt';
 import { VaultConverter } from './services/exportService';
-import { StorageService } from './services/storageService';
-// Standardizing on PascalCase to match root file casing detected by compiler
+// Fix casing conflict by importing from the PascalCase version
 import { VaultRefiner } from './services/VaultRefiner';
-import { SovereignDocument, VaultFont } from './types';
-import { Check, Shield, Loader2, FileText } from 'lucide-react';
+import { useVault } from './hooks/useVault';
+import { VaultFont } from './types';
+import { Check, Shield } from 'lucide-react';
 import { usePWAInstall } from './hooks/usePWAInstall';
 
 type ModalType = 'export' | 'config' | 'tags' | null;
 
 export default function App() {
-  const [documents, setDocuments] = useState<SovereignDocument[]>([]);
-  const [activeDocId, setActiveDocId] = useState<string | null>(null);
+  const { 
+    documents, 
+    activeDoc, 
+    activeDocId, 
+    setActiveDocId, 
+    isSaving, 
+    saveDraft, 
+    deleteDraft, 
+    createDraft,
+    renameDraft
+  } = useVault();
+
   const [isExporting, setIsExporting] = useState(false);
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [pendingFormat, setPendingFormat] = useState<'pdf' | 'docx' | null>(null);
   const [suggestedName, setSuggestedName] = useState<string>("");
-  const [isSaving, setIsSaving] = useState(false);
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [mobileTab, setMobileTab] = useState<'editor' | 'preview'>('editor');
-  
   const [activeFont, setActiveFont] = useState<VaultFont>('sans');
+
+  const saveTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     document.body.setAttribute('data-font-mode', activeFont);
@@ -39,108 +49,28 @@ export default function App() {
   
   const { isInstallable, install } = usePWAInstall();
 
-  const isMounted = useRef(true);
-  useEffect(() => {
-    return () => { isMounted.current = false; };
-  }, []);
-
-  const activeDoc = documents.find(d => d.id === activeDocId);
-  const saveTimeoutRef = useRef<number | null>(null);
-
-  const refreshDocuments = async () => {
-    const allDocs = await StorageService.getAllDocuments();
-    if (isMounted.current) setDocuments(allDocs);
-    return allDocs;
-  };
-
-  useEffect(() => {
-    const initVault = async () => {
-      const allDocs = await refreshDocuments();
-      if (allDocs.length === 0) {
-        const firstDoc = await StorageService.createNewDocument();
-        firstDoc.content = `# Welcome to AegisVault\n\n**Sovereign Architecture** meets **Executive Typography**.\n\n### Commands\n- **Harden**: Standardizes typography.\n- **Export**: Generates binary assets.\n- **Beam**: Shares archive entries.`;
-        await StorageService.saveDocument(firstDoc);
-        if (isMounted.current) {
-          setDocuments([firstDoc]);
-          setActiveDocId(firstDoc.id);
-        }
-      } else if (!activeDocId && allDocs.length > 0) {
-        if (isMounted.current) setActiveDocId(allDocs[0].id);
-      }
-    };
-    initVault();
-  }, []);
-
   useEffect(() => {
     if (notification) {
-      const timer = setTimeout(() => { if (isMounted.current) setNotification(null); }, 3000);
+      const timer = setTimeout(() => setNotification(null), 3000);
       return () => clearTimeout(timer);
     }
   }, [notification]);
 
-  const persistChanges = useCallback(async (doc: SovereignDocument) => {
-    if (isMounted.current) setIsSaving(true);
-    try {
-      const wordCount = doc.content.split(/\s+/).filter(x => x).length;
-      const updatedDoc = {
-        ...doc,
-        lastModified: Date.now(),
-        metadata: {
-          ...doc.metadata,
-          wordCount,
-          estimatedReadTime: Math.max(1, Math.ceil(wordCount / 200))
-        }
-      };
-      await StorageService.saveDocument(updatedDoc);
-      if (isMounted.current) {
-        setDocuments(prev => {
-          const others = prev.filter(d => d.id !== updatedDoc.id);
-          return [updatedDoc, ...others].sort((a, b) => b.lastModified - a.lastModified);
-        });
-      }
-    } finally {
-      setTimeout(() => { if (isMounted.current) setIsSaving(false); }, 400);
-    }
-  }, []);
-
   const handleContentChange = (content: string) => {
     if (!activeDoc) return;
     const updated = { ...activeDoc, content };
-    setDocuments(prev => prev.map(d => d.id === activeDoc.id ? updated : d));
+    // Optimistic update for UI fluidness
     if (saveTimeoutRef.current) window.clearTimeout(saveTimeoutRef.current);
-    saveTimeoutRef.current = window.setTimeout(() => persistChanges(updated), 800);
+    saveTimeoutRef.current = window.setTimeout(() => saveDraft(updated), 800);
   };
 
   const handleLocalRefine = () => {
     if (!activeDoc) return;
     const refined = VaultRefiner.refine(activeDoc.content);
-    handleContentChange(refined);
+    // Directly save refined content
+    saveDraft({ ...activeDoc, content: refined });
     if ('vibrate' in navigator) navigator.vibrate(15);
     setNotification({ message: 'Structural hardening complete', type: 'success' });
-  };
-
-  const handleCreateNew = async () => {
-    const newDoc = await StorageService.createNewDocument();
-    setDocuments(prev => [newDoc, ...prev]);
-    setActiveDocId(newDoc.id);
-    setIsSidebarOpen(false);
-    setMobileTab('editor');
-  };
-
-  const handleDelete = async (id: string) => {
-    await StorageService.deleteDocument(id);
-    const updatedDocs = documents.filter(d => d.id !== id);
-    setDocuments(updatedDocs);
-    if (activeDocId === id) setActiveDocId(updatedDocs[0]?.id || null);
-  };
-
-  const handleRename = (id: string, newTitle: string) => {
-    const doc = documents.find(d => d.id === id);
-    if (!doc) return;
-    const updated = { ...doc, title: newTitle };
-    setDocuments(prev => prev.map(d => d.id === id ? updated : d));
-    if (saveTimeoutRef.current) window.clearTimeout(saveTimeoutRef.current);
-    saveTimeoutRef.current = window.setTimeout(() => persistChanges(updated), 800);
   };
 
   const handleShare = async () => {
@@ -149,13 +79,13 @@ export default function App() {
     try {
       if (navigator.share) {
         await navigator.share(shareData);
-        if (isMounted.current) setNotification({ message: 'Beam successful', type: 'success' });
+        setNotification({ message: 'Beam successful', type: 'success' });
       } else {
         await navigator.clipboard.writeText(activeDoc.content);
-        if (isMounted.current) setNotification({ message: 'Copied to clipboard', type: 'success' });
+        setNotification({ message: 'Copied to clipboard', type: 'success' });
       }
     } catch (err) {
-      if (isMounted.current) setNotification({ message: 'Beam failed', type: 'error' });
+      setNotification({ message: 'Beam failed', type: 'error' });
     }
   };
 
@@ -169,14 +99,12 @@ export default function App() {
       } else {
         await VaultConverter.toDocx(activeDoc.content, name + '.docx');
       }
-      if (isMounted.current) setNotification({ message: 'Export sequence complete', type: 'success' });
+      setNotification({ message: 'Export sequence complete', type: 'success' });
     } catch (e) {
-      if (isMounted.current) setNotification({ message: 'Export failed', type: 'error' });
+      setNotification({ message: 'Export failed', type: 'error' });
     } finally {
-      if (isMounted.current) {
-        setIsExporting(false);
-        setPendingFormat(null);
-      }
+      setIsExporting(false);
+      setPendingFormat(null);
     }
   };
 
@@ -186,9 +114,9 @@ export default function App() {
         documents={documents}
         activeId={activeDocId}
         onSelect={(id) => { setActiveDocId(id); setIsSidebarOpen(false); }}
-        onCreate={handleCreateNew}
-        onDelete={handleDelete}
-        onRename={handleRename}
+        onCreate={createDraft}
+        onDelete={deleteDraft}
+        onRename={renameDraft}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         onOpenConfig={() => setActiveModal('config')}
@@ -246,7 +174,7 @@ export default function App() {
              onClick={() => setMobileTab(prev => prev === 'editor' ? 'preview' : 'editor')}
              className="w-12 h-12 rounded-full bg-emerald-vault text-black flex items-center justify-center shadow-lg shadow-emerald-vault/30 active:scale-90 transition-transform"
            >
-             {mobileTab === 'editor' ? <Check size={20} /> : <FileText size={20} />}
+             <Shield size={20} />
            </button>
         </div>
 

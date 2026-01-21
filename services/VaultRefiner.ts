@@ -1,6 +1,7 @@
 
 /**
  * VaultRefiner: Sovereign Structural Intelligence Engine.
+ * PascalCase file implementation to resolve casing conflicts.
  */
 export class VaultRefiner {
   /**

@@ -172,19 +172,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
   );
 };
 
-/**
- * Role: Senior Developer (UI Hardening)
- * Feature: Hardened Sidebar interaction item with high stacking priority.
- */
 const SidebarStaticItem = ({ icon, label, isCollapsed, onClick }: { icon: any, label: string, isCollapsed: boolean, onClick: () => void }) => (
   <button 
     onClick={(e) => {
       e.stopPropagation();
       onClick();
     }}
-    // relative z-[120]: Explicitly clears the sidebar wrapper and any main content ghost layers
-    // pointer-events-auto: Forces the browser to ignore any transparent masks
-    // touch-manipulation: Removes 300ms delay on Android Chrome
     className={`
       flex items-center gap-4 transition-all group relative z-[120] pointer-events-auto active:scale-95 touch-manipulation min-h-[48px]
       ${isCollapsed && window.innerWidth >= 768 ? 'justify-center w-full p-2' : 'w-full px-4 py-3 md:py-2 text-vault-dim/50 hover:text-vault-text hover:bg-white/[0.04] rounded-lg border border-transparent hover:border-vault-border'}

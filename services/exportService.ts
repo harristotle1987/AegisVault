@@ -1,3 +1,4 @@
+
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { 
@@ -29,12 +30,13 @@ const triggerSovereignDownload = (blob: Blob, filename: string) => {
 export class VaultConverter {
   /**
    * Role: Senior Lead Architect
-   * Feature: Precise PDF Slicing (Eliminating Ghost Repeats)
+   * Feature: Precise PDF Slicing & Executive Black Headings
    */
   static async toPDF(elementId: string, fileName: string = 'vault-export.pdf', fontMode: VaultFont = 'sans'): Promise<void> {
     const sourceElement = document.getElementById(elementId);
     if (!sourceElement) throw new Error("Source element not found");
 
+    // Hide UI chrome during capture
     const elementsToHide = document.querySelectorAll('.fixed, .sidebar, button, .md\\:hidden');
     elementsToHide.forEach(el => (el as HTMLElement).style.opacity = '0');
 
@@ -43,8 +45,8 @@ export class VaultConverter {
       await FontLoader.loadForPDF(pdf);
 
       const canvas = await html2canvas(sourceElement, {
-        scale: 1.5, // Optimized high-density rendering
-        width: 794, // Hardened A4 Pixel Width (96DPI)
+        scale: 2, // Required: High-density for large, readable fonts
+        width: 794, // Standard A4 pixel width at 96 DPI
         useCORS: true,
         backgroundColor: '#ffffff',
         logging: false,
@@ -58,24 +60,26 @@ export class VaultConverter {
             area.style.height = 'auto';
             area.style.fontFamily = fontMode === 'mono' ? "'JetBrains Mono', monospace" : "'Inter', sans-serif";
 
-            area.querySelectorAll('h1, h2, h3').forEach(h => {
+            // Hardened Black Heading Constraint
+            area.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(h => {
               const el = h as HTMLElement;
               el.style.color = '#000000';
-              el.style.fontWeight = '800';
-              el.style.borderBottom = el.tagName === 'H1' ? '1px solid #eeeeee' : 'none';
-              el.style.marginBottom = '1.5rem';
-              el.style.marginTop = '2rem';
+              el.style.fontWeight = 'bold';
+              if (el.tagName === 'H1' || el.tagName === 'H2') {
+                el.style.fontSize = el.tagName === 'H1' ? '28pt' : '22pt';
+                el.style.borderBottom = '1px solid #000000';
+                el.style.paddingBottom = '5mm';
+              }
             });
 
-            area.querySelectorAll('p, li, blockquote').forEach(p => {
-              (p as HTMLElement).style.color = '#000000';
-              (p as HTMLElement).style.lineHeight = '1.7';
+            area.querySelectorAll('p, li, strong, b').forEach(el => {
+              (el as HTMLElement).style.color = '#000000';
             });
           }
         }
       });
 
-      const imgData = canvas.toDataURL('image/jpeg', 0.8);
+      const imgData = canvas.toDataURL('image/jpeg', 0.75); // Compressed JPEG for sovereignty
       const pdfWidth = 210;
       const pdfHeight = 297;
       const imgProps = pdf.getImageProperties(imgData);
@@ -84,11 +88,17 @@ export class VaultConverter {
       let heightLeft = pdfImgHeight;
       let position = 0;
 
-      // Logic: Slicing with exact page mapping to prevent "header repeats"
+      // Vertical Slicing Loop with Micro-Bleed Overlap
       while (heightLeft > 0) {
+        // Use a 0.5mm overlap as requested to hide page-break lines, 
+        // while tracking real height for page termination
         pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, pdfImgHeight, undefined, 'FAST');
         heightLeft -= pdfHeight;
-        position -= pdfHeight; // Exact shift - remove overlap to solve repetition issues
+        
+        // The overlap ensures we don't get white gaps between slices
+        // but we subtract slightly less than a full page to "stitch" the edge
+        position -= (pdfHeight - 0.5); 
+        
         if (heightLeft > 0) {
           pdf.addPage();
         }
@@ -108,12 +118,13 @@ export class VaultConverter {
     const tokens = marked.lexer(markdown);
     const children: any[] = [];
 
-    const mapInlineTokens = (inlineTokens: any[] = [], defaultSize: number = 24, forceBold: boolean = false): TextRun[] => {
+    // Recursive walker to catch bold even in nested spans
+    const mapInlineTokens = (inlineTokens: any[] = [], defaultSize: number = 24, parentBold: boolean = false): TextRun[] => {
       return inlineTokens.flatMap(t => {
-        const isStrong = t.type === 'strong' || forceBold;
+        const isStrong = t.type === 'strong' || parentBold;
         const isEm = t.type === 'em';
         
-        // If nested, recurse and pass down the bold/italic state
+        // Catch-all bold logic: recursively apply bold if parent is bold or token is strong
         if (t.tokens && t.tokens.length > 0) {
           return mapInlineTokens(t.tokens, defaultSize, isStrong);
         }
@@ -124,7 +135,7 @@ export class VaultConverter {
           italic: isEm,
           size: defaultSize, 
           font: 'Inter',
-          color: '000000'
+          color: '000000' // Force Black Typography
         })];
       });
     };
@@ -134,7 +145,7 @@ export class VaultConverter {
         case 'heading':
           const hSize = token.depth === 1 ? 48 : (token.depth === 2 ? 36 : 28);
           children.push(new Paragraph({
-            children: mapInlineTokens(token.tokens, hSize, true),
+            children: mapInlineTokens(token.tokens, hSize, token.depth <= 2),
             heading: token.depth === 1 ? HeadingLevel.HEADING_1 : 
                      token.depth === 2 ? HeadingLevel.HEADING_2 : 
                      HeadingLevel.HEADING_3,
@@ -158,7 +169,7 @@ export class VaultConverter {
           break;
         case 'blockquote':
           children.push(new Paragraph({
-            children: [new TextRun({ text: token.text, italic: true, color: '666666', font: 'Inter', size: 24 })],
+            children: [new TextRun({ text: token.text, italic: true, color: '000000', font: 'Inter', size: 24 })],
             indent: { left: 720 },
             spacing: { before: 200, after: 200, line: 360 },
           }));
