@@ -1,4 +1,3 @@
-
 /**
  * VaultRefiner: Sovereign Structural Intelligence Engine.
  * Consolidated into lowercase filename to resolve filesystem casing conflicts 
@@ -28,9 +27,32 @@ export class VaultRefiner {
     refined = refined.replace(/^(#+)([^#\s])/gm, '$1 $2');
     refined = refined.replace(/^(\*|\-|\+)(?!\s)/gm, '$1 ');
 
-    // 4. Identity Check: Ensure leading H1
-    if (!/^#\s/m.test(refined) && refined.length > 0) {
-      refined = `# Sovereign Entry\n\n${refined}`;
+    // 4. Identity Check: Ensure a single, non-duplicating leading H1
+    const SOVEREIGN_H1_TEXT = 'Sovereign Entry';
+    const SOVEREIGN_H1 = `# ${SOVEREIGN_H1_TEXT}`;
+
+    // Step 1: Remove any existing instances of SOVEREIGN_H1 from the absolute beginning of the content.
+    // This handles cases where it might be present due to previous hardening or manual input.
+    // Use a regex that ignores leading whitespace and consumes any newlines after the H1.
+    let processedContent = refined.replace(new RegExp(`^\\s*#\\s*${SOVEREIGN_H1_TEXT}\\s*\\n*`, 'i'), '');
+    processedContent = processedContent.trimStart(); // Ensure no leading newlines/whitespace remain
+
+    // Step 2: Check if the now-cleaned content starts with *any* Markdown H1.
+    // We check `processedContent` as it's been stripped of any prior Sovereign H1.
+    const startsWithAnyH1 = processedContent.startsWith('# ');
+
+    // Step 3: Conditionally prepend SOVEREIGN_H1 based on the check.
+    if (!startsWithAnyH1) {
+        // If no H1 is present at the beginning of the processed content, add our canonical Sovereign H1.
+        if (processedContent.length > 0) {
+            refined = `${SOVEREIGN_H1}\n\n${processedContent}`;
+        } else {
+            // If content is completely empty after cleaning, just put the Sovereign H1.
+            refined = SOVEREIGN_H1;
+        }
+    } else {
+        // If an H1 was already present (user's own), use the processed content directly.
+        refined = processedContent;
     }
 
     // 5. Sanitization: Strip dangerous HTML
