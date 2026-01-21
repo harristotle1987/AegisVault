@@ -12,10 +12,6 @@ import { marked } from 'marked';
 import { FontLoader } from './FontLoader';
 import { VaultFont } from '../types';
 
-/**
- * triggerSovereignDownload: Hardened Mobile Download Sequence.
- * Ensures binary blobs are delivered reliably across mobile OS boundaries.
- */
 const triggerSovereignDownload = (blob: Blob, filename: string) => {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -31,15 +27,10 @@ const triggerSovereignDownload = (blob: Blob, filename: string) => {
 };
 
 export class VaultConverter {
-  /**
-   * toPDF: High-fidelity Multi-page Slicing Engine.
-   * Implements 0.5mm overlap (bleed) to remove stitching lines and JPEG 0.75 compression for lightweight exports.
-   */
   static async toPDF(elementId: string, fileName: string = 'vault-export.pdf', fontMode: VaultFont = 'sans'): Promise<void> {
     const sourceElement = document.getElementById(elementId);
     if (!sourceElement) throw new Error("Source element not found");
 
-    // Hide UI elements to prevent black/gray boxes in export (Layer Integrity)
     const elementsToHide = document.querySelectorAll('.fixed, .sidebar, button, .md\\:hidden');
     elementsToHide.forEach(el => (el as HTMLElement).style.opacity = '0');
 
@@ -55,28 +46,26 @@ export class VaultConverter {
         onclone: (clonedDoc) => {
           const area = clonedDoc.getElementById(elementId);
           if (area) {
-            // Renderer Reset: Clear container before hardening to stop duplication
-            const currentHTML = area.innerHTML;
-            area.innerHTML = '';
-            area.innerHTML = currentHTML;
+            // ROLE: Senior Lead Architect
+            // Task: Final Sovereign Integrity Deployment
+            // Logic: CLEAR CONTAINER FIRST TO STOP DUPLICATION
+            const rawContent = area.innerHTML;
+            area.innerHTML = ""; 
+            area.innerHTML = rawContent;
 
             area.style.backgroundColor = '#ffffff';
             area.style.color = '#000000';
             area.style.padding = '20mm';
             area.style.height = 'auto';
-            area.style.width = '794px'; // Standard A4 pixel width at 96dpi
+            area.style.width = '794px';
             
-            if (fontMode === 'mono') {
-              area.style.fontFamily = "'JetBrains Mono', monospace";
-            } else {
-              area.style.fontFamily = "'Inter', sans-serif";
-            }
+            area.style.fontFamily = fontMode === 'mono' ? "'JetBrains Mono', monospace" : "'Inter', sans-serif";
 
             area.querySelectorAll('*').forEach(child => {
               const el = child as HTMLElement;
               el.style.color = '#000000';
               if (el.tagName.startsWith('H')) {
-                el.style.color = '#10B981'; // Emerald headers for executive branding
+                el.style.color = '#10B981';
                 el.style.borderBottom = '1px solid rgba(16, 185, 129, 0.2)';
               }
             });
@@ -84,7 +73,6 @@ export class VaultConverter {
         }
       });
 
-      // Hardened JPEG compression at 0.75 to maintain fidelity under 1MB
       const imgData = canvas.toDataURL('image/jpeg', 0.75); 
       const pdfWidth = 210;
       const pdfHeight = 297;
@@ -94,29 +82,20 @@ export class VaultConverter {
       let heightLeft = pdfImgHeight;
       let position = 0;
 
-      // Slice loop with 0.5mm overlap to eliminate white stitching lines
       while (heightLeft > 0) {
+        // 0.5mm overlap to remove stitching lines
         pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, pdfImgHeight, undefined, 'FAST');
-        
         heightLeft -= (pdfHeight - 0.5); 
         position -= (pdfHeight - 0.5);
-
-        if (heightLeft > 0) {
-          pdf.addPage();
-        }
+        if (heightLeft > 0) pdf.addPage();
       }
 
-      const blob = pdf.output('blob');
-      triggerSovereignDownload(blob, fileName);
+      triggerSovereignDownload(pdf.output('blob'), fileName);
     } finally {
       elementsToHide.forEach(el => (el as HTMLElement).style.opacity = '');
     }
   }
 
-  /**
-   * toDocx: Structural Native Word Mirroring.
-   * Maps Markdown tokens to native Microsoft Word Heading Styles with Emerald UI branding.
-   */
   static async toDocx(markdown: string, fileName: string = 'vault-export.docx'): Promise<void> {
     const tokens = marked.lexer(markdown);
     const children: any[] = [];
@@ -147,9 +126,9 @@ export class VaultConverter {
         case 'list':
           token.items.forEach((item: any) => {
             children.push(new Paragraph({
-              text: item.text,
               bullet: { level: 0 },
               spacing: { after: 120, line: 360 },
+              // Removed 'text' property from Paragraph to stop DOCX duplication bug
               children: [new TextRun({ text: item.text, font: 'Inter', size: 24 })]
             }));
           });
@@ -180,7 +159,6 @@ export class VaultConverter {
       }],
     });
 
-    const blob = await Packer.toBlob(doc);
-    triggerSovereignDownload(blob, fileName);
+    triggerSovereignDownload(await Packer.toBlob(doc), fileName);
   }
 }

@@ -58,7 +58,6 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, onClose, docCo
           await caches.delete(name);
         }
       }
-      // Force reload to clean environment and re-cache
       window.location.reload();
     } catch (err) {
       console.error('Purge sequence failure:', err);
@@ -68,7 +67,6 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, onClose, docCo
 
   return (
     <>
-      {/* Interaction Shield: invisible and pointer-events-none when closed to unblock main UI */}
       <div 
         className={`fixed inset-0 bg-obsidian/40 backdrop-blur-sm z-[150] transition-all duration-500 ease-in-out
           ${isOpen ? 'opacity-100 pointer-events-auto visible' : 'opacity-0 pointer-events-none invisible'}`}
@@ -143,7 +141,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, onClose, docCo
                 <div className="w-8 h-8 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center">
                   <RefreshCcw size={14} className={isPurging ? 'animate-spin' : ''} />
                 </div>
-                <div className="flex flex-col">
+                <div className="flex flex-col text-left">
                   <span className="text-[10px] font-bold text-red-400 uppercase tracking-widest">Purge Cache & Update</span>
                   <span className="text-[9px] text-vault-dim font-medium">Reset PWA shell & local assets</span>
                 </div>
@@ -158,9 +156,9 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, onClose, docCo
             </div>
             <div className="p-6 rounded-2xl bg-obsidian-muted border border-vault-border space-y-4">
               <p className="text-[10px] text-vault-dim leading-relaxed font-medium">Select the primary typeface for document generation. Binary sharding embeds these assets automatically.</p>
-              <div className="grid grid-cols-2 gap-3 relative z-[170] pointer-events-auto">
+              <div className="grid grid-cols-2 gap-3 relative z-[170]">
                 <button 
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setActiveFont('sans'); }}
+                  onClick={() => setActiveFont('sans')}
                   className={`flex flex-col items-center gap-2 py-4 border rounded-xl transition-all active:scale-95 ${
                     activeFont === 'sans' 
                       ? 'border-emerald-vault/40 bg-emerald-vault/5 text-emerald-vault' 
@@ -171,7 +169,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, onClose, docCo
                   <span className="text-[9px] font-black uppercase tracking-widest">Inter (Sans)</span>
                 </button>
                 <button 
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setActiveFont('mono'); }}
+                  onClick={() => setActiveFont('mono')}
                   className={`flex flex-col items-center gap-2 py-4 border rounded-xl transition-all active:scale-95 ${
                     activeFont === 'mono' 
                       ? 'border-emerald-vault/40 bg-emerald-vault/5 text-emerald-vault' 
