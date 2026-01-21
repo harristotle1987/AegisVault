@@ -11,6 +11,7 @@ interface PreviewProps {
 export const Preview: React.FC<PreviewProps> = ({ content, font = 'sans', activeDocId }) => {
   const previewRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const lastScrolledId = useRef<string | null>(null);
 
   const html = useMemo(() => {
     return marked.parse(content, { 
@@ -22,26 +23,32 @@ export const Preview: React.FC<PreviewProps> = ({ content, font = 'sans', active
   }, [content]);
 
   /**
-   * Renderer Reset & Terminal Focus Optimization
+   * Renderer Sync
    */
   useEffect(() => {
     if (previewRef.current) {
-      previewRef.current.innerHTML = '';
       previewRef.current.innerHTML = html;
     }
   }, [html]);
 
-  // Sovereign Scroll Optimization: Sync to bottom when content or doc changes
+  /**
+   * Sovereign Scroll Stability Protocol:
+   * Sync to bottom ONLY when switching shards.
+   * This ensures the user is oriented to latest changes upon opening,
+   * but prevents the view from jumping away during active editing.
+   */
   useLayoutEffect(() => {
-    if (scrollContainerRef.current) {
-      const container = scrollContainerRef.current;
-      // Immediate scroll for shard switching, smooth for hardening
-      container.scrollTo({
-        top: container.scrollHeight,
-        behavior: 'auto'
-      });
+    if (activeDocId && activeDocId !== lastScrolledId.current) {
+      if (scrollContainerRef.current) {
+        const container = scrollContainerRef.current;
+        container.scrollTo({
+          top: container.scrollHeight,
+          behavior: 'auto'
+        });
+        lastScrolledId.current = activeDocId;
+      }
     }
-  }, [activeDocId, html]);
+  }, [activeDocId]);
 
   const fontClass = font === 'mono' ? 'font-mono' : 'font-sans';
 
@@ -61,7 +68,7 @@ export const Preview: React.FC<PreviewProps> = ({ content, font = 'sans', active
 
       <div 
         ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto bg-obsidian-soft no-scrollbar vault-editor-scroll scroll-smooth"
+        className="flex-1 overflow-y-auto bg-obsidian-soft no-scrollbar vault-editor-scroll"
       >
         <div className="max-w-4xl mx-auto min-h-full flex flex-col shadow-[0_0_100px_rgba(0,0,0,0.4)]">
           <div 

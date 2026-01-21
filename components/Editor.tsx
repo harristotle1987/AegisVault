@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { VaultFont } from '../types';
 
 interface EditorProps {
@@ -8,23 +8,43 @@ interface EditorProps {
   activeDocId?: string | null;
 }
 
+/**
+ * Editor: Sovereign Text Entry Interface
+ * Optimized for vertical stability and high-cadence editing.
+ */
 export const Editor: React.FC<EditorProps> = ({ value, onChange, font = 'mono', activeDocId }) => {
   const fontClass = font === 'mono' ? 'font-mono' : 'font-sans';
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const lastScrolledId = useRef<string | null>(null);
+  
+  // Internal state to handle rapid typing without waiting for the Dexie/App cycle
+  // This prevents cursor jumping and ensures the view stays stable.
+  const [internalValue, setInternalValue] = useState(value);
 
-  // Sovereign Scroll Optimization: Focus on latest text when switching shards
+  // Sync internal value when the prop changes (e.g., shard switch or external refinement)
   useEffect(() => {
-    if (textareaRef.current) {
-      const el = textareaRef.current;
-      // Use requestAnimationFrame to ensure the DOM has painted the content
-      requestAnimationFrame(() => {
-        el.scrollTop = el.scrollHeight;
-      });
+    setInternalValue(value);
+  }, [value]);
+
+  // Sovereign Scroll Stability Protocol: 
+  // Focus on latest text ONLY ONCE when a new shard is activated.
+  useEffect(() => {
+    if (activeDocId && activeDocId !== lastScrolledId.current) {
+      if (textareaRef.current) {
+        const el = textareaRef.current;
+        // Immediate scroll on doc switch for efficiency
+        requestAnimationFrame(() => {
+          el.scrollTop = el.scrollHeight;
+          lastScrolledId.current = activeDocId;
+        });
+      }
     }
   }, [activeDocId]);
 
-  const handleFocus = () => {
-    window.scrollTo(0, 0);
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value;
+    setInternalValue(newValue);
+    onChange(newValue);
   };
 
   return (
@@ -39,10 +59,9 @@ export const Editor: React.FC<EditorProps> = ({ value, onChange, font = 'mono', 
       <div className="flex-1 relative overflow-hidden">
         <textarea
           ref={textareaRef}
-          value={value}
-          onFocus={handleFocus}
-          onChange={(e) => onChange(e.target.value)}
-          className={`absolute inset-0 w-full h-full bg-obsidian p-8 md:p-12 focus:outline-none resize-none text-sm leading-relaxed text-vault-text placeholder:text-zinc-800 caret-emerald-vault transition-colors overflow-y-auto vault-editor-scroll scroll-smooth ${fontClass}`}
+          value={internalValue}
+          onChange={handleChange}
+          className={`absolute inset-0 w-full h-full bg-obsidian p-8 md:p-12 focus:outline-none resize-none text-sm leading-relaxed text-vault-text placeholder:text-zinc-800 caret-emerald-vault transition-colors overflow-y-auto vault-editor-scroll ${fontClass}`}
           placeholder="Commence entry..."
           spellCheck={false}
           autoComplete="off"
