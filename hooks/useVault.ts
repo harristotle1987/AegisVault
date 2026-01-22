@@ -27,7 +27,6 @@ export const useVault = () => {
       await StorageService.seedIfEmpty();
       const docs = await refresh();
       if (docs.length > 0 && !activeDocId) {
-        // Auto-select the manifesto or most recent shard
         setActiveDocId(docs[0].id);
       }
     };
@@ -40,7 +39,6 @@ export const useVault = () => {
       await StorageService.saveDocument(doc);
       await refresh();
     } finally {
-      // Simulate micro-delay for UX feedback if needed, otherwise instant
       setIsSaving(false);
     }
   }, [refresh]);
@@ -59,14 +57,14 @@ export const useVault = () => {
     setActiveDocId(newDoc.id);
   }, [refresh]);
 
+  /**
+   * Atomic Renaming: Overwrites the title without shifting the sorting order mid-keystroke.
+   */
   const renameDraft = useCallback(async (id: string, title: string) => {
-    const doc = await StorageService.getDocument(id);
-    if (doc) {
-      // Update metadata only
-      await StorageService.saveDocument({ ...doc, title });
-      await refresh();
-    }
-  }, [refresh]);
+    await StorageService.renameDocument(id, title);
+    // Optimistic local state update to keep the UI fluid and focused
+    setDocuments(prev => prev.map(d => d.id === id ? { ...d, title } : d));
+  }, []);
 
   const activeDoc = documents.find(d => d.id === activeDocId) || null;
 

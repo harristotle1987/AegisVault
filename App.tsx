@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Editor } from './components/Editor';
 import { Preview } from './components/Preview';
@@ -11,8 +12,8 @@ import { PurgeModal } from './components/modals/PurgeModal';
 import { DownloadSuccessModal } from './components/modals/DownloadSuccessModal';
 import { InstallPrompt } from './components/InstallPrompt';
 import { VaultConverter } from './services/exportService';
-// Fix: Use lowercase filename to resolve TS1149 casing conflict error across shared compilation environments
-import { VaultRefiner } from './services/vaultRefiner';
+// Import from localRefineService to avoid casing conflicts with vaultRefiner.ts
+import { VaultRefiner } from './services/localRefineService';
 import { useVault } from './hooks/useVault';
 import { VaultFont } from './types';
 import { Check, Shield, ShieldAlert } from 'lucide-react';
@@ -53,7 +54,6 @@ export default function App() {
   const saveTimeoutRef = useRef<number | null>(null);
   const { isInstallable, install } = usePWAInstall();
 
-  // History State Protocol for Android Back Button Handling
   useEffect(() => {
     const handlePopState = (event: PopStateEvent) => {
       if (activeModal || isSidebarOpen) {
@@ -132,6 +132,10 @@ export default function App() {
     }
   };
 
+  const sanitizeFilename = (title: string): string => {
+    return title.replace(/[^\w\s-]/gi, '').trim().replace(/\s+/g, '_');
+  };
+
   const handleExport = async (name: string) => {
     if (!activeDoc || !pendingFormat) return;
     setIsExporting(true);
@@ -154,6 +158,14 @@ export default function App() {
       setIsExporting(false);
       setPendingFormat(null);
     }
+  };
+
+  const initiateExport = (format: 'pdf' | 'docx') => {
+    if (!activeDoc) return;
+    setPendingFormat(format);
+    // Bind suggested name directly to the document's current registry title
+    setSuggestedName(sanitizeFilename(activeDoc.title) || "vault-export");
+    setActiveModal('export');
   };
 
   const closeSuccessModal = () => {
@@ -215,11 +227,7 @@ export default function App() {
           markdown={activeDoc?.content || ''}
           isExporting={isExporting}
           isSaving={isSaving || !vaultSynced}
-          onExport={(format) => {
-             setPendingFormat(format);
-             setSuggestedName(activeDoc?.title || "vault-export");
-             setActiveModal('export');
-          }}
+          onExport={initiateExport}
           onShare={handleShare}
           onLocalRefine={handleLocalRefine}
           onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -254,18 +262,13 @@ export default function App() {
           )}
         </div>
 
-        {/* Minimal Status Dot: Replaced CheckCircle2 with a simple emerald dot */}
         <div className="fixed bottom-24 right-6 md:bottom-8 md:right-8 flex items-center justify-center p-2 rounded-full z-[130] pointer-events-none">
           <div className={`w-2 h-2 rounded-full transition-all duration-500 shadow-emerald-glow ${vaultSynced ? "bg-emerald-vault" : "bg-emerald-vault/20 animate-pulse"}`} />
         </div>
 
         <MobileActionBar 
           isExporting={isExporting}
-          onExport={(format) => {
-             setPendingFormat(format);
-             setSuggestedName(activeDoc?.title || "vault-export");
-             setActiveModal('export');
-          }}
+          onExport={initiateExport}
           onLocalRefine={handleLocalRefine}
         />
         

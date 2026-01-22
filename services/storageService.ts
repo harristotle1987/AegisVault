@@ -22,7 +22,6 @@ export const db = new VaultDatabase();
 const MOCK_ARCHIVES: Omit<SovereignDocument, 'id' | 'createdAt' | 'lastModified'>[] = [
   {
     title: 'Executive Manifesto: Digital Sovereignty',
-    // Fixed template literal closure by removing backslash before the backtick
     content: `# The Philosophy of Digital Sovereignty
 
 > "Privacy is not a feature; it is the foundation of the modern architect."
@@ -127,13 +126,12 @@ export const StorageService = {
     if (count === 0) {
       console.log('🛡️ Vault: Seeding high-fidelity archives...');
       const now = Date.now();
-      // Use for...of to maintain order
       for (let i = 0; i < MOCK_ARCHIVES.length; i++) {
         const mock = MOCK_ARCHIVES[i];
         await db.documents.add({
           ...mock,
           id: crypto.randomUUID(),
-          createdAt: now - (i * 1000), // Offset slightly for sorting
+          createdAt: now - (i * 1000), 
           lastModified: now - (i * 1000)
         } as SovereignDocument);
       }
@@ -148,6 +146,13 @@ export const StorageService = {
       ...doc,
       lastModified: Date.now()
     });
+  },
+
+  /**
+   * Atomic Rename Protocol: Updates only the title field to ensure stable sorting during edits.
+   */
+  async renameDocument(id: string, title: string): Promise<void> {
+    await db.documents.update(id, { title });
   },
 
   /**
