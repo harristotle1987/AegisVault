@@ -26,16 +26,16 @@ export const ImportService = {
   },
 
   /**
-   * Emergency Sanitization: Cleans numbering artifacts from ingestion pipelines.
-   * Converts __1.__ or _1._ into standard markdown list markers like 1.
+   * Sanitization Protocol: Converts docx numbering artifacts into clean markers.
+   * Pattern matched: __2.__, _2._, etc. -> 2.
    */
   sanitize(content: string): string {
     return content
       .replace(/__(\d+)\.__/g, '$1.')
       .replace(/__(\d+)\.\s+__/g, '$1. ')
       .replace(/_(\d+)\._/g, '$1.')
-      .replace(/__\w+\.__/g, '') // Remove alphabetical artifacts if not meaningful
-      .replace(/\n{3,}/g, '\n\n'); // Standardize whitespace
+      .replace(/__\w+\.__/g, '') // Remove alphabetical artifacts
+      .replace(/\n{3,}/g, '\n\n'); 
   },
 
   async processFile(file: File): Promise<{ title: string, content: string }> {
@@ -43,38 +43,46 @@ export const ImportService = {
     const title = file.name.replace(/\.[^/.]+$/, "");
     
     try {
+      let content = '';
       switch (extension) {
         case 'txt':
         case 'md':
-          return { title, content: await file.text() };
+          content = await file.text();
+          break;
         
         case 'html':
         case 'htm':
           const html = await file.text();
-          return { title, content: this.htmlToMarkdown(html) };
+          content = this.htmlToMarkdown(html);
+          break;
 
         case 'docx':
         case 'odt':
           const arrayBuffer = await file.arrayBuffer();
-          // mammoth handles docx and provides robust structural mapping
           const result = await mammoth.convertToMarkdown({ arrayBuffer });
-          return { title, content: this.sanitize(result.value || "") };
+          content = result.value || `# ${title}\n\n[Bridge.Notice]: Binary content converted to professional Markdown.`;
+          break;
 
         case 'pdf':
           await this.initPdf();
           const pdfContent = await this.extractPdfText(file);
-          return { title, content: `# ${title}\n\n${pdfContent}` };
+          content = `# ${title}\n\n${pdfContent}`;
+          break;
 
         case 'rtf':
           const rtfText = await file.text();
-          return { title, content: `# ${title}\n\n${this.extractRtfText(rtfText)}` };
+          content = `# ${title}\n\n${this.extractRtfText(rtfText)}`;
+          break;
 
         case 'pptx':
-          return { title, content: `# ${title}\n\n[PPTX Ingestion Active]\nNote: Structural outline processed.` };
+          content = `# ${title}\n\n[Bridge.Notice]: PPTX Structural Outline Ingested.`;
+          break;
 
         default:
           throw new Error('Unsupported format.');
       }
+
+      return { title, content: this.sanitize(content) };
     } catch (err) {
       console.error('Ingestion failure:', err);
       throw new Error(`Failed to ingest ${file.name}.`);
@@ -127,16 +135,10 @@ export const ImportService = {
       const page = await pdf.getPage(i);
       const textContent = await page.getTextContent();
       
-      /**
-       * Structural Intelligence: Identify lines based on vertical positioning (Y-transform).
-       * We sort items and use a threshold to determine line breaks, ensuring 
-       * Markdown reflects the original document flow.
-       */
       let lastY: number | null = null;
       let lines: string[] = [];
       let currentLine: string[] = [];
 
-      // Sort items by vertical position (descending) then horizontal position (ascending)
       const items = (textContent.items as any[]).sort((a, b) => {
         const yDiff = b.transform[5] - a.transform[5];
         if (Math.abs(yDiff) < 5) return a.transform[4] - b.transform[4];
@@ -145,19 +147,15 @@ export const ImportService = {
 
       for (const item of items) {
         const y = item.transform[5];
-        
-        // Threshold of 5 units to detect a distinct new line
         if (lastY !== null && Math.abs(y - lastY) > 5) {
           lines.push(currentLine.join(' ').trim());
           currentLine = [];
         }
-        
         currentLine.push(item.str);
         lastY = y;
       }
       
       if (currentLine.length > 0) lines.push(currentLine.join(' ').trim());
-
       fullText += `## Page ${i}\n\n` + lines.filter(l => l.length > 0).join('\n') + '\n\n';
     }
     

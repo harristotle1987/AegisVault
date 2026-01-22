@@ -19,8 +19,7 @@
     "file-saver": "2.0.5",
     "dexie": "3.2.4",
     "mammoth": "1.6.0",
-    "pdfjs-dist": "3.11.174",
-    "tesseract.js": "5.0.4"
+    "pdfjs-dist": "3.11.174"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

@@ -130,7 +130,6 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
             </div>
           </section>
 
-          {/* Cloud Shadow Sync Section relocated from Top Matrix */}
           <section className="space-y-4">
             <div className="flex items-center gap-2 px-1">
               <Cloud size={12} className="text-emerald-vault" />
@@ -155,7 +154,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
                   ref={fileInputRef} 
                   onChange={handleFileChange} 
                   className="hidden" 
-                  accept=".vshadow" 
+                  accept=".vshadow,.json" 
                 />
               </button>
             </div>

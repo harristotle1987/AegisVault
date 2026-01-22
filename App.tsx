@@ -47,9 +47,6 @@ export default function App() {
   const [docToPurge, setDocToPurge] = useState<string | null>(null);
   const [vaultSynced, setVaultSynced] = useState(true);
   
-  // High-Contrast Obsidian Theme locked by default
-  const [theme] = useState<'dark' | 'light'>('dark');
-  
   const [lastExportedFile, setLastExportedFile] = useState<{name: string, format: any, blobUrl: string | null}>({
     name: "", 
     format: null, 
@@ -59,14 +56,14 @@ export default function App() {
   const saveTimeoutRef = useRef<number | null>(null);
   const { isInstallable, install } = usePWAInstall();
 
-  // Shadow Sync: Export Protocol
+  // Shadow Sync: Export Protocol (Pretty-Printed)
   const handleCloudShadowExport = async () => {
     try {
       const blob = await SyncService.generateVaultShadow();
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `Vault_Shadow_${new Date().toISOString().split('T')[0]}.vshadow`;
+      link.download = `Vault_Shadow_${new Date().toISOString().split('T')[0]}.vshadow.json`;
       link.click();
       setNotification({ message: 'Shadow Shard Exported', type: 'success' });
     } catch (e) {
@@ -74,12 +71,13 @@ export default function App() {
     }
   };
 
-  // Shadow Sync: Import Protocol
+  // Shadow Sync: Import Protocol (Resilient)
   const handleCloudShadowImport = async (file: File) => {
     try {
       const result = await SyncService.ingestVaultShadow(file);
       await refresh();
       setNotification({ message: `Shadow Synced: ${result.success} shards ingested`, type: 'success' });
+      setActiveModal(null);
     } catch (e) {
       setNotification({ message: 'Corrupt Shadow Binary', type: 'error' });
     }
@@ -152,7 +150,7 @@ export default function App() {
     let successCount = 0;
     
     for (const file of Array.from(files)) {
-      if (file.name.endsWith('.vshadow')) {
+      if (file.name.includes('.vshadow')) {
         await handleCloudShadowImport(file);
         continue;
       }
@@ -269,7 +267,7 @@ export default function App() {
   };
 
   return (
-    <div className={`fixed inset-0 overflow-hidden selection:bg-emerald-vault/30 flex flex-row bg-obsidian text-vault-text`}>
+    <div className={`fixed inset-0 overflow-hidden selection:bg-emerald-vault/30 flex flex-row bg-black text-white`}>
       {isSidebarOpen && (
         <div 
           className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[9998] animate-in fade-in duration-300" 
@@ -351,12 +349,12 @@ export default function App() {
           onLocalRefine={handleLocalRefine}
         />
         
-        <div className="md:hidden fixed bottom-24 right-20 z-[9999]">
+        <div className="md:hidden fixed bottom-32 right-8 z-[9999]">
            <button 
              onClick={() => setMobileTab(prev => prev === 'editor' ? 'preview' : 'editor')}
-             className="w-12 h-12 rounded-full bg-emerald-vault text-black flex items-center justify-center shadow-lg shadow-emerald-vault/30 active:scale-90 transition-transform"
+             className="w-16 h-16 rounded-full bg-emerald-vault text-black flex items-center justify-center shadow-lg shadow-emerald-vault/30 active:scale-90 transition-transform"
            >
-             <Shield size={20} />
+             <Shield size={32} />
            </button>
         </div>
 
@@ -374,7 +372,7 @@ export default function App() {
         </div>
 
         {isExporting && (
-          <div className="fixed inset-0 z-[10001] bg-obsidian/80 backdrop-blur-xl flex items-center justify-center pointer-events-auto cursor-wait animate-in fade-in duration-300">
+          <div className="fixed inset-0 z-[10001] bg-black/80 backdrop-blur-xl flex items-center justify-center pointer-events-auto cursor-wait animate-in fade-in duration-300">
              <div className="w-full max-sm p-10 rounded-3xl bg-obsidian-soft border border-emerald-vault/20 shadow-sovereign flex flex-col items-center gap-8 animate-in zoom-in-95 duration-300">
                 <div className="relative">
                    <div className="w-20 h-20 rounded-full border-4 border-emerald-vault/5 border-t-emerald-vault animate-spin" />

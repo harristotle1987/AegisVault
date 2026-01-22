@@ -4,61 +4,69 @@ import { SovereignDocument } from '../types';
 /**
  * Cloud Shadow Sync Protocol
  * Role: Senior Lead Architect
- * Feature: Decentralized Vault Mirroring (No-Backend)
- * Logic: Encapsulates all HD Plates and Markdown Shards into a Portable Sovereign Binary.
+ * Feature: Decentralized Vault Mirroring (Pretty-Printed Readable JSON)
  */
 export const SyncService = {
   /**
-   * Generates a 'Vault Shadow' - a portable binary shard containing the entire archive.
+   * Generates a 'Vault Shadow' - pretty-printed JSON for readable forensic inspection.
    */
   async generateVaultShadow(): Promise<Blob> {
     const documents = await StorageService.getAllDocuments();
     const shadowPayload = {
-      version: '1.1.0',
+      version: '1.2.0',
       timestamp: Date.now(),
       documents,
       signature: 'SOVEREIGN_VAULT_SHADOW'
     };
     
-    const jsonString = JSON.stringify(shadowPayload);
-    return new Blob([jsonString], { type: 'application/vault-shadow' });
+    // Pretty-printed for user readability as requested
+    const jsonString = JSON.stringify(shadowPayload, null, 2);
+    return new Blob([jsonString], { type: 'application/json' });
   },
 
   /**
-   * Ingests a 'Vault Shadow' to mirror the state of another device.
-   * Performs a non-destructive merge (unique ID reconciliation).
+   * Ingests a 'Vault Shadow' with high-fidelity validation.
    */
   async ingestVaultShadow(file: File): Promise<{ success: number; skipped: number }> {
-    const text = await file.text();
-    const payload = JSON.parse(text);
-    
-    if (payload.signature !== 'SOVEREIGN_VAULT_SHADOW') {
-      throw new Error('Invalid Shadow Protocol Identifier.');
-    }
+    try {
+      const text = await file.text();
+      const payload = JSON.parse(text);
+      
+      if (!payload || payload.signature !== 'SOVEREIGN_VAULT_SHADOW') {
+        throw new Error('Invalid Shadow Protocol Identifier.');
+      }
 
-    const remoteDocs: SovereignDocument[] = payload.documents;
-    const localDocs = await StorageService.getAllDocuments();
-    const localIds = new Set(localDocs.map(d => d.id));
-    
-    let success = 0;
-    let skipped = 0;
+      const remoteDocs: SovereignDocument[] = payload.documents;
+      if (!Array.isArray(remoteDocs)) {
+        throw new Error('Corrupt Shadow Document Array.');
+      }
 
-    for (const doc of remoteDocs) {
-      if (!localIds.has(doc.id)) {
-        await StorageService.saveDocument(doc);
-        success++;
-      } else {
-        // Resolve conflict: If remote is newer, overwrite.
-        const local = localDocs.find(d => d.id === doc.id);
-        if (local && doc.lastModified > local.lastModified) {
+      const localDocs = await StorageService.getAllDocuments();
+      const localIds = new Set(localDocs.map(d => d.id));
+      
+      let success = 0;
+      let skipped = 0;
+
+      for (const doc of remoteDocs) {
+        if (!localIds.has(doc.id)) {
           await StorageService.saveDocument(doc);
           success++;
         } else {
-          skipped++;
+          // Conflict Resolution: Latest timestamp wins
+          const local = localDocs.find(d => d.id === doc.id);
+          if (local && doc.lastModified > local.lastModified) {
+            await StorageService.saveDocument(doc);
+            success++;
+          } else {
+            skipped++;
+          }
         }
       }
-    }
 
-    return { success, skipped };
+      return { success, skipped };
+    } catch (err) {
+      console.error('Shadow Ingestion Critical Failure:', err);
+      throw new Error('Sovereign Import Protocol Terminated: Corrupt Binary.');
+    }
   }
 };
