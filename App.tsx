@@ -56,29 +56,37 @@ export default function App() {
   useEffect(() => {
     const initSpeech = () => {
       if (typeof window !== 'undefined' && window.speechSynthesis) {
-        const voices = window.speechSynthesis.getVoices();
-        if (voices.length > 0) setSpeechReady(true);
-        window.speechSynthesis.onvoiceschanged = () => {
-          if (window.speechSynthesis.getVoices().length > 0) setSpeechReady(true);
+        window.speechSynthesis.cancel();
+        const checkVoices = () => {
+          const voices = window.speechSynthesis.getVoices();
+          if (voices.length > 0) setSpeechReady(true);
         };
+        checkVoices();
+        window.speechSynthesis.onvoiceschanged = checkVoices;
       }
     };
     initSpeech();
     return () => window.speechSynthesis.cancel();
   }, []);
 
-  const handleListen = useCallback(() => {
+  const handleListen = useCallback((e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
     if (!activeDoc || !speechReady) return;
+    
     if (isPlayingAudio) {
       window.speechSynthesis.cancel();
       setIsPlayingAudio(false);
       return;
     }
 
-    // Sanitized Audio Layer: Comprehensive Markdown & Artifact Purge
+    // Pure-Text Audio Engine: Strip all Markdown symbols and legacy artifacts
     const cleanText = activeDoc.content
-      .replace(/[#*`>_\-\+\[\]\(\)\$\!@:]/g, ' ') 
-      .replace(/__\d+\.__/g, '')               
+      .replace(/[#*`>_\-\+\[\]\(\)\$\!@:;]/g, ' ') 
+      .replace(/__\d+\.__/g, '') // Absolute purge of legacy artifacts
       .replace(/\s+/g, ' ')                   
       .trim();
 
@@ -89,6 +97,7 @@ export default function App() {
     utter.onerror = () => setIsPlayingAudio(false);
     utter.rate = 1.0; 
     utter.pitch = 1.0;
+    
     window.speechSynthesis.speak(utter);
     setIsPlayingAudio(true);
   }, [activeDoc, speechReady, isPlayingAudio]);
@@ -141,7 +150,15 @@ export default function App() {
 
   return (
     <div className={`fixed inset-0 overflow-hidden selection:bg-emerald-vault/30 flex flex-row bg-black text-white`}>
-      <div className="sidebar relative z-[9999] h-full shrink-0">
+      {/* Sidebar Overlay with High Z-Index for mobile close-on-click-outside */}
+      {isSidebarOpen && (
+        <div 
+          className="md:hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] animate-in fade-in duration-300" 
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      <div className="sidebar relative z-[10000] h-full shrink-0">
         <Sidebar 
           documents={documents}
           activeId={activeDocId}
@@ -180,24 +197,30 @@ export default function App() {
           )}
         </div>
 
-        {/* Action Bank: Absolute Right Edge with 3rem gap and smaller icons */}
+        {/* Action Bank: Absolute Right Edge with 3rem gap (gap-12) and smaller icons for zero overlap */}
         <div className="fixed top-3 md:top-4 right-3 md:right-4 flex items-center gap-12 z-[10001] pointer-events-auto">
-           <button onClick={() => setActiveModal('scanner')} className="flex flex-col items-center gap-1 transition-all active:scale-90 group">
+           <button 
+             onClick={(e) => { e.preventDefault(); e.stopPropagation(); setActiveModal('scanner'); }} 
+             className="flex flex-col items-center gap-1 transition-all active:scale-90 group"
+           >
              <div className="p-2.5 bg-white/5 border border-white/10 rounded-full text-emerald-vault group-hover:bg-emerald-vault/10">
-               <Scan size={18} />
+               <Scan size={16} />
              </div>
              <span className="text-[9px] font-black uppercase tracking-widest text-white/80">Scan</span>
            </button>
 
-           <button onClick={handleListen} className="flex flex-col items-center gap-1 transition-all active:scale-90 group">
+           <button 
+             onClick={handleListen} 
+             className="flex flex-col items-center gap-1 transition-all active:scale-90 group"
+           >
              <div className={`p-2.5 border rounded-full transition-all ${isPlayingAudio ? 'bg-emerald-vault text-black shadow-emerald-glow' : 'bg-white/5 border-white/10 text-emerald-vault group-hover:bg-emerald-vault/10'}`}>
-               {isPlayingAudio ? <BookOpen size={18} className="animate-pulse" /> : <Volume2 size={18} />}
+               {isPlayingAudio ? <BookOpen size={16} className="animate-pulse" /> : <Volume2 size={16} />}
              </div>
              <span className="text-[9px] font-black uppercase tracking-widest text-white/80">Listen</span>
            </button>
            
            <div className="p-1 md:p-2 border-l border-white/10 pl-6 flex flex-col items-center gap-1 shrink-0 opacity-40">
-             <div className={`w-2.5 h-2.5 rounded-full transition-all duration-700 ${vaultSynced ? "bg-emerald-vault/20" : "bg-emerald-vault animate-pulse shadow-emerald-glow"}`} />
+             <div className={`w-2 h-2 rounded-full transition-all duration-700 ${vaultSynced ? "bg-emerald-vault/20" : "bg-emerald-vault animate-pulse shadow-emerald-glow"}`} />
              <span className="text-[8px] font-black text-white/30 uppercase tracking-widest">Saved</span>
            </div>
         </div>
@@ -207,9 +230,13 @@ export default function App() {
           onExportPdf={() => handleExportInitiate('pdf')}
         />
         
-        <div className="md:hidden fixed bottom-32 right-8 z-[9999]">
-           <button onClick={() => setMobileTab(prev => prev === 'editor' ? 'preview' : 'editor')} className="w-16 h-16 rounded-full bg-emerald-vault text-black flex items-center justify-center shadow-lg active:scale-90 transition-transform">
-             <Shield size={32} />
+        {/* Mobile Tab Toggle: Strategically Positioned to avoid UI clash */}
+        <div className="md:hidden fixed bottom-36 right-4 z-[9999]">
+           <button 
+             onClick={() => setMobileTab(prev => prev === 'editor' ? 'preview' : 'editor')} 
+             className="w-12 h-12 rounded-full bg-emerald-vault text-black flex items-center justify-center shadow-lg active:scale-90 transition-transform"
+           >
+             <Shield size={24} />
            </button>
         </div>
 

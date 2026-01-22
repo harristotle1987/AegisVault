@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useEffect, useLayoutEffect, useState } from 'react';
+import React, { useMemo, useRef, useEffect, useLayoutEffect, useState, useDeferredValue } from 'react';
 import { marked } from 'marked';
 import { VaultFont } from '../types';
 
@@ -12,24 +12,18 @@ export const Preview: React.FC<PreviewProps> = ({ content, font = 'sans', active
   const previewRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const lastScrolledId = useRef<string | null>(null);
-  const [debouncedContent, setDebouncedContent] = useState(content);
-
-  // Lazy Rendering: Debounce content updates for large documents
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedContent(content);
-    }, 200);
-    return () => clearTimeout(timer);
-  }, [content]);
+  
+  // Lazy Rendering: Use deferred value to prevent main-thread blocking during content updates
+  const deferredContent = useDeferredValue(content);
 
   const html = useMemo(() => {
-    return marked.parse(debouncedContent, { 
+    return marked.parse(deferredContent, { 
       breaks: true, 
       gfm: true,
       mangle: false,
       headerIds: false
     });
-  }, [debouncedContent]);
+  }, [deferredContent]);
 
   useEffect(() => {
     if (previewRef.current) {

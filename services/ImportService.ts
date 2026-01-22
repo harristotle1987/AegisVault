@@ -26,14 +26,16 @@ export const ImportService = {
   },
 
   /**
-   * Artifact Purge Engine: Aggressively removes legacy markers.
-   * Purges __1.__, _1._, __2.__, _2._ etc.
+   * Artifact Purge Engine: Aggressively removes legacy markers and artifacts.
+   * Purges __1.__, _1._, __2.__, _2._ etc. and cleans up related symbols.
    */
   sanitize(content: string): string {
     return content
-      // Absolute purge of __1.__ patterns
-      .replace(/__(\d+)\.__/g, '')
-      .replace(/_(\d+)\._/g, '')
+      // Absolute purge of __1.__ patterns and similar artifacts
+      .replace(/__\d+\.__/g, '')
+      .replace(/_\d+\._/g, '')
+      // Strip other common ingestion debris
+      .replace(/@\w+/g, ' ')
       // Cleanup whitespace artifacts left by purge
       .replace(/\n{3,}/g, '\n\n')
       .trim();
