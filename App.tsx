@@ -10,6 +10,7 @@ import { TagsModal } from './components/modals/TagsModal';
 import { PurgeModal } from './components/modals/PurgeModal';
 import { DownloadSuccessModal } from './components/modals/DownloadSuccessModal';
 import { InstallPrompt } from './components/InstallPrompt';
+import { ScannerOverlay } from './components/ScannerOverlay';
 import { VaultConverter } from './services/exportService';
 import { VaultRefiner } from './services/localRefineService';
 import { ImportService } from './services/ImportService';
@@ -18,7 +19,7 @@ import { VaultFont } from './types';
 import { Check, Shield, ShieldAlert } from 'lucide-react';
 import { usePWAInstall } from './hooks/usePWAInstall';
 
-type ModalType = 'export' | 'config' | 'tags' | 'purge' | 'success' | null;
+type ModalType = 'export' | 'config' | 'tags' | 'purge' | 'success' | 'scanner' | null;
 
 export default function App() {
   const { 
@@ -127,6 +128,21 @@ export default function App() {
     } catch (err) {
       console.error('Import error:', err);
       setNotification({ message: 'Ingestion Failure', type: 'error' });
+    }
+  };
+
+  const handleScannerCapture = async (ocrText: string) => {
+    try {
+      const newDoc = await createDraft();
+      if (newDoc) {
+        const title = `Scan ${new Date().toLocaleDateString()}`;
+        const content = `# ${title}\n\n${ocrText}`;
+        await saveDraft({ ...newDoc, title, content });
+        setNotification({ message: 'OCR Scan Ingested', type: 'success' });
+      }
+      setActiveModal(null);
+    } catch (err) {
+      setNotification({ message: 'Scanner Failure', type: 'error' });
     }
   };
 
@@ -246,6 +262,7 @@ export default function App() {
           onOpenTags={() => setActiveModal('tags')}
           onOpenConfig={() => setActiveModal('config')}
           onImport={handleImport}
+          onOpenScanner={() => setActiveModal('scanner')}
         />
 
         <div className="flex-1 flex overflow-hidden relative min-h-0">
@@ -274,6 +291,8 @@ export default function App() {
              </div>
           )}
         </div>
+
+        {/* 200px Scroll clearance ensured by pb-[200px] in Editor and Preview components */}
 
         <div className="fixed bottom-24 right-6 md:bottom-8 md:right-8 flex items-center justify-center p-2 rounded-full z-[130] pointer-events-none">
           <div className={`w-2 h-2 rounded-full transition-all duration-500 shadow-emerald-glow ${vaultSynced ? "bg-emerald-vault" : "bg-emerald-vault/20 animate-pulse"}`} />
@@ -328,6 +347,13 @@ export default function App() {
           </div>
         )}
       </main>
+
+      {activeModal === 'scanner' && (
+        <ScannerOverlay 
+          onCapture={handleScannerCapture} 
+          onClose={() => setActiveModal(null)} 
+        />
+      )}
 
       <InstallPrompt />
 

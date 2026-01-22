@@ -9,7 +9,8 @@ import {
   Share2,
   Tag,
   Settings,
-  Upload
+  Upload,
+  Scan
 } from 'lucide-react';
 
 interface ToolbarProps {
@@ -23,6 +24,7 @@ interface ToolbarProps {
   onOpenTags: () => void;
   onOpenConfig: () => void;
   onImport: (file: File) => void;
+  onOpenScanner: () => void;
 }
 
 export const Toolbar: React.FC<ToolbarProps> = ({ 
@@ -35,7 +37,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onToggleSidebar,
   onOpenTags,
   onOpenConfig,
-  onImport
+  onImport,
+  onOpenScanner
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -85,6 +88,13 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             className="hidden" 
             accept=".md,.txt,.html,.htm,.docx,.odt,.pdf,.rtf,.pptx"
           />
+          <button 
+            onClick={onOpenScanner}
+            className="p-2.5 rounded-lg border border-vault-border bg-obsidian-muted hover:bg-emerald-glow hover:border-emerald-vault/50 transition-all text-vault-dim hover:text-emerald-vault active:scale-95"
+            title="Sovereign Scanner (OCR)"
+          >
+            <Scan size={18} />
+          </button>
           <button 
             onClick={() => fileInputRef.current?.click()}
             className="p-2.5 rounded-lg border border-vault-border bg-obsidian-muted hover:bg-emerald-glow hover:border-emerald-vault/50 transition-all text-vault-dim hover:text-emerald-vault active:scale-95"

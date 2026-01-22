@@ -1,5 +1,7 @@
 {
   "name": "Obsidian Vault Converter",
   "description": "A high-performance Markdown to PDF and Docx converter with a high-contrast Obsidian aesthetic and Sovereign local-only text refinement.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [
+    "camera"
+  ]
 }
