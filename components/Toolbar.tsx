@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { 
   FileText, 
   Download, 
@@ -10,20 +10,21 @@ import {
   Tag,
   Settings,
   Upload,
-  Scan
+  Scan,
+  ChevronDown
 } from 'lucide-react';
 
 interface ToolbarProps {
   markdown: string;
   isExporting: boolean;
   isSaving: boolean;
-  onExport: (format: 'pdf' | 'docx') => void;
+  onExport: (format: 'pdf' | 'docx' | 'html' | 'txt' | 'rtf') => void;
   onShare: () => void;
   onLocalRefine: () => void;
   onToggleSidebar: () => void;
   onOpenTags: () => void;
   onOpenConfig: () => void;
-  onImport: (file: File) => void;
+  onImport: (files: FileList) => void;
   onOpenScanner: () => void;
 }
 
@@ -41,12 +42,21 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onOpenScanner
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showExportMenu, setShowExportMenu] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) onImport(file);
+    const files = e.target.files;
+    if (files && files.length > 0) onImport(files);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
+
+  const formats: { id: 'pdf' | 'docx' | 'html' | 'txt' | 'rtf', label: string }[] = [
+    { id: 'pdf', label: 'PDF Vector' },
+    { id: 'docx', label: 'DOCX Word' },
+    { id: 'html', label: 'HTML Web' },
+    { id: 'rtf', label: 'RTF Executive' },
+    { id: 'txt', label: 'Plain TXT' },
+  ];
 
   return (
     <nav className="h-16 md:h-14 border-b border-vault-border bg-obsidian-soft/80 backdrop-blur-md flex items-center justify-between px-4 md:px-6 shrink-0 z-[9999] relative">
@@ -64,15 +74,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
         <div className="flex items-center gap-2 z-[9999]">
           <ShieldCheck className="text-emerald-vault w-5 h-5 md:w-4 md:h-4" />
-          {/* Status Indicator: 10% opacity Emerald Dot base, pulses to 100% on activity */}
-          <div className="flex items-center justify-center p-1">
-            <div 
-              className={`w-2 h-2 rounded-full transition-all duration-700 shadow-emerald-glow ${
-                isSaving ? 'bg-emerald-vault opacity-100 animate-pulse' : 'bg-emerald-vault opacity-10'
-              }`} 
-              style={{ backgroundColor: '#10B981' }}
-            />
-          </div>
         </div>
       </div>
 
@@ -84,27 +85,21 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             onChange={handleFileChange} 
             className="hidden" 
             accept=".md,.txt,.html,.htm,.docx,.odt,.pdf,.rtf,.pptx"
+            multiple
           />
           <button 
             onClick={onOpenScanner}
             className="p-2.5 rounded-lg border border-vault-border bg-obsidian-muted hover:bg-emerald-glow hover:border-emerald-vault/50 transition-all text-vault-dim hover:text-emerald-vault active:scale-95"
-            title="Sovereign Scanner (OCR/Math)"
+            title="Sovereign Plate Scanner"
           >
             <Scan size={18} />
           </button>
           <button 
             onClick={() => fileInputRef.current?.click()}
             className="p-2.5 rounded-lg border border-vault-border bg-obsidian-muted hover:bg-emerald-glow hover:border-emerald-vault/50 transition-all text-vault-dim hover:text-emerald-vault active:scale-95"
-            title="Ingest Asset"
+            title="Batch Ingest Assets"
           >
             <Upload size={18} />
-          </button>
-          <button 
-            onClick={onOpenTags}
-            className="p-2.5 rounded-lg border border-vault-border bg-obsidian-muted hover:bg-emerald-glow hover:border-emerald-vault/50 transition-all text-vault-dim hover:text-emerald-vault active:scale-95"
-            title="Tags"
-          >
-            <Tag size={18} />
           </button>
         </div>
 
@@ -123,24 +118,38 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             <Share2 size={14} /> <span className="hidden lg:inline">Beam</span>
           </button>
 
-          <div className="w-px h-6 bg-vault-border mx-1 md:mx-2 hidden lg:block" />
+          <div className="w-px h-6 bg-vault-border mx-1 md:mx-2" />
 
-          <button 
-            onClick={() => onExport('docx')}
-            disabled={isExporting}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-white/5 hover:bg-white/10 transition text-[10px] font-black uppercase tracking-widest border border-vault-border text-vault-text disabled:opacity-50 active:scale-95"
-          >
-            <FileText size={16} /> <span className="hidden md:inline">DOCX</span>
-          </button>
-          
-          <button 
-            onClick={() => onExport('pdf')}
-            disabled={isExporting}
-            className="min-w-[110px] flex items-center justify-center gap-2 px-4 py-1.5 bg-emerald-vault hover:bg-emerald-vault/90 text-black rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-50 shadow-lg active:scale-95 transition-all"
-          >
-            {isExporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
-            <span className="hidden md:inline">Export PDF</span>
-          </button>
+          <div className="relative">
+            <button 
+              onClick={() => setShowExportMenu(!showExportMenu)}
+              disabled={isExporting}
+              className="min-w-[130px] flex items-center justify-between gap-2 px-4 py-1.5 bg-emerald-vault hover:bg-emerald-vault/90 text-black rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-50 shadow-lg active:scale-95 transition-all"
+            >
+              <div className="flex items-center gap-2">
+                {isExporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+                <span>Execute Export</span>
+              </div>
+              <ChevronDown size={14} />
+            </button>
+
+            {showExportMenu && (
+              <div className="absolute top-full right-0 mt-2 w-48 bg-obsidian border border-vault-border rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                {formats.map(f => (
+                  <button
+                    key={f.id}
+                    onClick={() => {
+                      onExport(f.id);
+                      setShowExportMenu(false);
+                    }}
+                    className="w-full px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-vault-dim hover:text-emerald-vault hover:bg-white/5 transition-all border-b border-vault-border/50 last:border-0"
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </nav>

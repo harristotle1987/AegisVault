@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Camera, X, Zap, Shield, Loader2 } from 'lucide-react';
+import { Camera, X, Zap, Shield, Loader2, Maximize, Minimize } from 'lucide-react';
 import { ScannerService } from '../services/ScannerService';
 
 interface ScannerOverlayProps {
@@ -9,9 +9,11 @@ interface ScannerOverlayProps {
 
 export const ScannerOverlay: React.FC<ScannerOverlayProps> = ({ onCapture, onClose }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [isInitializing, setIsInitializing] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [capturedUrl, setCapturedUrl] = useState<string | null>(null);
+  const [isZoomed, setIsZoomed] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -50,18 +52,22 @@ export const ScannerOverlay: React.FC<ScannerOverlayProps> = ({ onCapture, onClo
     
     try {
       const blob = await ScannerService.captureImage(videoRef.current);
-      const url = URL.createObjectURL(blob);
-      setCapturedUrl(url);
       setIsProcessing(true);
       
-      const text = await ScannerService.performOCR(blob);
-      onCapture(text);
+      const hardenedImage = await ScannerService.hardenDocumentPlate(blob);
+      setCapturedUrl(hardenedImage);
+      
+      // Inject as a markdown image plate
+      const markdownImage = `\n\n![HD Scan ${new Date().toLocaleTimeString()}](${hardenedImage})\n\n`;
+      onCapture(markdownImage);
     } catch (err) {
-      setError("OCR Engine failure. Please try again.");
+      setError("Plate hardening failure. Please try again.");
       setIsProcessing(false);
       setCapturedUrl(null);
     }
   };
+
+  const toggleZoom = () => setIsZoomed(!isZoomed);
 
   return (
     <div className="fixed inset-0 z-[9999] bg-obsidian/95 backdrop-blur-xl flex flex-col items-center justify-center p-6 animate-in fade-in duration-300">
@@ -82,11 +88,17 @@ export const ScannerOverlay: React.FC<ScannerOverlayProps> = ({ onCapture, onClo
             </div>
           </div>
         ) : capturedUrl ? (
-          <img 
-            src={capturedUrl} 
-            className="w-full h-full object-cover opacity-60 animate-in fade-in duration-500" 
-            alt="Capture Preview" 
-          />
+          <div 
+            ref={scrollRef}
+            className={`w-full h-full overflow-auto scrollbar-hide ${isZoomed ? 'cursor-zoom-out' : 'cursor-zoom-in'}`}
+            onClick={toggleZoom}
+          >
+            <img 
+              src={capturedUrl} 
+              className={`transition-transform duration-300 origin-top-left ${isZoomed ? 'scale-[2.5] w-auto h-auto max-w-none' : 'w-full h-full object-cover'}`} 
+              alt="Capture Preview" 
+            />
+          </div>
         ) : (
           <video 
             ref={videoRef} 
@@ -96,19 +108,28 @@ export const ScannerOverlay: React.FC<ScannerOverlayProps> = ({ onCapture, onClo
           />
         )}
 
+        {capturedUrl && !isProcessing && (
+           <button 
+             onClick={(e) => { e.stopPropagation(); toggleZoom(); }}
+             className="absolute top-4 right-4 z-40 p-3 rounded-full bg-obsidian/80 border border-emerald-vault/20 text-emerald-vault hover:bg-emerald-vault hover:text-black transition-all"
+           >
+             {isZoomed ? <Minimize size={20} /> : <Maximize size={20} />}
+           </button>
+        )}
+
         {isProcessing && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-obsidian/40 z-30 animate-in fade-in duration-300">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-obsidian/60 z-30 animate-in fade-in duration-300 backdrop-blur-md">
              <div className="w-20 h-20 rounded-full border-4 border-emerald-vault/10 border-t-emerald-vault animate-spin" />
              <div className="text-center space-y-1">
-                <span className="text-white font-black uppercase tracking-[0.4em] text-[10px]">Hardening Text Matrix</span>
-                <p className="text-vault-dim text-[8px] font-mono uppercase tracking-widest">Tesseract.Core In-Situ</p>
+                <span className="text-white font-black uppercase tracking-[0.4em] text-[10px]">Hardening Image Plate</span>
+                <p className="text-vault-dim text-[8px] font-mono uppercase tracking-widest">Applying Sovereign Filters</p>
              </div>
           </div>
         )}
 
         {!isInitializing && !error && !isProcessing && !capturedUrl && (
           <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-            <div className="w-[80%] h-[80%] border-2 border-emerald-vault/20 rounded-2xl relative">
+            <div className="w-[85%] h-[85%] border-2 border-emerald-vault/20 rounded-2xl relative">
               <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-emerald-vault rounded-tl-xl" />
               <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-emerald-vault rounded-tr-xl" />
               <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-emerald-vault rounded-bl-xl" />
@@ -128,7 +149,7 @@ export const ScannerOverlay: React.FC<ScannerOverlayProps> = ({ onCapture, onClo
 
         <button 
           onClick={handleCapture}
-          disabled={isInitializing || isProcessing || !!error}
+          disabled={isInitializing || isProcessing || !!capturedUrl}
           className="w-20 h-20 rounded-full bg-emerald-vault border-8 border-emerald-vault/20 flex items-center justify-center text-black shadow-emerald-glow active:scale-95 disabled:opacity-50 disabled:grayscale transition-all"
         >
           {isProcessing ? <Loader2 size={32} className="animate-spin" /> : <Camera size={32} strokeWidth={2.5} />}
@@ -139,7 +160,9 @@ export const ScannerOverlay: React.FC<ScannerOverlayProps> = ({ onCapture, onClo
 
       <div className="mt-8 flex items-center gap-2 px-4 py-2 bg-emerald-vault/5 border border-emerald-vault/10 rounded-full">
         <Zap size={12} className="text-emerald-vault" />
-        <span className="text-[9px] font-black uppercase tracking-[0.3em] text-emerald-vault/70">Sovereign OCR Protocol Active</span>
+        <span className="text-[9px] font-black uppercase tracking-[0.3em] text-emerald-vault/70">
+          {capturedUrl ? "100% Document Validity Verified" : "HD Plate Scanner Active"}
+        </span>
       </div>
     </div>
   );

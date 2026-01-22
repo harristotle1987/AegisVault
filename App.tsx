@@ -14,9 +14,10 @@ import { ScannerOverlay } from './components/ScannerOverlay';
 import { VaultConverter } from './services/exportService';
 import { VaultRefiner } from './services/localRefineService';
 import { ImportService } from './services/ImportService';
+import { SyncService } from './services/SyncService';
 import { useVault } from './hooks/useVault';
 import { VaultFont } from './types';
-import { Check, Shield, ShieldAlert } from 'lucide-react';
+import { Check, Shield, ShieldAlert, ShieldCheck, Sun, Moon, Cloud } from 'lucide-react';
 import { usePWAInstall } from './hooks/usePWAInstall';
 
 type ModalType = 'export' | 'config' | 'tags' | 'purge' | 'success' | 'scanner' | null;
@@ -31,12 +32,13 @@ export default function App() {
     saveDraft, 
     deleteDraft, 
     createDraft,
-    renameDraft
+    renameDraft,
+    refresh
   } = useVault();
 
   const [isExporting, setIsExporting] = useState(false);
   const [activeModal, setActiveModal] = useState<ModalType>(null);
-  const [pendingFormat, setPendingFormat] = useState<'pdf' | 'docx' | null>(null);
+  const [pendingFormat, setPendingFormat] = useState<'pdf' | 'docx' | 'html' | 'txt' | 'rtf' | null>(null);
   const [suggestedName, setSuggestedName] = useState<string>("");
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -45,7 +47,12 @@ export default function App() {
   const [docToPurge, setDocToPurge] = useState<string | null>(null);
   const [vaultSynced, setVaultSynced] = useState(true);
   
-  const [lastExportedFile, setLastExportedFile] = useState<{name: string, format: 'pdf' | 'docx' | null, blobUrl: string | null}>({
+  // Sovereign Theme Persistence
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    return (localStorage.getItem('bunker_theme') as 'dark' | 'light') || 'dark';
+  });
+  
+  const [lastExportedFile, setLastExportedFile] = useState<{name: string, format: any, blobUrl: string | null}>({
     name: "", 
     format: null, 
     blobUrl: null
@@ -53,6 +60,44 @@ export default function App() {
 
   const saveTimeoutRef = useRef<number | null>(null);
   const { isInstallable, install } = usePWAInstall();
+
+  // Theme Sync DOM Injection
+  useEffect(() => {
+    if (theme === 'light') {
+      document.documentElement.classList.add('light');
+    } else {
+      document.documentElement.classList.remove('light');
+    }
+    localStorage.setItem('bunker_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+
+  // Shadow Sync: Export Protocol
+  const handleCloudShadowExport = async () => {
+    try {
+      const blob = await SyncService.generateVaultShadow();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Vault_Shadow_${new Date().toISOString().split('T')[0]}.vshadow`;
+      link.click();
+      setNotification({ message: 'Shadow Shard Exported', type: 'success' });
+    } catch (e) {
+      setNotification({ message: 'Shadow Sync Failure', type: 'error' });
+    }
+  };
+
+  // Shadow Sync: Import Protocol
+  const handleCloudShadowImport = async (file: File) => {
+    try {
+      const result = await SyncService.ingestVaultShadow(file);
+      await refresh();
+      setNotification({ message: `Shadow Synced: ${result.success} shards ingested`, type: 'success' });
+    } catch (e) {
+      setNotification({ message: 'Corrupt Shadow Binary', type: 'error' });
+    }
+  };
 
   useEffect(() => {
     const handlePopState = (event: PopStateEvent) => {
@@ -116,35 +161,37 @@ export default function App() {
     setNotification({ message: 'Structural hardening complete', type: 'success' });
   };
 
-  const handleImport = async (file: File) => {
-    try {
-      setNotification({ message: 'Commencing Ingestion...', type: 'success' });
-      const { title, content } = await ImportService.processFile(file);
-      const newDoc = await createDraft();
-      if (newDoc) {
-        await saveDraft({ ...newDoc, title, content });
-        setNotification({ message: 'Ingestion Successful', type: 'success' });
+  const handleBatchImport = async (files: FileList) => {
+    setNotification({ message: `Queueing ${files.length} assets...`, type: 'success' });
+    let successCount = 0;
+    
+    for (const file of Array.from(files)) {
+      if (file.name.endsWith('.vshadow')) {
+        await handleCloudShadowImport(file);
+        continue;
       }
-    } catch (err) {
-      console.error('Import error:', err);
-      setNotification({ message: 'Ingestion Failure', type: 'error' });
+      try {
+        const { title, content } = await ImportService.processFile(file);
+        const newDoc = await createDraft();
+        if (newDoc) {
+          await saveDraft({ ...newDoc, title, content });
+          successCount++;
+        }
+      } catch (err) {
+        console.error('Batch error:', err);
+      }
+    }
+    if (successCount > 0) {
+      setNotification({ message: `Batch Processing Complete: ${successCount} assets`, type: 'success' });
     }
   };
 
-  const handleScannerCapture = async (ocrText: string) => {
-    try {
-      const title = `Scan ${new Date().toLocaleDateString()}`;
-      const newDoc = await createDraft();
-      if (newDoc) {
-        // Pre-pend structural header and clean text
-        const content = `# ${title}\n\n${ocrText}`;
-        await saveDraft({ ...newDoc, title, content });
-        setNotification({ message: 'OCR Scan Ingested', type: 'success' });
-      }
-      setActiveModal(null);
-    } catch (err) {
-      setNotification({ message: 'Scanner Failure', type: 'error' });
-    }
+  const handleScannerCapture = async (capturedMarkdown: string) => {
+    if (!activeDoc) return;
+    const updatedContent = activeDoc.content + capturedMarkdown;
+    handleContentChange(updatedContent);
+    setNotification({ message: 'HD Plate Shard Hardened', type: 'success' });
+    setActiveModal(null);
   };
 
   const handleShare = async () => {
@@ -173,10 +220,19 @@ export default function App() {
     setActiveModal(null);
     try {
       let blob: Blob;
+      const fileName = name + '.' + pendingFormat;
       if (pendingFormat === 'pdf') {
-        blob = await VaultConverter.toPDF(activeDoc.content, name + '.pdf', activeFont);
+        blob = await VaultConverter.toPDF(activeDoc.content, fileName, activeFont);
+      } else if (pendingFormat === 'docx') {
+        blob = await VaultConverter.toDocx(activeDoc.content, fileName);
+      } else if (pendingFormat === 'html') {
+        blob = await VaultConverter.toHTML(activeDoc.content, fileName);
+      } else if (pendingFormat === 'txt') {
+        blob = await VaultConverter.toTXT(activeDoc.content, fileName);
+      } else if (pendingFormat === 'rtf') {
+        blob = await VaultConverter.toRTF(activeDoc.content, fileName);
       } else {
-        blob = await VaultConverter.toDocx(activeDoc.content, name + '.docx');
+        throw new Error("Format not supported");
       }
       
       const blobUrl = URL.createObjectURL(blob);
@@ -190,10 +246,9 @@ export default function App() {
     }
   };
 
-  const initiateExport = (format: 'pdf' | 'docx') => {
+  const initiateExport = (format: 'pdf' | 'docx' | 'html' | 'txt' | 'rtf') => {
     if (!activeDoc) return;
     setPendingFormat(format);
-    // Explicitly bind filename identifier to active title for mathematical sovereignty
     setSuggestedName(sanitizeFilename(activeDoc.title) || "vault_export");
     setActiveModal('export');
   };
@@ -228,7 +283,7 @@ export default function App() {
   };
 
   return (
-    <div className="fixed inset-0 bg-obsidian text-vault-text overflow-hidden selection:bg-emerald-vault/30 flex flex-row">
+    <div className={`fixed inset-0 overflow-hidden selection:bg-emerald-vault/30 flex flex-row ${theme === 'dark' ? 'bg-obsidian text-vault-text' : 'bg-slate-50 text-slate-900'}`}>
       {isSidebarOpen && (
         <div 
           className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[9998] animate-in fade-in duration-300" 
@@ -257,13 +312,13 @@ export default function App() {
           markdown={activeDoc?.content || ''}
           isExporting={isExporting}
           isSaving={isSaving || !vaultSynced}
-          onExport={initiateExport}
+          onExport={initiateExport as any}
           onShare={handleShare}
           onLocalRefine={handleLocalRefine}
           onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
           onOpenTags={() => setActiveModal('tags')}
           onOpenConfig={() => setActiveModal('config')}
-          onImport={handleImport}
+          onImport={handleBatchImport}
           onOpenScanner={() => setActiveModal('scanner')}
         />
 
@@ -278,8 +333,8 @@ export default function App() {
                   activeDocId={activeDocId}
                 />
               </div>
-              <div className="hidden md:block w-px bg-vault-border z-10 h-full" />
-              <div className={`flex-1 flex flex-col h-full overflow-hidden bg-obsidian-soft ${mobileTab === 'editor' ? 'hidden md:flex' : 'flex'}`}>
+              <div className={`hidden md:block w-px z-10 h-full ${theme === 'dark' ? 'bg-vault-border' : 'bg-slate-200'}`} />
+              <div className={`flex-1 flex flex-col h-full overflow-hidden ${theme === 'dark' ? 'bg-obsidian-soft' : 'bg-white'} ${mobileTab === 'editor' ? 'hidden md:flex' : 'flex'}`}>
                 <Preview 
                   font={activeFont} 
                   content={activeDoc.content} 
@@ -294,21 +349,39 @@ export default function App() {
           )}
         </div>
 
-        {/* Status Indicator (Emerald Dot) - High priority corner positioning */}
-        <div className="fixed bottom-24 right-6 md:bottom-8 md:right-8 flex items-center justify-center p-2 rounded-full z-[130] pointer-events-none">
-          <div 
-            className={`w-2 h-2 rounded-full transition-all duration-500 shadow-emerald-glow ${vaultSynced ? "opacity-10" : "opacity-100 animate-pulse"}`} 
-            style={{ backgroundColor: '#10B981' }}
-          />
+        {/* Global Sovereign Control Matrix */}
+        <div className="fixed top-4 right-4 flex items-center gap-2 z-[10000]">
+           <button 
+             onClick={handleCloudShadowExport}
+             className={`p-2 rounded-full transition-all border active:scale-90 ${theme === 'dark' ? 'bg-white/5 border-white/10 text-emerald-vault hover:bg-white/10' : 'bg-white border-slate-200 text-slate-600 shadow-sm hover:bg-slate-50'}`}
+             title="Cloud Shadow Sync"
+           >
+             <Cloud size={18} />
+           </button>
+           
+           <button 
+             onClick={toggleTheme}
+             className={`p-2 rounded-full transition-all border active:scale-90 ${theme === 'dark' ? 'bg-white/5 border-white/10 text-emerald-vault hover:bg-white/10' : 'bg-white border-slate-200 text-slate-600 shadow-sm hover:bg-slate-50'}`}
+             title="Global Theme Switch"
+           >
+             {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+           </button>
+           
+           <div className="p-2">
+             <div 
+               className={`w-2.5 h-2.5 rounded-full transition-all duration-700 shadow-emerald-glow ${vaultSynced ? "opacity-10" : "opacity-100 animate-pulse"}`} 
+               style={{ backgroundColor: '#10B981' }}
+             />
+           </div>
         </div>
 
         <MobileActionBar 
           isExporting={isExporting}
-          onExport={initiateExport}
+          onExport={initiateExport as any}
           onLocalRefine={handleLocalRefine}
         />
         
-        <div className="md:hidden fixed bottom-24 right-20 z-[120]">
+        <div className="md:hidden fixed bottom-24 right-20 z-[9999]">
            <button 
              onClick={() => setMobileTab(prev => prev === 'editor' ? 'preview' : 'editor')}
              className="w-12 h-12 rounded-full bg-emerald-vault text-black flex items-center justify-center shadow-lg shadow-emerald-vault/30 active:scale-90 transition-transform"
@@ -317,19 +390,21 @@ export default function App() {
            </button>
         </div>
 
-        <div className={`fixed top-20 right-6 z-[250] transition-all duration-500 transform ${notification ? 'translate-x-0 opacity-100' : 'translate-x-10 opacity-0 pointer-events-none'}`}>
+        <div className={`fixed top-16 right-6 z-[250] transition-all duration-500 transform ${notification ? 'translate-x-0 opacity-100' : 'translate-x-10 opacity-0 pointer-events-none'}`}>
           {notification && (
             <div className={`flex items-center gap-3 px-5 py-3 rounded-xl border backdrop-blur-md shadow-2xl ${
-              notification.type === 'success' ? 'bg-emerald-vault/10 border-emerald-vault/30 text-emerald-vault' : 'bg-red-500/10 border-red-500/30 text-red-400'
+              notification.type === 'success' 
+                ? 'bg-emerald-vault/10 border-emerald-vault/30 text-emerald-vault' 
+                : 'bg-red-500/10 border-red-500/30 text-red-400'
             }`}>
-              {notification.type === 'success' ? <Check size={16} /> : <ShieldAlert size={16} />}
+              <ShieldCheck size={16} />
               <span className="text-xs font-bold uppercase tracking-wider">{notification.message}</span>
             </div>
           )}
         </div>
 
         {isExporting && (
-          <div className="fixed inset-0 z-[600] bg-obsidian/80 backdrop-blur-xl flex items-center justify-center pointer-events-auto cursor-wait animate-in fade-in duration-300">
+          <div className="fixed inset-0 z-[10001] bg-obsidian/80 backdrop-blur-xl flex items-center justify-center pointer-events-auto cursor-wait animate-in fade-in duration-300">
              <div className="w-full max-w-sm p-10 rounded-3xl bg-obsidian-soft border border-emerald-vault/20 shadow-sovereign flex flex-col items-center gap-8 animate-in zoom-in-95 duration-300">
                 <div className="relative">
                    <div className="w-20 h-20 rounded-full border-4 border-emerald-vault/5 border-t-emerald-vault animate-spin" />
@@ -362,7 +437,7 @@ export default function App() {
 
       <ExportModal 
         initialName={suggestedName}
-        format={pendingFormat}
+        format={pendingFormat as any}
         onConfirm={handleExport}
         onCancel={() => { setActiveModal(null); setPendingFormat(null); }}
       />

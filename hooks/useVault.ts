@@ -4,8 +4,8 @@ import { SovereignDocument } from '../types';
 
 /**
  * Role: Senior Architect
- * Feature: Vault CRUD Logic & Seeding Integration
- * Logic: Ensures absolute local state persistence with automatic recovery.
+ * Feature: Atomic Vault CRUD & ID Reconciliation
+ * Logic: Ensures absolute local state persistence with zero-duplication renaming.
  */
 export const useVault = () => {
   const [documents, setDocuments] = useState<SovereignDocument[]>([]);
@@ -36,11 +36,12 @@ export const useVault = () => {
     setIsSaving(true);
     try {
       await StorageService.saveDocument(doc);
-      await refresh();
+      // Atomic Logic: Update by ID in the current state to maintain sort stability
+      setDocuments(prev => prev.map(d => d.id === doc.id ? { ...doc, lastModified: Date.now() } : d));
     } finally {
       setIsSaving(false);
     }
-  }, [refresh]);
+  }, []);
 
   const deleteDraft = useCallback(async (id: string) => {
     await StorageService.deleteDocument(id);
@@ -58,12 +59,15 @@ export const useVault = () => {
   }, [refresh]);
 
   /**
-   * Atomic Renaming: Overwrites the title without shifting the sorting order mid-keystroke.
+   * Atomic Renaming: Modifies the title via unique ID without shifting sorting mid-keystroke.
    */
   const renameDraft = useCallback(async (id: string, title: string) => {
     await StorageService.renameDocument(id, title);
-    // Optimistic local state update to keep the UI fluid and focused
-    setDocuments(prev => prev.map(d => d.id === id ? { ...d, title } : d));
+    
+    // Direct state map for immediate UI feedback without array duplication
+    setDocuments(prev => {
+      return prev.map(d => d.id === id ? { ...d, title, lastModified: Date.now() } : d);
+    });
   }, []);
 
   const activeDoc = documents.find(d => d.id === activeDocId) || null;
