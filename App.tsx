@@ -17,7 +17,7 @@ import { ImportService } from './services/ImportService';
 import { SyncService } from './services/SyncService';
 import { useVault } from './hooks/useVault';
 import { VaultFont } from './types';
-import { Shield, ShieldCheck, Volume2, BookOpen, Download, Upload } from 'lucide-react';
+import { Shield, ShieldCheck, Volume2, BookOpen, Download, Upload, Scan } from 'lucide-react';
 import { usePWAInstall } from './hooks/usePWAInstall';
 
 type ModalType = 'export' | 'config' | 'tags' | 'purge' | 'success' | 'scanner' | null;
@@ -57,7 +57,7 @@ export default function App() {
   const saveTimeoutRef = useRef<number | null>(null);
   const { isInstallable, install } = usePWAInstall();
 
-  // Shadow Sync: Export Protocol (Pretty-Printed)
+  // Shadow Sync: Export Protocol
   const handleCloudShadowExport = async () => {
     try {
       const blob = await SyncService.generateVaultShadow();
@@ -72,7 +72,7 @@ export default function App() {
     }
   };
 
-  // Shadow Sync: Import Protocol (Resilient)
+  // Shadow Sync: Import Protocol
   const handleCloudShadowImport = async (file: File) => {
     try {
       const result = await SyncService.ingestVaultShadow(file);
@@ -170,7 +170,7 @@ export default function App() {
           await handleCloudShadowImport(file);
           continue;
         } catch (e) {
-          console.warn("File appears to be JSON but not a sovereign shadow.");
+          console.warn("File appears to be JSON but not a shadow.");
         }
       }
       try {
@@ -352,8 +352,9 @@ export default function App() {
           )}
         </div>
 
-        {/* Navbar Fixed Controls: 2rem Spacing + Permanent Labels */}
+        {/* Navbar Fixed Controls: Sovereign Right-Side Bank */}
         <div className="fixed top-4 right-8 flex items-center gap-8 z-[10001]">
+           {/* 1. BATCH BUTTON */}
            <button 
              onClick={() => document.getElementById('batch-upload-trigger')?.click()}
              className="flex flex-col items-center gap-1.5 transition-all active:scale-90 group"
@@ -364,6 +365,18 @@ export default function App() {
              <span className="text-[10px] font-black uppercase tracking-widest text-white">Batch</span>
            </button>
 
+           {/* 2. SCAN BUTTON (HD PLATE SCANNER) */}
+           <button 
+             onClick={() => setActiveModal('scanner')}
+             className="flex flex-col items-center gap-1.5 transition-all active:scale-90 group"
+           >
+             <div className="p-3 bg-white/5 border border-white/10 rounded-full text-emerald-vault group-hover:bg-emerald-vault/10">
+               <Scan size={20} />
+             </div>
+             <span className="text-[10px] font-black uppercase tracking-widest text-white">Scan</span>
+           </button>
+
+           {/* 3. AUDIO BUTTON */}
            <button 
              onClick={handleListen}
              className="flex flex-col items-center gap-1.5 transition-all active:scale-90 group"
@@ -374,6 +387,7 @@ export default function App() {
              <span className="text-[10px] font-black uppercase tracking-widest text-white">Audio</span>
            </button>
 
+           {/* 4. EXPORT BUTTON */}
            <button 
              onClick={() => initiateExport('pdf')}
              className="flex flex-col items-center gap-1.5 transition-all active:scale-90 group"
@@ -384,6 +398,7 @@ export default function App() {
              <span className="text-[10px] font-black uppercase tracking-widest text-white">Export</span>
            </button>
            
+           {/* STATUS INDICATOR */}
            <div className="p-2 border-l border-white/10 pl-8 flex flex-col items-center gap-1">
              <div 
                className={`w-3.5 h-3.5 rounded-full transition-all duration-700 shadow-emerald-glow ${vaultSynced ? "opacity-10" : "opacity-100 animate-pulse"}`} 
