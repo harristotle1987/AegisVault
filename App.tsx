@@ -4,23 +4,18 @@ import { Preview } from './components/Preview';
 import { Sidebar } from './components/Sidebar';
 import { Toolbar } from './components/Toolbar';
 import { MobileActionBar } from './components/MobileActionBar';
-import { ExportModal } from './components/modals/ExportModal';
 import { ConfigModal } from './components/modals/ConfigModal';
 import { TagsModal } from './components/modals/TagsModal';
 import { PurgeModal } from './components/modals/PurgeModal';
-import { DownloadSuccessModal } from './components/modals/DownloadSuccessModal';
 import { InstallPrompt } from './components/InstallPrompt';
 import { ScannerOverlay } from './components/ScannerOverlay';
-import { VaultConverter } from './services/exportService';
 import { VaultRefiner } from './services/localRefineService';
-import { ImportService } from './services/ImportService';
-import { SyncService } from './services/SyncService';
 import { useVault } from './hooks/useVault';
 import { VaultFont } from './types';
-import { Shield, ShieldCheck, Volume2, BookOpen, Download, Upload, Scan } from 'lucide-react';
+import { Shield, ShieldCheck, Volume2, BookOpen, Scan } from 'lucide-react';
 import { usePWAInstall } from './hooks/usePWAInstall';
 
-type ModalType = 'export' | 'config' | 'tags' | 'purge' | 'success' | 'scanner' | null;
+type ModalType = 'config' | 'tags' | 'purge' | 'scanner' | null;
 
 export default function App() {
   const { 
@@ -36,10 +31,7 @@ export default function App() {
     refresh
   } = useVault();
 
-  const [isExporting, setIsExporting] = useState(false);
   const [activeModal, setActiveModal] = useState<ModalType>(null);
-  const [pendingFormat, setPendingFormat] = useState<'pdf' | 'docx' | 'html' | 'txt' | 'rtf' | null>(null);
-  const [suggestedName, setSuggestedName] = useState<string>("");
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [mobileTab, setMobileTab] = useState<'editor' | 'preview'>('editor');
@@ -47,53 +39,42 @@ export default function App() {
   const [docToPurge, setDocToPurge] = useState<string | null>(null);
   const [vaultSynced, setVaultSynced] = useState(true);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [speechReady, setSpeechReady] = useState(false);
   
-  const [lastExportedFile, setLastExportedFile] = useState<{name: string, format: any, blobUrl: string | null}>({
-    name: "", 
-    format: null, 
-    blobUrl: null
-  });
-
   const saveTimeoutRef = useRef<number | null>(null);
   const { isInstallable, install } = usePWAInstall();
 
-  // Shadow Sync: Export Protocol
-  const handleCloudShadowExport = async () => {
-    try {
-      const blob = await SyncService.generateVaultShadow();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `Vault_Shadow_${new Date().toISOString().split('T')[0]}.vshadow.json`;
-      link.click();
-      setNotification({ message: 'Shadow Shard Exported', type: 'success' });
-    } catch (e) {
-      setNotification({ message: 'Shadow Sync Failure', type: 'error' });
-    }
-  };
-
-  // Shadow Sync: Import Protocol
-  const handleCloudShadowImport = async (file: File) => {
-    try {
-      const result = await SyncService.ingestVaultShadow(file);
-      await refresh();
-      setNotification({ message: `Shadow Synced: ${result.success} shards ingested`, type: 'success' });
-      setActiveModal(null);
-    } catch (e) {
-      setNotification({ message: e instanceof Error ? e.message : 'Corrupt Shadow Binary', type: 'error' });
-    }
-  };
+  // Async Audio Stabilization
+  useEffect(() => {
+    const initSpeech = () => {
+      if (window.speechSynthesis) {
+        window.speechSynthesis.getVoices();
+        setSpeechReady(true);
+      }
+    };
+    initSpeech();
+    return () => window.speechSynthesis.cancel();
+  }, []);
 
   const handleListen = () => {
-    if (!activeDoc) return;
+    if (!activeDoc || !speechReady) return;
     if (isPlayingAudio) {
       window.speechSynthesis.cancel();
       setIsPlayingAudio(false);
       return;
     }
-    const utter = new SpeechSynthesisUtterance(activeDoc.content);
+
+    // Clean Audio Stream: Strip Markdown Artifacts
+    const cleanText = activeDoc.content
+      .replace(/[#*`>_\-\+\[\]\(\)\$\!]/g, '') // Strip symbols
+      .replace(/__\d+\.__/g, '')               // Purge legacy numbering
+      .trim();
+
+    const utter = new SpeechSynthesisUtterance(cleanText);
     utter.onend = () => setIsPlayingAudio(false);
     utter.onerror = () => setIsPlayingAudio(false);
+    utter.rate = 0.95; 
+    utter.pitch = 1.0;
     window.speechSynthesis.speak(utter);
     setIsPlayingAudio(true);
   };
@@ -112,12 +93,6 @@ export default function App() {
       window.history.replaceState({ overlay: false }, '');
     }
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [activeModal, isSidebarOpen]);
-
-  useEffect(() => {
-    if (activeModal || isSidebarOpen) {
-      window.history.pushState({ overlay: true }, '');
-    }
   }, [activeModal, isSidebarOpen]);
 
   useEffect(() => {
@@ -160,35 +135,6 @@ export default function App() {
     setNotification({ message: 'Structural hardening complete', type: 'success' });
   };
 
-  const handleBatchImport = async (files: FileList) => {
-    setNotification({ message: `Queueing ${files.length} assets...`, type: 'success' });
-    let successCount = 0;
-    
-    for (const file of Array.from(files)) {
-      if (file.name.includes('.vshadow') || file.name.endsWith('.json')) {
-        try {
-          await handleCloudShadowImport(file);
-          continue;
-        } catch (e) {
-          console.warn("File appears to be JSON but not a shadow.");
-        }
-      }
-      try {
-        const { title, content } = await ImportService.processFile(file);
-        const newDoc = await createDraft();
-        if (newDoc) {
-          await saveDraft({ ...newDoc, title, content });
-          successCount++;
-        }
-      } catch (err) {
-        console.error('Batch error:', err);
-      }
-    }
-    if (successCount > 0) {
-      setNotification({ message: `Batch Processing Complete: ${successCount} assets`, type: 'success' });
-    }
-  };
-
   const handleScannerCapture = async (capturedMarkdown: string) => {
     if (!activeDoc) return;
     const updatedContent = activeDoc.content + capturedMarkdown;
@@ -211,57 +157,6 @@ export default function App() {
     } catch (err) {
       setNotification({ message: 'Beam failed', type: 'error' });
     }
-  };
-
-  const sanitizeFilename = (title: string): string => {
-    return title.replace(/[^\w\s-]/gi, '').trim().replace(/\s+/g, '_');
-  };
-
-  const handleExport = async (name: string) => {
-    if (!activeDoc || !pendingFormat) return;
-    setIsExporting(true);
-    setActiveModal(null);
-    try {
-      let blob: Blob;
-      const fileName = name + '.' + pendingFormat;
-      if (pendingFormat === 'pdf') {
-        blob = await VaultConverter.toPDF(activeDoc.content, fileName, activeFont);
-      } else if (pendingFormat === 'docx') {
-        blob = await VaultConverter.toDocx(activeDoc.content, fileName);
-      } else if (pendingFormat === 'html') {
-        blob = await VaultConverter.toHTML(activeDoc.content, fileName);
-      } else if (pendingFormat === 'txt') {
-        blob = await VaultConverter.toTXT(activeDoc.content, fileName);
-      } else if (pendingFormat === 'rtf') {
-        blob = await VaultConverter.toRTF(activeDoc.content, fileName);
-      } else {
-        throw new Error("Format not supported");
-      }
-      
-      const blobUrl = URL.createObjectURL(blob);
-      setLastExportedFile({ name, format: pendingFormat, blobUrl });
-      setActiveModal('success');
-    } catch (e) {
-      setNotification({ message: 'Export failed', type: 'error' });
-    } finally {
-      setIsExporting(false);
-      setPendingFormat(null);
-    }
-  };
-
-  const initiateExport = (format: 'pdf' | 'docx' | 'html' | 'txt' | 'rtf') => {
-    if (!activeDoc) return;
-    setPendingFormat(format);
-    setSuggestedName(sanitizeFilename(activeDoc.title) || "vault_export");
-    setActiveModal('export');
-  };
-
-  const closeSuccessModal = () => {
-    if (lastExportedFile.blobUrl) {
-      URL.revokeObjectURL(lastExportedFile.blobUrl);
-    }
-    setLastExportedFile(prev => ({ ...prev, blobUrl: null }));
-    setActiveModal(null);
   };
 
   const triggerPurge = (id: string) => {
@@ -313,15 +208,15 @@ export default function App() {
       <main className="flex-1 flex flex-col relative overflow-hidden transition-all duration-300 h-full">
         <Toolbar 
           markdown={activeDoc?.content || ''}
-          isExporting={isExporting}
+          isExporting={false}
           isSaving={isSaving || !vaultSynced}
-          onExport={initiateExport as any}
+          onExport={() => {}} 
           onShare={handleShare}
           onLocalRefine={handleLocalRefine}
           onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
           onOpenTags={() => setActiveModal('tags')}
           onOpenConfig={() => setActiveModal('config')}
-          onImport={handleBatchImport}
+          onImport={() => {}} 
           onOpenScanner={() => setActiveModal('scanner')}
         />
 
@@ -352,66 +247,47 @@ export default function App() {
           )}
         </div>
 
-        {/* Navbar Fixed Controls: Tightened Sovereign Right-Side Bank */}
-        <div className="fixed top-2 md:top-4 right-4 md:right-8 flex items-center gap-3 md:gap-4 z-[10001]">
-           {/* 1. BATCH BUTTON */}
-           <button 
-             onClick={() => document.getElementById('batch-upload-trigger')?.click()}
-             className="flex flex-col items-center gap-1 transition-all active:scale-90 group"
-           >
-             <div className="p-2 md:p-3 bg-white/5 border border-white/10 rounded-full text-emerald-vault group-hover:bg-emerald-vault/10">
-               <Upload size={18} className="md:w-5 md:h-5" />
-             </div>
-             <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-white">Batch</span>
-           </button>
-
-           {/* 2. SCAN BUTTON (HD PLATE SCANNER) */}
+        {/* Action Bank: Strictly Scan and Audio. 2rem Gap (gap-8). */}
+        <div className="fixed top-2 md:top-4 right-4 md:right-8 flex items-center gap-8 z-[10001]">
+           {/* SCAN BUTTON */}
            <button 
              onClick={() => setActiveModal('scanner')}
-             className="flex flex-col items-center gap-1 transition-all active:scale-90 group"
+             className="flex flex-col items-center gap-1.5 transition-all active:scale-90 group"
            >
-             <div className="p-2 md:p-3 bg-white/5 border border-white/10 rounded-full text-emerald-vault group-hover:bg-emerald-vault/10">
-               <Scan size={18} className="md:w-5 md:h-5" />
+             <div className="p-3 bg-white/5 border border-white/10 rounded-full text-emerald-vault group-hover:bg-emerald-vault/10">
+               <Scan size={20} className="md:w-6 md:h-6" />
              </div>
-             <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-white">Scan</span>
+             <span className="text-[10px] font-black uppercase tracking-widest text-white">Scan</span>
            </button>
 
-           {/* 3. AUDIO BUTTON */}
+           {/* AUDIO BUTTON */}
            <button 
              onClick={handleListen}
-             className="flex flex-col items-center gap-1 transition-all active:scale-90 group"
+             className="flex flex-col items-center gap-1.5 transition-all active:scale-90 group"
            >
-             <div className={`p-2 md:p-3 border rounded-full transition-all ${isPlayingAudio ? 'bg-emerald-vault text-black shadow-emerald-glow' : 'bg-white/5 border-white/10 text-emerald-vault group-hover:bg-emerald-vault/10'}`}>
-               {isPlayingAudio ? <BookOpen size={18} className="md:w-5 md:h-5 animate-pulse" /> : <Volume2 size={18} className="md:w-5 md:h-5" />}
+             <div className={`p-3 border rounded-full transition-all ${isPlayingAudio ? 'bg-emerald-vault text-black shadow-emerald-glow' : 'bg-white/5 border-white/10 text-emerald-vault group-hover:bg-emerald-vault/10'}`}>
+               {isPlayingAudio ? <BookOpen size={20} className="md:w-6 md:h-6 animate-pulse" /> : <Volume2 size={20} className="md:w-6 md:h-6" />}
              </div>
-             <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-white">Audio</span>
-           </button>
-
-           {/* 4. EXPORT BUTTON */}
-           <button 
-             onClick={() => initiateExport('pdf')}
-             className="flex flex-col items-center gap-1 transition-all active:scale-90 group"
-           >
-             <div className="p-2 md:p-3 bg-white/5 border border-white/10 rounded-full text-emerald-vault group-hover:bg-emerald-vault/10">
-               <Download size={18} className="md:w-5 md:h-5" />
-             </div>
-             <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-white">Export</span>
+             <span className="text-[10px] font-black uppercase tracking-widest text-white">Audio</span>
            </button>
            
            {/* STATUS INDICATOR */}
-           <div className="p-1 md:p-2 border-l border-white/10 pl-3 md:pl-4 flex flex-col items-center gap-1 shrink-0">
+           <div className="p-1 md:p-2 border-l border-white/10 pl-8 flex flex-col items-center gap-1 shrink-0">
              <div 
-               className={`w-2.5 h-2.5 md:w-3.5 md:h-3.5 rounded-full transition-all duration-700 shadow-emerald-glow ${vaultSynced ? "opacity-10" : "opacity-100 animate-pulse"}`} 
+               className={`w-3.5 h-3.5 rounded-full transition-all duration-700 shadow-emerald-glow ${vaultSynced ? "opacity-10" : "opacity-100 animate-pulse"}`} 
                style={{ backgroundColor: '#10B981' }}
              />
-             <span className="text-[7px] md:text-[9px] font-black text-white/30 uppercase tracking-widest">Saved</span>
+             <span className="text-[9px] font-black text-white/30 uppercase tracking-widest">Saved</span>
            </div>
         </div>
 
         <MobileActionBar 
-          isExporting={isExporting}
-          onExport={initiateExport as any}
+          isExporting={false}
+          onExport={() => {}}
           onLocalRefine={handleLocalRefine}
+          onOpenScanner={() => setActiveModal('scanner')}
+          onToggleAudio={handleListen}
+          isPlayingAudio={isPlayingAudio}
         />
         
         <div className="md:hidden fixed bottom-32 right-8 z-[9999]">
@@ -435,38 +311,7 @@ export default function App() {
             </div>
           )}
         </div>
-
-        {isExporting && (
-          <div className="fixed inset-0 z-[10001] bg-black/80 backdrop-blur-xl flex items-center justify-center pointer-events-auto cursor-wait animate-in fade-in duration-300">
-             <div className="w-full max-sm p-10 rounded-3xl bg-obsidian-soft border border-emerald-vault/20 shadow-sovereign flex flex-col items-center gap-8 animate-in zoom-in-95 duration-300">
-                <div className="relative">
-                   <div className="w-20 h-20 rounded-full border-4 border-emerald-vault/5 border-t-emerald-vault animate-spin" />
-                   <div className="absolute inset-0 flex items-center justify-center">
-                      <Shield className="w-8 h-8 text-emerald-vault animate-pulse" />
-                   </div>
-                </div>
-                <div className="text-center space-y-3">
-                   <h3 className="text-white font-black uppercase tracking-[0.4em] text-xs">Binary Sharding</h3>
-                   <div className="flex flex-col gap-1">
-                      <p className="text-vault-dim text-[10px] font-mono uppercase tracking-widest opacity-60">Rendering Vector Asset</p>
-                      <div className="w-32 h-0.5 bg-white/5 mx-auto rounded-full overflow-hidden">
-                        <div className="h-full bg-emerald-vault w-1/2 animate-[shimmer_1.5s_infinite]" />
-                      </div>
-                   </div>
-                </div>
-             </div>
-          </div>
-        )}
       </main>
-
-      <input 
-        id="batch-upload-trigger"
-        type="file" 
-        className="hidden" 
-        multiple
-        accept=".md,.txt,.html,.htm,.docx,.odt,.pdf,.rtf,.pptx,.vshadow,.json"
-        onChange={(e) => e.target.files && handleBatchImport(e.target.files)}
-      />
 
       {activeModal === 'scanner' && (
         <ScannerOverlay 
@@ -477,20 +322,12 @@ export default function App() {
 
       <InstallPrompt />
 
-      <ExportModal 
-        initialName={suggestedName}
-        format={pendingFormat as any}
-        onConfirm={handleExport}
-        onCancel={() => { setActiveModal(null); setPendingFormat(null); }}
-      />
       <ConfigModal 
         isOpen={activeModal === 'config'} 
         onClose={() => setActiveModal(null)} 
         docCount={documents.length}
         activeFont={activeFont}
         setActiveFont={setActiveFont}
-        onShadowExport={handleCloudShadowExport}
-        onShadowImport={handleCloudShadowImport}
       />
       <TagsModal isOpen={activeModal === 'tags'} onClose={() => setActiveModal(null)} documents={documents} />
       
@@ -500,21 +337,6 @@ export default function App() {
         onCancel={() => { setActiveModal(null); setDocToPurge(null); }}
         draftTitle={documents.find(d => d.id === docToPurge)?.title || "Unknown Shard"}
       />
-
-      <DownloadSuccessModal 
-        isOpen={activeModal === 'success'}
-        onClose={closeSuccessModal}
-        fileName={lastExportedFile.name}
-        format={lastExportedFile.format}
-        blobUrl={lastExportedFile.blobUrl}
-      />
-
-      <style>{`
-        @keyframes shimmer {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(200%); }
-        }
-      `}</style>
     </div>
   );
 }

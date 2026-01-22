@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useDeferredValue } from 'react';
 import { VaultFont } from '../types';
 
 interface EditorProps {
@@ -11,6 +11,7 @@ interface EditorProps {
 /**
  * Editor: Sovereign Text Entry Interface
  * Optimized for vertical stability and high-cadence editing.
+ * Senior Architect Update: Deferred rendering for mobile lag mitigation.
  */
 export const Editor: React.FC<EditorProps> = ({ value, onChange, font = 'mono', activeDocId }) => {
   const fontClass = font === 'mono' ? 'font-mono' : 'font-sans';
@@ -19,14 +20,21 @@ export const Editor: React.FC<EditorProps> = ({ value, onChange, font = 'mono', 
   
   // Internal state to handle rapid typing without cursor jumps
   const [internalValue, setInternalValue] = useState(value);
+  const deferredValue = useDeferredValue(internalValue);
 
-  // Sync internal value when switching documents or external refinement
+  // Sync internal value when switching documents
   useEffect(() => {
     setInternalValue(value);
-  }, [value]);
+  }, [activeDocId]);
 
-  // Sovereign Scroll Stability Protocol: 
-  // Focus on latest text ONLY ONCE when a new shard is activated.
+  // Propagate changes with deferred logic to prioritize main thread
+  useEffect(() => {
+    if (deferredValue !== value) {
+      onChange(deferredValue);
+    }
+  }, [deferredValue, onChange, value]);
+
+  // Sovereign Scroll Stability Protocol
   useEffect(() => {
     if (activeDocId && activeDocId !== lastScrolledId.current) {
       if (textareaRef.current) {
@@ -40,9 +48,7 @@ export const Editor: React.FC<EditorProps> = ({ value, onChange, font = 'mono', 
   }, [activeDocId]);
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newValue = e.target.value;
-    setInternalValue(newValue);
-    onChange(newValue);
+    setInternalValue(e.target.value);
   };
 
   return (
@@ -55,12 +61,11 @@ export const Editor: React.FC<EditorProps> = ({ value, onChange, font = 'mono', 
         <span className="text-[9px] opacity-50 font-mono">MD.GFM</span>
       </div>
       <div className="flex-1 relative overflow-hidden">
-        {/* pb-[200px] provides absolute scroll clearance for mobile UI bars */}
         <textarea
           ref={textareaRef}
           value={internalValue}
           onChange={handleChange}
-          className={`absolute inset-0 w-full h-full bg-obsidian p-8 md:p-12 pb-[200px] md:pb-[200px] focus:outline-none resize-none text-sm leading-relaxed text-vault-text placeholder:text-zinc-800 caret-emerald-vault transition-colors overflow-y-auto vault-editor-scroll ${fontClass}`}
+          className={`absolute inset-0 w-full h-full bg-obsidian p-8 md:p-12 pb-[200px] focus:outline-none resize-none text-sm leading-relaxed text-vault-text placeholder:text-zinc-800 caret-emerald-vault transition-colors overflow-y-auto vault-editor-scroll ${fontClass}`}
           placeholder="Commence entry..."
           spellCheck={false}
           autoComplete="off"
