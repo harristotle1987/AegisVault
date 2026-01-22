@@ -3,7 +3,9 @@ import { Download, X, Shield, Share, PlusSquare } from 'lucide-react';
 
 /**
  * InstallPrompt: Sovereign Onboarding Protocol
- * Logic: Implements a 30-second delayed entry for high-fidelity engagement.
+ * Role: Senior Architect
+ * Feature: Optimized Installation Delay (10s)
+ * Logic: Implements a precise 10-second entry for professional engagement.
  */
 export const InstallPrompt: React.FC = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -31,11 +33,11 @@ export const InstallPrompt: React.FC = () => {
     };
     window.addEventListener('beforeinstallprompt', promptHandler);
 
-    // 3. The 30-Second Sovereign Delay
-    // We wait 30 seconds after mounting to ensure the user is engaged with the vault.
+    // 3. The 10-Second Sovereign Delay
+    // Reduced to 10 seconds for faster "Member-Only" conversion
     timerRef.current = window.setTimeout(() => {
       setIsVisible(true);
-    }, 30000);
+    }, 10000); 
 
     return () => {
       window.removeEventListener('beforeinstallprompt', promptHandler);
@@ -82,7 +84,7 @@ export const InstallPrompt: React.FC = () => {
           </div>
           
           {isIOS ? (
-            <div className="space-y-4 pt-2">
+            <div className="space-y-4 pt-2" id="ios-tooltip">
               <p className="text-vault-dim text-[11px] leading-relaxed font-medium">
                 To secure this archive as a standalone app on iOS:
               </p>

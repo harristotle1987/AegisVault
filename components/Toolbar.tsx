@@ -24,9 +24,9 @@ interface ToolbarProps {
 }
 
 /**
- * Role: Senior Architect
+ * Role: Senior Lead Architect
  * Feature: Sovereign Command Toolbar
- * Logic: Hardened interaction targets for mobile/desktop parity.
+ * Logic: Hardened interaction targets and absolute z-index priority.
  */
 export const Toolbar: React.FC<ToolbarProps> = ({ 
   markdown, 
@@ -40,7 +40,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onOpenConfig
 }) => {
   return (
-    <div className="h-16 md:h-14 border-b border-vault-border bg-obsidian-soft/80 backdrop-blur-md flex items-center justify-between px-4 md:px-6 shrink-0 z-[9999] relative">
+    <nav className="h-16 md:h-14 border-b border-vault-border bg-obsidian-soft/80 backdrop-blur-md flex items-center justify-between px-4 md:px-6 shrink-0 z-[9999] relative">
       <div className="flex items-center gap-4 md:gap-6 h-full">
         {/* Mobile Menu Trigger - z-index 9999 for absolute priority */}
         <button 
@@ -54,19 +54,22 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <Menu size={22} />
         </button>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 z-[9999]">
           <ShieldCheck className="text-emerald-vault w-5 h-5 md:w-4 md:h-4" />
-          <span className="text-[12px] md:text-[10px] uppercase tracking-[0.2em] font-bold text-vault-dim hidden sm:inline-block">
+          <span className="text-[12px] md:text-[10px] uppercase tracking-[0.2em] font-black text-vault-text hidden sm:inline-block">
             Sovereign Vault
           </span>
-          <span className="text-[12px] uppercase tracking-[0.2em] font-bold text-vault-dim sm:hidden">
+          <span className="text-[12px] uppercase tracking-[0.2em] font-black text-vault-text sm:hidden">
             Vault
           </span>
         </div>
         
-        {/* Minimal Status Dot Indicator */}
+        {/* Minimalist Emerald Status Indicator - NO TEXT */}
         <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.02] border border-vault-border hidden lg:flex transition-all">
-          <div className={`w-1.5 h-1.5 rounded-full transition-all duration-500 ${isSaving ? 'bg-emerald-vault animate-pulse' : 'bg-emerald-vault/30'}`} />
+          <div 
+            className={`w-1.5 h-1.5 rounded-full transition-all duration-500 shadow-emerald-glow ${isSaving ? 'bg-emerald-vault animate-pulse' : 'bg-emerald-vault/40'}`} 
+            title={isSaving ? "Persisting..." : "State Locked"}
+          />
         </div>
       </div>
 
@@ -128,9 +131,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         
         {/* Mobile Mini Status Dot */}
         <div className="sm:hidden flex items-center gap-2 px-3 py-2 rounded-full bg-white/[0.02] border border-vault-border">
-          <div className={`w-1.5 h-1.5 rounded-full transition-all duration-500 ${isSaving ? 'bg-emerald-vault animate-pulse' : 'bg-emerald-vault/30'}`} />
+          <div className={`w-1.5 h-1.5 rounded-full transition-all duration-500 shadow-emerald-glow ${isSaving ? 'bg-emerald-vault animate-pulse' : 'bg-emerald-vault/40'}`} />
         </div>
       </div>
-    </div>
+    </nav>
   );
 };

@@ -11,8 +11,8 @@ import { PurgeModal } from './components/modals/PurgeModal';
 import { DownloadSuccessModal } from './components/modals/DownloadSuccessModal';
 import { InstallPrompt } from './components/InstallPrompt';
 import { VaultConverter } from './services/exportService';
-// Fix: Use uppercase filename to match the primary registered asset (VaultRefiner.ts) and resolve TS1149 casing error
-import { VaultRefiner } from './services/VaultRefiner';
+// Fix: Use lowercase filename to resolve TS1149 casing conflict error across shared compilation environments
+import { VaultRefiner } from './services/vaultRefiner';
 import { useVault } from './hooks/useVault';
 import { VaultFont } from './types';
 import { Check, Shield, ShieldAlert } from 'lucide-react';
