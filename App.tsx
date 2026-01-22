@@ -61,7 +61,9 @@ export default function App() {
         window.speechSynthesis.cancel();
         const checkVoices = () => {
           const voices = window.speechSynthesis.getVoices();
-          if (voices.length > 0) setSpeechReady(true);
+          if (voices.length > 0) {
+            setSpeechReady(true);
+          }
         };
         checkVoices();
         window.speechSynthesis.onvoiceschanged = checkVoices;
@@ -77,38 +79,63 @@ export default function App() {
       e.stopPropagation();
     }
     
-    // Hardware-Tap Debounce / Mutex: Prevents double-clicking race condition
+    // Sovereign Listen Mutex: Eliminates double-clicking/rapid-fire race conditions
     if (listenMutexRef.current || !activeDoc || !speechReady) return;
     listenMutexRef.current = true;
-    setTimeout(() => { listenMutexRef.current = false; }, 500);
     
-    if (isPlayingAudio) {
+    // Synchronize with hardware state directly to resolve any state drift
+    const isActuallySpeaking = window.speechSynthesis.speaking;
+    
+    if (isActuallySpeaking || isPlayingAudio) {
       window.speechSynthesis.cancel();
       setIsPlayingAudio(false);
+      // Cooldown after cancellation to let browser clear its synthesis buffer
+      setTimeout(() => { listenMutexRef.current = false; }, 300);
       return;
     }
 
-    // Direct-from-Render Sanitization: Extract text only, purge all Markdown/Legacy artifacts
+    // Direct-from-Render Sanitization Pipeline
     const html = marked.parse(activeDoc.content);
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = html as string;
     
+    // Purge all Markdown, Legacy Numbering artifacts, and special symbols from audio stream
     const cleanText = (tempDiv.textContent || tempDiv.innerText || "")
-      .replace(/__\d+\.__/g, '') // Scrub legacy artifacts from audio buffer
-      .replace(/[#*`>_\-\+\[\]\(\)\$\!@:;]/g, ' ') 
+      .replace(/__\d+\.__/g, '') 
+      .replace(/[#*`>_\-\+\[\]\(\)\$\!@:;=]/g, ' ') 
       .replace(/\s+/g, ' ')                   
       .trim();
 
-    if (!cleanText) return;
+    if (!cleanText) {
+      listenMutexRef.current = false;
+      return;
+    }
 
     const utter = new SpeechSynthesisUtterance(cleanText);
-    utter.onend = () => setIsPlayingAudio(false);
-    utter.onerror = () => setIsPlayingAudio(false);
+    
+    utter.onstart = () => {
+      setIsPlayingAudio(true);
+      listenMutexRef.current = false;
+    };
+    
+    utter.onend = () => {
+      setIsPlayingAudio(false);
+      listenMutexRef.current = false;
+    };
+    
+    utter.onerror = (err) => {
+      console.error('SpeechSynthesis Error:', err);
+      setIsPlayingAudio(false);
+      listenMutexRef.current = false;
+    };
+    
     utter.rate = 1.0; 
     utter.pitch = 1.0;
     
     window.speechSynthesis.speak(utter);
-    setIsPlayingAudio(true);
+    
+    // Safety fallback in case onstart event loop misses
+    setTimeout(() => { if (!window.speechSynthesis.speaking) listenMutexRef.current = false; }, 1000);
   }, [activeDoc, speechReady, isPlayingAudio]);
 
   const handleContentChange = (content: string) => {
@@ -179,31 +206,38 @@ export default function App() {
           )}
         </div>
 
-        {/* Action Bank: Quadrant-Locked to Absolute Right Edge with 3rem gap */}
-        <div className="fixed top-3 md:top-4 right-4 md:right-8 flex items-center gap-12 z-[10002] pointer-events-auto">
+        {/* 
+            Action Bank: Locked to far right edge. 
+            Implements professional auto-scaling logic when Sidebar is active. 
+        */}
+        <div 
+          className={`fixed top-3 md:top-4 right-4 md:right-8 flex items-center gap-12 md:gap-14 z-[10002] pointer-events-auto transition-all duration-300 ease-in-out origin-right ${
+            isSidebarOpen ? 'scale-75 opacity-40 translate-x-4 grayscale' : 'scale-100 opacity-100 grayscale-0'
+          }`}
+        >
            <button 
              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setActiveModal('scanner'); }} 
              className="flex flex-col items-center gap-1 transition-all active:scale-90 group"
            >
-             <div className="p-2 bg-white/5 border border-white/10 rounded-full text-emerald-vault group-hover:bg-emerald-vault/10">
-               <Scan size={18} />
+             <div className="p-2.5 bg-white/5 border border-white/10 rounded-full text-emerald-vault group-hover:bg-emerald-vault/20 transition-all">
+               <Scan size={18} className="md:w-5 md:h-5" />
              </div>
-             <span className="text-[9px] font-black uppercase tracking-widest text-white/80">Scan</span>
+             <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.2em] text-white/80">Scan</span>
            </button>
 
            <button 
              onClick={handleListen} 
              className="flex flex-col items-center gap-1 transition-all active:scale-90 group"
            >
-             <div className={`p-2 border rounded-full transition-all ${isPlayingAudio ? 'bg-emerald-vault text-black shadow-emerald-glow' : 'bg-white/5 border-white/10 text-emerald-vault group-hover:bg-emerald-vault/10'}`}>
-               {isPlayingAudio ? <BookOpen size={18} className="animate-pulse" /> : <Volume2 size={18} />}
+             <div className={`p-2.5 border rounded-full transition-all ${isPlayingAudio ? 'bg-emerald-vault text-black shadow-emerald-glow' : 'bg-white/5 border-white/10 text-emerald-vault group-hover:bg-emerald-vault/20'}`}>
+               {isPlayingAudio ? <BookOpen size={18} className="md:w-5 md:h-5 animate-pulse" /> : <Volume2 size={18} className="md:w-5 md:h-5" />}
              </div>
-             <span className="text-[9px] font-black uppercase tracking-widest text-white/80">Listen</span>
+             <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.2em] text-white/80">Listen</span>
            </button>
            
-           <div className="p-1 border-l border-white/10 pl-6 flex flex-col items-center gap-1 shrink-0 opacity-40">
+           <div className="p-1 border-l border-white/10 pl-8 flex flex-col items-center gap-1 shrink-0 opacity-40">
              <div className={`w-2 h-2 rounded-full transition-all duration-700 ${vaultSynced ? "bg-emerald-vault/20" : "bg-emerald-vault animate-pulse shadow-emerald-glow"}`} />
-             <span className="text-[8px] font-black text-white/30 uppercase tracking-widest">Saved</span>
+             <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.1em]">Saved</span>
            </div>
         </div>
 
@@ -212,8 +246,11 @@ export default function App() {
           onExportPdf={() => { setPendingFormat('pdf'); setActiveModal('export'); }}
         />
         
-        <div className="md:hidden fixed bottom-32 right-6 z-[9999]">
-           <button onClick={() => setMobileTab(prev => prev === 'editor' ? 'preview' : 'editor')} className="w-14 h-14 rounded-full bg-emerald-vault text-black flex items-center justify-center shadow-lg active:scale-90 transition-transform">
+        <div className="md:hidden fixed bottom-36 right-6 z-[9999]">
+           <button 
+             onClick={() => setMobileTab(prev => prev === 'editor' ? 'preview' : 'editor')} 
+             className="w-14 h-14 rounded-full bg-emerald-vault text-black flex items-center justify-center shadow-lg active:scale-90 transition-transform"
+           >
              <Shield size={28} />
            </button>
         </div>
@@ -243,7 +280,7 @@ export default function App() {
         } catch (e) { setNotification({ message: 'Export sequence failure', type: 'error' }); }
         finally { setPendingFormat(null); }
       }} onCancel={() => { setActiveModal(null); setPendingFormat(null); }} />
-      <DownloadSuccessModal isOpen={activeModal === 'success'} onClose={() => { URL.revokeObjectURL(lastExportedFile.blobUrl!); setActiveModal(null); }} fileName={lastExportedFile.name} format={lastExportedFile.format} blobUrl={lastExportedFile.blobUrl} />
+      <DownloadSuccessModal isOpen={activeModal === 'success'} onClose={() => { if (lastExportedFile.blobUrl) URL.revokeObjectURL(lastExportedFile.blobUrl); setActiveModal(null); }} fileName={lastExportedFile.name} format={lastExportedFile.format} blobUrl={lastExportedFile.blobUrl} />
     </div>
   );
 }
