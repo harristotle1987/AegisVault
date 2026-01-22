@@ -352,59 +352,59 @@ export default function App() {
           )}
         </div>
 
-        {/* Navbar Fixed Controls: Sovereign Right-Side Bank */}
-        <div className="fixed top-4 right-8 flex items-center gap-8 z-[10001]">
+        {/* Navbar Fixed Controls: Tightened Sovereign Right-Side Bank */}
+        <div className="fixed top-2 md:top-4 right-4 md:right-8 flex items-center gap-3 md:gap-4 z-[10001]">
            {/* 1. BATCH BUTTON */}
            <button 
              onClick={() => document.getElementById('batch-upload-trigger')?.click()}
-             className="flex flex-col items-center gap-1.5 transition-all active:scale-90 group"
+             className="flex flex-col items-center gap-1 transition-all active:scale-90 group"
            >
-             <div className="p-3 bg-white/5 border border-white/10 rounded-full text-emerald-vault group-hover:bg-emerald-vault/10">
-               <Upload size={20} />
+             <div className="p-2 md:p-3 bg-white/5 border border-white/10 rounded-full text-emerald-vault group-hover:bg-emerald-vault/10">
+               <Upload size={18} className="md:w-5 md:h-5" />
              </div>
-             <span className="text-[10px] font-black uppercase tracking-widest text-white">Batch</span>
+             <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-white">Batch</span>
            </button>
 
            {/* 2. SCAN BUTTON (HD PLATE SCANNER) */}
            <button 
              onClick={() => setActiveModal('scanner')}
-             className="flex flex-col items-center gap-1.5 transition-all active:scale-90 group"
+             className="flex flex-col items-center gap-1 transition-all active:scale-90 group"
            >
-             <div className="p-3 bg-white/5 border border-white/10 rounded-full text-emerald-vault group-hover:bg-emerald-vault/10">
-               <Scan size={20} />
+             <div className="p-2 md:p-3 bg-white/5 border border-white/10 rounded-full text-emerald-vault group-hover:bg-emerald-vault/10">
+               <Scan size={18} className="md:w-5 md:h-5" />
              </div>
-             <span className="text-[10px] font-black uppercase tracking-widest text-white">Scan</span>
+             <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-white">Scan</span>
            </button>
 
            {/* 3. AUDIO BUTTON */}
            <button 
              onClick={handleListen}
-             className="flex flex-col items-center gap-1.5 transition-all active:scale-90 group"
+             className="flex flex-col items-center gap-1 transition-all active:scale-90 group"
            >
-             <div className={`p-3 border rounded-full transition-all ${isPlayingAudio ? 'bg-emerald-vault text-black shadow-emerald-glow' : 'bg-white/5 border-white/10 text-emerald-vault group-hover:bg-emerald-vault/10'}`}>
-               {isPlayingAudio ? <BookOpen size={20} className="animate-pulse" /> : <Volume2 size={20} />}
+             <div className={`p-2 md:p-3 border rounded-full transition-all ${isPlayingAudio ? 'bg-emerald-vault text-black shadow-emerald-glow' : 'bg-white/5 border-white/10 text-emerald-vault group-hover:bg-emerald-vault/10'}`}>
+               {isPlayingAudio ? <BookOpen size={18} className="md:w-5 md:h-5 animate-pulse" /> : <Volume2 size={18} className="md:w-5 md:h-5" />}
              </div>
-             <span className="text-[10px] font-black uppercase tracking-widest text-white">Audio</span>
+             <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-white">Audio</span>
            </button>
 
            {/* 4. EXPORT BUTTON */}
            <button 
              onClick={() => initiateExport('pdf')}
-             className="flex flex-col items-center gap-1.5 transition-all active:scale-90 group"
+             className="flex flex-col items-center gap-1 transition-all active:scale-90 group"
            >
-             <div className="p-3 bg-white/5 border border-white/10 rounded-full text-emerald-vault group-hover:bg-emerald-vault/10">
-               <Download size={20} />
+             <div className="p-2 md:p-3 bg-white/5 border border-white/10 rounded-full text-emerald-vault group-hover:bg-emerald-vault/10">
+               <Download size={18} className="md:w-5 md:h-5" />
              </div>
-             <span className="text-[10px] font-black uppercase tracking-widest text-white">Export</span>
+             <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-white">Export</span>
            </button>
            
            {/* STATUS INDICATOR */}
-           <div className="p-2 border-l border-white/10 pl-8 flex flex-col items-center gap-1">
+           <div className="p-1 md:p-2 border-l border-white/10 pl-3 md:pl-4 flex flex-col items-center gap-1 shrink-0">
              <div 
-               className={`w-3.5 h-3.5 rounded-full transition-all duration-700 shadow-emerald-glow ${vaultSynced ? "opacity-10" : "opacity-100 animate-pulse"}`} 
+               className={`w-2.5 h-2.5 md:w-3.5 md:h-3.5 rounded-full transition-all duration-700 shadow-emerald-glow ${vaultSynced ? "opacity-10" : "opacity-100 animate-pulse"}`} 
                style={{ backgroundColor: '#10B981' }}
              />
-             <span className="text-[9px] font-black text-white/30 uppercase tracking-widest">Saved</span>
+             <span className="text-[7px] md:text-[9px] font-black text-white/30 uppercase tracking-widest">Saved</span>
            </div>
         </div>
 

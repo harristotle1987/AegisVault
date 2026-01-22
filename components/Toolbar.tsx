@@ -26,26 +26,26 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onToggleSidebar
 }) => {
   return (
-    <nav className="h-16 md:h-14 border-b border-vault-border bg-obsidian-soft/80 backdrop-blur-md flex items-center justify-between px-4 md:px-6 shrink-0 z-[9999] relative">
-      <div className="flex items-center gap-4 md:gap-6 h-full">
+    <nav className="h-16 md:h-14 border-b border-vault-border bg-obsidian-soft/80 backdrop-blur-md flex items-center justify-between px-4 md:px-6 shrink-0 z-[1000] relative">
+      <div className="flex items-center gap-4 md:gap-6 h-full z-[1001]">
         <button 
           onClick={(e) => {
             e.preventDefault();
             onToggleSidebar();
           }}
-          className="md:hidden p-2 -ml-2 text-vault-dim hover:text-white transition-all min-h-[48px] min-w-[48px] flex items-center justify-center active:scale-90 z-[9999]"
+          className="md:hidden p-2 -ml-2 text-vault-dim hover:text-white transition-all min-h-[48px] min-w-[48px] flex items-center justify-center active:scale-90"
           aria-label="Toggle Sidebar"
         >
           <Menu size={22} />
         </button>
 
-        <div className="flex items-center gap-2 z-[9999]">
+        <div className="flex items-center gap-2">
           <ShieldCheck className="text-emerald-vault w-5 h-5 md:w-4 md:h-4" />
         </div>
       </div>
 
-      {/* Internal Toolbar Actions - Refined */}
-      <div className="flex gap-2 h-full items-center mr-auto ml-8">
+      {/* Internal Toolbar Actions - Refined Spacing */}
+      <div className="flex gap-2 h-full items-center mr-auto ml-4 md:ml-8">
         <div className="hidden sm:flex gap-2 items-center">
           <button 
             onClick={onLocalRefine}
