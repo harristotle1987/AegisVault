@@ -19,7 +19,6 @@ export const ScannerService = {
         if (!ctx) return reject('Canvas failure');
 
         // Capture in high resolution for math clarity
-        // We use a multi-stage adaptive thresholding approach for "Digital Ink" fidelity
         canvas.width = img.width;
         canvas.height = img.height;
         ctx.drawImage(img, 0, 0);
@@ -28,37 +27,36 @@ export const ScannerService = {
         const data = imageData.data;
 
         // Adaptive Sovereign Thresholding (B&W)
-        // Strips margin gray-wash and sharpens high-frequency details (math/symbols)
+        // Eliminates gray-scale margin noise and clarifies pencil/print marks
         for (let i = 0; i < data.length; i += 4) {
           const r = data[i];
           const g = data[i + 1];
           const b = data[i + 2];
           
-          // Weighted luminance calculation (Rec. 601)
+          // Weighted luminance
           const luma = 0.299 * r + 0.587 * g + 0.114 * b;
           
-          // Hardened thresholding (145 is optimized for capturing ink while deleting gray background)
-          const v = luma > 145 ? 255 : 0;
+          // Aggressive threshold for monochromatic "Digital Ink" look
+          const v = luma > 140 ? 255 : 0;
           
           data[i] = data[i + 1] = data[i + 2] = v;
-          data[i + 3] = 255; 
+          data[i + 3] = 255; // Full alpha
         }
 
         ctx.putImageData(imageData, 0, 0);
         
-        // Export as HD PNG for absolute lossless edge clarity in text/math
-        const hardenedData = canvas.toDataURL('image/png');
+        // Optimize for storage while maintaining edge fidelity
+        const hardenedData = canvas.toDataURL('image/jpeg', 0.85);
         URL.revokeObjectURL(url);
         resolve(hardenedData);
       };
-      img.onerror = () => reject('Image load failure');
+      img.onerror = reject;
       img.src = url;
     });
   },
 
   async captureImage(videoElement: HTMLVideoElement): Promise<Blob> {
     const canvas = document.createElement('canvas');
-    // Ensure capture resolution matches hardware max for HD plate integrity
     canvas.width = videoElement.videoWidth;
     canvas.height = videoElement.videoHeight;
     const ctx = canvas.getContext('2d');
@@ -70,7 +68,7 @@ export const ScannerService = {
       canvas.toBlob((blob) => {
         if (blob) resolve(blob);
         else reject(new Error("Image serialization failure."));
-      }, 'image/png');
+      }, 'image/jpeg', 0.95);
     });
   }
 };

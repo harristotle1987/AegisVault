@@ -95,9 +95,9 @@ export class VaultConverter {
             const imgToken = token.tokens.find((t:any) => t.type === 'image');
             if (imgToken.href.startsWith('data:')) {
               try {
-                // Approximate sizing for HD plates to maintain document validity
+                // Approximate sizing for HD plates
                 const imgW = contentWidth;
-                const imgH = 100; // Scalable fallback
+                const imgH = 100; // Fixed fallback height for plates
                 checkPageBreak(imgH + 10);
                 pdf.addImage(imgToken.href, 'JPEG', margin, cursorY, imgW, imgH);
                 cursorY += imgH + 5;
@@ -181,7 +181,7 @@ export class VaultConverter {
 
   static async toHTML(markdown: string, fileName: string = 'vault-export.html'): Promise<Blob> {
     const content = marked.parse(markdown);
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${fileName}</title><style>body{font-family:sans-serif;max-width:800px;margin:40px auto;line-height:1.6;padding:20px;background:#fff;color:#000;}img{max-width:100%;height:auto;border-radius:4px;}</style></head><body>${content}</body></html>`;
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${fileName}</title><style>body{font-family:sans-serif;max-width:800px;margin:40px auto;line-height:1.6;padding:20px;}img{max-width:100%;height:auto;border-radius:8px;}</style></head><body>${content}</body></html>`;
     const blob = new Blob([html], { type: 'text/html' });
     triggerSovereignDownload(blob, fileName);
     return blob;
@@ -198,24 +198,6 @@ export class VaultConverter {
     const text = markdown.replace(/\n/g, '\\par ');
     const rtf = `{\\rtf1\\ansi\\deff0 {\\fonttbl {\\f0 Arial;}} \\f0\\fs24 ${text}}`;
     const blob = new Blob([rtf], { type: 'application/rtf' });
-    triggerSovereignDownload(blob, fileName);
-    return blob;
-  }
-
-  /**
-   * Universal Bridge: ODT/PPTX Export Protocol
-   * Note: These are structured as bi-directional Markdown containers to ensure 100% editability.
-   */
-  static async toODT(markdown: string, fileName: string = 'vault-export.odt'): Promise<Blob> {
-    // Structural placeholder for bi-directional ODT bridge
-    const blob = new Blob([markdown], { type: 'application/vnd.oasis.opendocument.text' });
-    triggerSovereignDownload(blob, fileName);
-    return blob;
-  }
-
-  static async toPPTX(markdown: string, fileName: string = 'vault-export.pptx'): Promise<Blob> {
-    // Structural placeholder for bi-directional PPTX bridge
-    const blob = new Blob([markdown], { type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' });
     triggerSovereignDownload(blob, fileName);
     return blob;
   }

@@ -17,7 +17,7 @@ import { ImportService } from './services/ImportService';
 import { SyncService } from './services/SyncService';
 import { useVault } from './hooks/useVault';
 import { VaultFont } from './types';
-import { Shield, ShieldCheck, Sun, Moon, Cloud } from 'lucide-react';
+import { Shield, ShieldCheck } from 'lucide-react';
 import { usePWAInstall } from './hooks/usePWAInstall';
 
 type ModalType = 'export' | 'config' | 'tags' | 'purge' | 'success' | 'scanner' | null;
@@ -38,7 +38,7 @@ export default function App() {
 
   const [isExporting, setIsExporting] = useState(false);
   const [activeModal, setActiveModal] = useState<ModalType>(null);
-  const [pendingFormat, setPendingFormat] = useState<'pdf' | 'docx' | 'html' | 'txt' | 'rtf' | 'odt' | 'pptx' | null>(null);
+  const [pendingFormat, setPendingFormat] = useState<'pdf' | 'docx' | 'html' | 'txt' | 'rtf' | null>(null);
   const [suggestedName, setSuggestedName] = useState<string>("");
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -47,9 +47,8 @@ export default function App() {
   const [docToPurge, setDocToPurge] = useState<string | null>(null);
   const [vaultSynced, setVaultSynced] = useState(true);
   
-  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
-    return (localStorage.getItem('bunker_theme') as 'dark' | 'light') || 'dark';
-  });
+  // High-Contrast Obsidian Theme locked by default
+  const [theme] = useState<'dark' | 'light'>('dark');
   
   const [lastExportedFile, setLastExportedFile] = useState<{name: string, format: any, blobUrl: string | null}>({
     name: "", 
@@ -60,17 +59,7 @@ export default function App() {
   const saveTimeoutRef = useRef<number | null>(null);
   const { isInstallable, install } = usePWAInstall();
 
-  useEffect(() => {
-    if (theme === 'light') {
-      document.documentElement.classList.add('light');
-    } else {
-      document.documentElement.classList.remove('light');
-    }
-    localStorage.setItem('bunker_theme', theme);
-  }, [theme]);
-
-  const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
-
+  // Shadow Sync: Export Protocol
   const handleCloudShadowExport = async () => {
     try {
       const blob = await SyncService.generateVaultShadow();
@@ -85,6 +74,7 @@ export default function App() {
     }
   };
 
+  // Shadow Sync: Import Protocol
   const handleCloudShadowImport = async (file: File) => {
     try {
       const result = await SyncService.ingestVaultShadow(file);
@@ -178,7 +168,7 @@ export default function App() {
       }
     }
     if (successCount > 0) {
-      setNotification({ message: `Batch Ingestion Complete: ${successCount} assets`, type: 'success' });
+      setNotification({ message: `Batch Processing Complete: ${successCount} assets`, type: 'success' });
     }
   };
 
@@ -186,7 +176,7 @@ export default function App() {
     if (!activeDoc) return;
     const updatedContent = activeDoc.content + capturedMarkdown;
     handleContentChange(updatedContent);
-    setNotification({ message: 'HD Image Plate Hardened', type: 'success' });
+    setNotification({ message: 'HD Plate Shard Hardened', type: 'success' });
     setActiveModal(null);
   };
 
@@ -227,10 +217,6 @@ export default function App() {
         blob = await VaultConverter.toTXT(activeDoc.content, fileName);
       } else if (pendingFormat === 'rtf') {
         blob = await VaultConverter.toRTF(activeDoc.content, fileName);
-      } else if (pendingFormat === 'odt') {
-        blob = await VaultConverter.toODT(activeDoc.content, fileName);
-      } else if (pendingFormat === 'pptx') {
-        blob = await VaultConverter.toPPTX(activeDoc.content, fileName);
       } else {
         throw new Error("Format not supported");
       }
@@ -246,7 +232,7 @@ export default function App() {
     }
   };
 
-  const initiateExport = (format: 'pdf' | 'docx' | 'html' | 'txt' | 'rtf' | 'odt' | 'pptx') => {
+  const initiateExport = (format: 'pdf' | 'docx' | 'html' | 'txt' | 'rtf') => {
     if (!activeDoc) return;
     setPendingFormat(format);
     setSuggestedName(sanitizeFilename(activeDoc.title) || "vault_export");
@@ -283,7 +269,7 @@ export default function App() {
   };
 
   return (
-    <div className={`fixed inset-0 overflow-hidden selection:bg-emerald-vault/30 flex flex-row ${theme === 'dark' ? 'bg-obsidian text-vault-text' : 'bg-slate-50 text-slate-900'}`}>
+    <div className={`fixed inset-0 overflow-hidden selection:bg-emerald-vault/30 flex flex-row bg-obsidian text-vault-text`}>
       {isSidebarOpen && (
         <div 
           className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[9998] animate-in fade-in duration-300" 
@@ -291,7 +277,7 @@ export default function App() {
         />
       )}
 
-      <div className="sidebar relative z-[10001] h-full shrink-0">
+      <div className="sidebar relative z-[9999] h-full shrink-0">
         <Sidebar 
           documents={documents}
           activeId={activeDocId}
@@ -333,8 +319,8 @@ export default function App() {
                   activeDocId={activeDocId}
                 />
               </div>
-              <div className={`hidden md:block w-px z-10 h-full ${theme === 'dark' ? 'bg-vault-border' : 'bg-slate-200'}`} />
-              <div className={`flex-1 flex flex-col h-full overflow-hidden ${theme === 'dark' ? 'bg-obsidian-soft' : 'bg-white'} ${mobileTab === 'editor' ? 'hidden md:flex' : 'flex'}`}>
+              <div className={`hidden md:block w-px z-10 h-full bg-vault-border`} />
+              <div className={`flex-1 flex flex-col h-full overflow-hidden bg-obsidian-soft ${mobileTab === 'editor' ? 'hidden md:flex' : 'flex'}`}>
                 <Preview 
                   font={activeFont} 
                   content={activeDoc.content} 
@@ -349,33 +335,9 @@ export default function App() {
           )}
         </div>
 
-        {/* Global Control Matrix: Professional Spacing & Labels */}
-        <div className="fixed top-4 right-4 flex items-center gap-6 z-[10005]">
-           <div className="flex items-center gap-6">
-             <button 
-               onClick={handleCloudShadowExport}
-               className="flex flex-col items-center gap-1 transition-all active:scale-90 group"
-               title="Cloud Shadow Sync"
-             >
-               <div className={`p-2.5 rounded-full transition-all border ${theme === 'dark' ? 'bg-white/5 border-white/10 text-emerald-vault hover:bg-white/10' : 'bg-white border-slate-200 text-slate-600 shadow-sm hover:bg-slate-50'}`}>
-                 <Cloud size={18} />
-               </div>
-               <span className={`text-[8px] font-black uppercase tracking-widest ${theme === 'dark' ? 'text-emerald-vault/60' : 'text-slate-400'}`}>Sync</span>
-             </button>
-             
-             <button 
-               onClick={toggleTheme}
-               className="flex flex-col items-center gap-1 transition-all active:scale-90 group"
-               title="Global Theme Switch"
-             >
-               <div className={`p-2.5 rounded-full transition-all border ${theme === 'dark' ? 'bg-white/5 border-white/10 text-emerald-vault hover:bg-white/10' : 'bg-white border-slate-200 text-slate-600 shadow-sm hover:bg-slate-50'}`}>
-                 {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-               </div>
-               <span className={`text-[8px] font-black uppercase tracking-widest ${theme === 'dark' ? 'text-emerald-vault/60' : 'text-slate-400'}`}>Theme</span>
-             </button>
-           </div>
-           
-           <div className="p-2 border-l border-vault-border pl-6">
+        {/* Global Sovereign Status Matrix */}
+        <div className="fixed top-4 right-4 flex items-center gap-2 z-[10000]">
+           <div className="p-2">
              <div 
                className={`w-2.5 h-2.5 rounded-full transition-all duration-700 shadow-emerald-glow ${vaultSynced ? "opacity-10" : "opacity-100 animate-pulse"}`} 
                style={{ backgroundColor: '#10B981' }}
@@ -389,12 +351,12 @@ export default function App() {
           onLocalRefine={handleLocalRefine}
         />
         
-        <div className="md:hidden fixed bottom-28 right-6 z-[9999]">
+        <div className="md:hidden fixed bottom-24 right-20 z-[9999]">
            <button 
              onClick={() => setMobileTab(prev => prev === 'editor' ? 'preview' : 'editor')}
-             className="w-14 h-14 rounded-full bg-emerald-vault text-black flex items-center justify-center shadow-lg shadow-emerald-vault/30 active:scale-90 transition-transform"
+             className="w-12 h-12 rounded-full bg-emerald-vault text-black flex items-center justify-center shadow-lg shadow-emerald-vault/30 active:scale-90 transition-transform"
            >
-             <Shield size={24} />
+             <Shield size={20} />
            </button>
         </div>
 
@@ -412,8 +374,8 @@ export default function App() {
         </div>
 
         {isExporting && (
-          <div className="fixed inset-0 z-[10010] bg-obsidian/80 backdrop-blur-xl flex items-center justify-center pointer-events-auto cursor-wait animate-in fade-in duration-300">
-             <div className="w-full max-w-sm p-10 rounded-3xl bg-obsidian-soft border border-emerald-vault/20 shadow-sovereign flex flex-col items-center gap-8 animate-in zoom-in-95 duration-300">
+          <div className="fixed inset-0 z-[10001] bg-obsidian/80 backdrop-blur-xl flex items-center justify-center pointer-events-auto cursor-wait animate-in fade-in duration-300">
+             <div className="w-full max-sm p-10 rounded-3xl bg-obsidian-soft border border-emerald-vault/20 shadow-sovereign flex flex-col items-center gap-8 animate-in zoom-in-95 duration-300">
                 <div className="relative">
                    <div className="w-20 h-20 rounded-full border-4 border-emerald-vault/5 border-t-emerald-vault animate-spin" />
                    <div className="absolute inset-0 flex items-center justify-center">
@@ -455,6 +417,8 @@ export default function App() {
         docCount={documents.length}
         activeFont={activeFont}
         setActiveFont={setActiveFont}
+        onShadowExport={handleCloudShadowExport}
+        onShadowImport={handleCloudShadowImport}
       />
       <TagsModal isOpen={activeModal === 'tags'} onClose={() => setActiveModal(null)} documents={documents} />
       

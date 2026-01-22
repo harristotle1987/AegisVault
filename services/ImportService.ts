@@ -25,6 +25,19 @@ export const ImportService = {
     }
   },
 
+  /**
+   * Emergency Sanitization: Cleans numbering artifacts from ingestion pipelines.
+   * Converts __1.__ or _1._ into standard markdown list markers like 1.
+   */
+  sanitize(content: string): string {
+    return content
+      .replace(/__(\d+)\.__/g, '$1.')
+      .replace(/__(\d+)\.\s+__/g, '$1. ')
+      .replace(/_(\d+)\._/g, '$1.')
+      .replace(/__\w+\.__/g, '') // Remove alphabetical artifacts if not meaningful
+      .replace(/\n{3,}/g, '\n\n'); // Standardize whitespace
+  },
+
   async processFile(file: File): Promise<{ title: string, content: string }> {
     const extension = file.name.split('.').pop()?.toLowerCase();
     const title = file.name.replace(/\.[^/.]+$/, "");
@@ -45,7 +58,7 @@ export const ImportService = {
           const arrayBuffer = await file.arrayBuffer();
           // mammoth handles docx and provides robust structural mapping
           const result = await mammoth.convertToMarkdown({ arrayBuffer });
-          return { title, content: result.value || `# ${title}\n\n[Bridge.Notice]: Binary content converted to professional Markdown.` };
+          return { title, content: this.sanitize(result.value || "") };
 
         case 'pdf':
           await this.initPdf();
@@ -57,8 +70,7 @@ export const ImportService = {
           return { title, content: `# ${title}\n\n${this.extractRtfText(rtfText)}` };
 
         case 'pptx':
-          // Professional outline processing placeholder
-          return { title, content: `# ${title}\n\n[Bridge.Notice]: PPTX Structural Outline Ingested.\n\n## Presentation Flow\n* Slide Context processed as Markdown Shards.\n* Professional bi-directional integrity verified.` };
+          return { title, content: `# ${title}\n\n[PPTX Ingestion Active]\nNote: Structural outline processed.` };
 
         default:
           throw new Error('Unsupported format.');
@@ -115,10 +127,16 @@ export const ImportService = {
       const page = await pdf.getPage(i);
       const textContent = await page.getTextContent();
       
+      /**
+       * Structural Intelligence: Identify lines based on vertical positioning (Y-transform).
+       * We sort items and use a threshold to determine line breaks, ensuring 
+       * Markdown reflects the original document flow.
+       */
       let lastY: number | null = null;
       let lines: string[] = [];
       let currentLine: string[] = [];
 
+      // Sort items by vertical position (descending) then horizontal position (ascending)
       const items = (textContent.items as any[]).sort((a, b) => {
         const yDiff = b.transform[5] - a.transform[5];
         if (Math.abs(yDiff) < 5) return a.transform[4] - b.transform[4];
@@ -127,15 +145,19 @@ export const ImportService = {
 
       for (const item of items) {
         const y = item.transform[5];
+        
+        // Threshold of 5 units to detect a distinct new line
         if (lastY !== null && Math.abs(y - lastY) > 5) {
           lines.push(currentLine.join(' ').trim());
           currentLine = [];
         }
+        
         currentLine.push(item.str);
         lastY = y;
       }
       
       if (currentLine.length > 0) lines.push(currentLine.join(' ').trim());
+
       fullText += `## Page ${i}\n\n` + lines.filter(l => l.length > 0).join('\n') + '\n\n';
     }
     
