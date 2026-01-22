@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Plus, 
   Trash2, 
@@ -30,9 +30,129 @@ interface SidebarProps {
   installPrompt?: { isInstallable: boolean; install: () => void };
 }
 
+interface RegistryItemProps {
+  doc: SovereignDocument;
+  isActive: boolean;
+  isCollapsed: boolean;
+  onSelect: (id: string, mode?: 'view' | 'edit') => void;
+  onRename: (id: string, name: string) => void;
+  onDelete: (id: string) => void;
+}
+
 /**
- * AegisLogo: Custom Sovereign Brand Asset
+ * RegistryItem: Atomic Sovereign Sub-component
+ * Feature: Debounced Renaming & ID-Based Stability
+ * Fix: Prevents "jumpy" focus and duplication by isolating local title state.
  */
+const RegistryItem: React.FC<RegistryItemProps> = ({ 
+  doc, 
+  isActive, 
+  isCollapsed, 
+  onSelect, 
+  onRename, 
+  onDelete 
+}) => {
+  const [localTitle, setLocalTitle] = useState(doc.title);
+  const debounceRef = useRef<number | null>(null);
+
+  // Sync with registry title if changed externally (e.g., initial load)
+  useEffect(() => {
+    setLocalTitle(doc.title);
+  }, [doc.title]);
+
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newVal = e.target.value;
+    setLocalTitle(newVal);
+    
+    if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    
+    // Hardened 500ms Debounce for State Stability
+    debounceRef.current = window.setTimeout(() => {
+      onRename(doc.id, newVal);
+      debounceRef.current = null;
+    }, 500);
+  };
+
+  const formatTimestamp = (ts: number) => {
+    const d = new Date(ts);
+    return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+  };
+
+  return (
+    <div 
+      onClick={() => onSelect(doc.id)}
+      className={`group relative flex flex-col gap-1 rounded-xl cursor-pointer transition-all duration-300 border active:scale-[0.98] ${
+        isCollapsed && window.innerWidth >= 768 ? 'p-3 items-center' : 'px-4 py-3'
+      } ${
+        isActive 
+          ? 'bg-obsidian-soft border-emerald-vault/40 text-white shadow-emerald-glow/5' 
+          : 'border-transparent text-vault-dim hover:bg-white/[0.02] hover:text-vault-text'
+      }`}
+    >
+      <div className="flex items-center justify-between w-full">
+        {isCollapsed && window.innerWidth >= 768 ? (
+          <div className="w-6 h-6 flex items-center justify-center shrink-0">
+            <FileText size={16} className={isActive ? 'text-emerald-vault' : ''} />
+          </div>
+        ) : (
+          <div className="flex flex-col gap-1 w-full overflow-hidden">
+            <div className="flex items-center justify-between gap-2">
+              <input
+                className={`bg-transparent border-none focus:outline-none font-bold text-sm w-full cursor-pointer transition-colors ${isActive ? 'text-emerald-vault' : 'text-vault-text'}`}
+                value={localTitle}
+                onChange={handleTitleChange}
+                onClick={(e) => e.stopPropagation()}
+                placeholder="Untitled Shard"
+              />
+              {isActive && (
+                <div className="px-1.5 py-0.5 rounded-sm bg-emerald-vault/10 border border-emerald-vault/20 text-[7px] font-black text-emerald-vault uppercase tracking-tighter shrink-0 animate-pulse">
+                  ACTIVE
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-3 opacity-30 group-hover:opacity-50 transition-opacity">
+              <div className="flex items-center gap-1 text-[8px] font-mono">
+                <Clock size={10} />
+                <span>{formatTimestamp(doc.lastModified)}</span>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {(!isCollapsed || window.innerWidth < 768) && (
+          <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+            <button 
+              onClick={(e) => { e.stopPropagation(); onSelect(doc.id, 'view'); }}
+              className="p-1.5 hover:text-emerald-vault text-vault-dim rounded-md hover:bg-white/5"
+              title="View"
+            >
+              <Eye size={14} />
+            </button>
+            <button 
+              onClick={(e) => { e.stopPropagation(); onSelect(doc.id, 'edit'); }}
+              className="p-1.5 hover:text-emerald-vault text-vault-dim rounded-md hover:bg-white/5"
+              title="Edit"
+            >
+              <Edit3 size={14} />
+            </button>
+            <button 
+              onClick={(e) => { e.stopPropagation(); onDelete(doc.id); }}
+              className="p-1.5 hover:text-red-500 text-vault-dim rounded-md hover:bg-red-500/10"
+              title="Purge Shard"
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
+        )}
+      </div>
+
+      {isActive && (
+        <div className={`absolute left-0 top-3 bottom-3 w-1 bg-emerald-vault rounded-full shadow-emerald-glow transition-all duration-500 ${isCollapsed && window.innerWidth >= 768 ? '-left-0.5' : 'left-0'}`} />
+      )}
+    </div>
+  );
+};
+
 const AegisLogo = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
     <path d="M256 70C210 70 140 95 100 120V270C100 370 256 462 256 462C256 462 412 370 412 270V120C372 95 302 70 256 70ZM392 268C392 350 256 428 256 428C256 428 120 350 120 268V134C155 112 215 90 256 90C297 90 357 112 392 134V268Z" fill="currentColor"/>
@@ -59,11 +179,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const formatTimestamp = (ts: number) => {
-    const d = new Date(ts);
-    return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-  };
-
   const filteredDocs = documents.filter(doc => 
     doc.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -78,7 +193,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         ${isCollapsed ? 'md:w-16 w-64' : 'w-72'}
       `}
     >
-      {/* Navigator Header */}
       <div className={`flex items-center justify-between transition-all duration-300 ${isCollapsed ? 'p-4' : 'p-6 md:p-8'}`}>
         {(!isCollapsed || window.innerWidth < 768) && (
           <div className="flex items-center gap-3 animate-in fade-in slide-in-from-left-2 duration-300">
@@ -107,7 +221,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </button>
       </div>
 
-      {/* Provision Action */}
       <div className="px-5 mb-4">
         <button 
           onClick={onCreate}
@@ -119,7 +232,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </button>
       </div>
 
-      {/* Registry Search */}
       {(!isCollapsed || window.innerWidth < 768) && (
         <div className="px-5 mb-6 animate-in fade-in slide-in-from-top-1 duration-500">
           <div className="relative group">
@@ -135,7 +247,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       )}
 
-      {/* Draft Shards List */}
       <div className="flex-1 overflow-y-auto px-4 space-y-2 no-scrollbar pb-10">
         {(!isCollapsed || window.innerWidth < 768) && (
           <div className="px-4 py-2 mb-1 flex items-center justify-between border-b border-vault-border/50">
@@ -144,83 +255,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         )}
         
+        {/* Strictly Keyed by ID to prevent duplication rendering during renames */}
         {filteredDocs.map((doc) => (
-          <div 
+          <RegistryItem 
             key={doc.id}
-            onClick={() => onSelect(doc.id)}
-            className={`group relative flex flex-col gap-1 rounded-xl cursor-pointer transition-all duration-300 border active:scale-[0.98] ${
-              isCollapsed && window.innerWidth >= 768 ? 'p-3 items-center' : 'px-4 py-3'
-            } ${
-              activeId === doc.id 
-                ? 'bg-obsidian-soft border-emerald-vault/40 text-white shadow-emerald-glow/5' 
-                : 'border-transparent text-vault-dim hover:bg-white/[0.02] hover:text-vault-text'
-            }`}
-          >
-            <div className="flex items-center justify-between w-full">
-              {isCollapsed && window.innerWidth >= 768 ? (
-                <div className="w-6 h-6 flex items-center justify-center shrink-0">
-                  <FileText size={16} className={activeId === doc.id ? 'text-emerald-vault' : ''} />
-                </div>
-              ) : (
-                <div className="flex flex-col gap-1 w-full overflow-hidden">
-                  <div className="flex items-center justify-between">
-                    <input
-                      className={`bg-transparent border-none focus:outline-none font-bold text-sm w-full cursor-pointer transition-colors ${activeId === doc.id ? 'text-emerald-vault' : 'text-vault-text'}`}
-                      value={doc.title}
-                      onChange={(e) => onRename(doc.id, e.target.value)}
-                      onClick={(e) => e.stopPropagation()}
-                      placeholder="Untitled Shard"
-                    />
-                    {activeId === doc.id && (
-                      <div className="px-1.5 py-0.5 rounded-sm bg-emerald-vault/10 border border-emerald-vault/20 text-[7px] font-black text-emerald-vault uppercase tracking-tighter shrink-0 animate-pulse">
-                        Sovereign
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-3 opacity-30 group-hover:opacity-50 transition-opacity">
-                    <div className="flex items-center gap-1 text-[8px] font-mono">
-                      <Clock size={10} />
-                      <span>{formatTimestamp(doc.lastModified)}</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              {(!isCollapsed || window.innerWidth < 768) && (
-                <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); onSelect(doc.id, 'view'); }}
-                    className="p-1.5 hover:text-emerald-vault text-vault-dim rounded-md hover:bg-white/5"
-                    title="View"
-                  >
-                    <Eye size={14} />
-                  </button>
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); onSelect(doc.id, 'edit'); }}
-                    className="p-1.5 hover:text-emerald-vault text-vault-dim rounded-md hover:bg-white/5"
-                    title="Edit"
-                  >
-                    <Edit3 size={14} />
-                  </button>
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); onDelete(doc.id); }}
-                    className="p-1.5 hover:text-red-500 text-vault-dim rounded-md hover:bg-red-500/10"
-                    title="Purge Shard"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {activeId === doc.id && (
-              <div className={`absolute left-0 top-3 bottom-3 w-1 bg-emerald-vault rounded-full shadow-emerald-glow transition-all duration-500 ${isCollapsed && window.innerWidth >= 768 ? '-left-0.5' : 'left-0'}`} />
-            )}
-          </div>
+            doc={doc}
+            isActive={activeId === doc.id}
+            isCollapsed={isCollapsed}
+            onSelect={onSelect}
+            onRename={onRename}
+            onDelete={onDelete}
+          />
         ))}
       </div>
 
-      {/* Navigator Footer Actions */}
       <div className={`p-6 border-t border-vault-border space-y-4 ${isCollapsed && window.innerWidth >= 768 ? 'items-center flex flex-col' : ''}`}>
         <SidebarStaticItem 
           icon={<Hash size={18} />} 

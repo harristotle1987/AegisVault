@@ -64,11 +64,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           </span>
         </div>
         
-        {/* Minimalist Emerald Status Indicator - NO TEXT */}
+        {/* Minimalist Emerald Status Indicator - NO TEXT LABELS */}
         <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.02] border border-vault-border hidden lg:flex transition-all">
           <div 
             className={`w-1.5 h-1.5 rounded-full transition-all duration-500 shadow-emerald-glow ${isSaving ? 'bg-emerald-vault animate-pulse' : 'bg-emerald-vault/40'}`} 
-            title={isSaving ? "Persisting..." : "State Locked"}
           />
         </div>
       </div>

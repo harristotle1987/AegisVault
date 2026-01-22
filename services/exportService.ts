@@ -1,4 +1,3 @@
-
 import { jsPDF } from 'jspdf';
 import { 
   Document, 
@@ -30,7 +29,7 @@ export class VaultConverter {
   /**
    * Role: Senior Lead Architect
    * Feature: High-Fidelity Vector PDF Mirror
-   * Returns: The generated Blob for UI-level opening/previewing.
+   * Logic: Strict Bold Black (#000000) Headings for executive clarity.
    */
   static async toPDF(markdown: string, fileName: string = 'vault-export.pdf', fontMode: VaultFont = 'sans'): Promise<Blob> {
     const pdf = new jsPDF('p', 'mm', 'a4');
@@ -100,7 +99,7 @@ export class VaultConverter {
           cursorY += spacingBefore;
           checkPageBreak(hSize * 0.3527 + 10);
           
-          // Force bold black for all headings to ensure 1:1 vector parity
+          // Force bold black (#000000) for all headings
           renderStyledLine(token.tokens || [{ text: token.text }], hSize, 'bold', 0, [0, 0, 0]);
           
           if (token.depth <= 2) {
