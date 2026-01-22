@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { 
   FileText, 
   Download, 
@@ -8,7 +8,8 @@ import {
   Menu,
   Share2,
   Tag,
-  Settings
+  Settings,
+  Upload
 } from 'lucide-react';
 
 interface ToolbarProps {
@@ -21,28 +22,32 @@ interface ToolbarProps {
   onToggleSidebar: () => void;
   onOpenTags: () => void;
   onOpenConfig: () => void;
+  onImport: (file: File) => void;
 }
 
-/**
- * Role: Senior Lead Architect
- * Feature: Sovereign Command Toolbar
- * Logic: Hardened interaction targets and absolute z-index priority.
- */
 export const Toolbar: React.FC<ToolbarProps> = ({ 
   markdown, 
   isExporting, 
   isSaving,
   onExport, 
-  onShare,
+  onShare, 
   onLocalRefine,
   onToggleSidebar,
   onOpenTags,
-  onOpenConfig
+  onOpenConfig,
+  onImport
 }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) onImport(file);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   return (
     <nav className="h-16 md:h-14 border-b border-vault-border bg-obsidian-soft/80 backdrop-blur-md flex items-center justify-between px-4 md:px-6 shrink-0 z-[9999] relative">
       <div className="flex items-center gap-4 md:gap-6 h-full">
-        {/* Mobile Menu Trigger - z-index 9999 for absolute priority */}
         <button 
           onClick={(e) => {
             e.preventDefault();
@@ -64,7 +69,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           </span>
         </div>
         
-        {/* Minimalist Emerald Status Indicator - NO TEXT LABELS */}
         <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.02] border border-vault-border hidden lg:flex transition-all">
           <div 
             className={`w-1.5 h-1.5 rounded-full transition-all duration-500 shadow-emerald-glow ${isSaving ? 'bg-emerald-vault animate-pulse' : 'bg-emerald-vault/40'}`} 
@@ -73,8 +77,21 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       </div>
 
       <div className="flex gap-2 h-full items-center">
-        {/* Management Tools */}
         <div className="flex items-center gap-1.5 mr-2 md:mr-4 border-r border-white/5 pr-2 md:pr-4">
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleFileChange} 
+            className="hidden" 
+            accept=".md,.txt,.html,.htm,.docx,.odt,.pdf,.rtf,.pptx"
+          />
+          <button 
+            onClick={() => fileInputRef.current?.click()}
+            className="p-2.5 rounded-lg border border-vault-border bg-obsidian-muted hover:bg-emerald-glow hover:border-emerald-vault/50 transition-all text-vault-dim hover:text-emerald-vault active:scale-95"
+            title="Ingest Asset (Universal)"
+          >
+            <Upload size={18} />
+          </button>
           <button 
             onClick={onOpenTags}
             className="p-2.5 rounded-lg border border-vault-border bg-obsidian-muted hover:bg-emerald-glow hover:border-emerald-vault/50 transition-all text-vault-dim hover:text-emerald-vault active:scale-95"
@@ -82,16 +99,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           >
             <Tag size={18} />
           </button>
-          <button 
-            onClick={onOpenConfig}
-            className="p-2.5 rounded-lg border border-vault-border bg-obsidian-muted hover:bg-emerald-glow hover:border-emerald-vault/50 transition-all text-vault-dim hover:text-emerald-vault active:scale-95"
-            title="Config"
-          >
-            <Settings size={18} />
-          </button>
         </div>
 
-        {/* Action Group: Desktop/Large Tablet */}
         <div className="hidden sm:flex gap-2 items-center">
           <button 
             onClick={onLocalRefine}
@@ -124,11 +133,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           >
             {isExporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
             <span className="hidden md:inline">Export PDF</span>
-            <span className="md:hidden">PDF</span>
           </button>
         </div>
         
-        {/* Mobile Mini Status Dot */}
         <div className="sm:hidden flex items-center gap-2 px-3 py-2 rounded-full bg-white/[0.02] border border-vault-border">
           <div className={`w-1.5 h-1.5 rounded-full transition-all duration-500 shadow-emerald-glow ${isSaving ? 'bg-emerald-vault animate-pulse' : 'bg-emerald-vault/40'}`} />
         </div>

@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { StorageService } from '../services/storageService';
 import { SovereignDocument } from '../types';
@@ -55,6 +54,7 @@ export const useVault = () => {
     const newDoc = await StorageService.createNewDocument();
     await refresh();
     setActiveDocId(newDoc.id);
+    return newDoc;
   }, [refresh]);
 
   /**

@@ -11,8 +11,8 @@ import { PurgeModal } from './components/modals/PurgeModal';
 import { DownloadSuccessModal } from './components/modals/DownloadSuccessModal';
 import { InstallPrompt } from './components/InstallPrompt';
 import { VaultConverter } from './services/exportService';
-// Import from localRefineService to avoid casing conflicts with vaultRefiner.ts
 import { VaultRefiner } from './services/localRefineService';
+import { ImportService } from './services/ImportService';
 import { useVault } from './hooks/useVault';
 import { VaultFont } from './types';
 import { Check, Shield, ShieldAlert } from 'lucide-react';
@@ -115,6 +115,21 @@ export default function App() {
     setNotification({ message: 'Structural hardening complete', type: 'success' });
   };
 
+  const handleImport = async (file: File) => {
+    try {
+      setNotification({ message: 'Commencing Ingestion...', type: 'success' });
+      const { title, content } = await ImportService.processFile(file);
+      const newDoc = await createDraft();
+      if (newDoc) {
+        await saveDraft({ ...newDoc, title, content });
+        setNotification({ message: 'Ingestion Successful', type: 'success' });
+      }
+    } catch (err) {
+      console.error('Import error:', err);
+      setNotification({ message: 'Ingestion Failure', type: 'error' });
+    }
+  };
+
   const handleShare = async () => {
     if (!activeDoc) return;
     const shareData = { title: activeDoc.title, text: activeDoc.content };
@@ -151,7 +166,6 @@ export default function App() {
       setLastExportedFile({ name, format: pendingFormat, blobUrl });
       setActiveModal('success');
     } catch (e) {
-      console.error(e);
       setNotification({ message: 'Export failed', type: 'error' });
     } finally {
       setIsExporting(false);
@@ -162,7 +176,6 @@ export default function App() {
   const initiateExport = (format: 'pdf' | 'docx') => {
     if (!activeDoc) return;
     setPendingFormat(format);
-    // Bind suggested name directly to the document's current registry title
     setSuggestedName(sanitizeFilename(activeDoc.title) || "vault-export");
     setActiveModal('export');
   };
@@ -232,6 +245,7 @@ export default function App() {
           onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
           onOpenTags={() => setActiveModal('tags')}
           onOpenConfig={() => setActiveModal('config')}
+          onImport={handleImport}
         />
 
         <div className="flex-1 flex overflow-hidden relative min-h-0">
@@ -261,7 +275,6 @@ export default function App() {
           )}
         </div>
 
-        {/* Emerald indicator only, no text */}
         <div className="fixed bottom-24 right-6 md:bottom-8 md:right-8 flex items-center justify-center p-2 rounded-full z-[130] pointer-events-none">
           <div className={`w-2 h-2 rounded-full transition-all duration-500 shadow-emerald-glow ${vaultSynced ? "bg-emerald-vault" : "bg-emerald-vault/20 animate-pulse"}`} />
         </div>
