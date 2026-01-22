@@ -4,7 +4,6 @@ import * as pdfjs from 'pdfjs-dist';
 /**
  * Universal Ingestor Logic: Senior Lead Architect
  * Feature: Multi-format Batch Ingestion Bridge
- * Logic: Markdown intermediate state for 100% editability.
  */
 export const ImportService = {
   initialized: false,
@@ -27,17 +26,14 @@ export const ImportService = {
 
   /**
    * Artifact Purge Engine: Aggressively removes legacy markers and artifacts.
-   * Purges __1.__, _1._, __2.__, _2._ etc. and cleans up related symbols.
    */
   sanitize(content: string): string {
     return content
-      // Absolute purge of __1.__ patterns and similar artifacts
+      // Absolute purge of __1.__ patterns and similar structural noise
       .replace(/__\d+\.__/g, '')
       .replace(/_\d+\._/g, '')
       .replace(/\d+\.\s\_\_/g, ' ')
-      // Strip other common ingestion debris
       .replace(/@\w+/g, ' ')
-      // Cleanup whitespace artifacts left by purge
       .replace(/\n{3,}/g, '\n\n')
       .trim();
   },
@@ -64,7 +60,7 @@ export const ImportService = {
         case 'odt':
           const arrayBuffer = await file.arrayBuffer();
           const result = await mammoth.convertToMarkdown({ arrayBuffer });
-          content = result.value || `# ${title}\n\n[Bridge.Notice]: Binary content converted to professional Markdown.`;
+          content = result.value || `# ${title}\n\n[Bridge.Notice]: Content converted.`;
           break;
 
         case 'pdf':
@@ -76,10 +72,6 @@ export const ImportService = {
         case 'rtf':
           const rtfText = await file.text();
           content = `# ${title}\n\n${this.extractRtfText(rtfText)}`;
-          break;
-
-        case 'pptx':
-          content = `# ${title}\n\n[Bridge.Notice]: PPTX Structural Outline Ingested.`;
           break;
 
         default:
@@ -124,43 +116,17 @@ export const ImportService = {
     const arrayBuffer = await file.arrayBuffer();
     const pdfjsLib: any = pdfjs;
     const getDocument = pdfjsLib.getDocument || pdfjsLib.default?.getDocument;
-    if (!getDocument) throw new Error("PDF engine failure: getDocument not found.");
+    if (!getDocument) throw new Error("PDF engine failure.");
 
-    const loadingTask = getDocument({ 
-      data: arrayBuffer,
-      useWorkerFetch: false,
-      isEvalSupported: false 
-    });
-    
+    const loadingTask = getDocument({ data: arrayBuffer, useWorkerFetch: false });
     const pdf = await loadingTask.promise;
     let fullText = '';
     
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
       const textContent = await page.getTextContent();
-      
-      let lastY: number | null = null;
-      let lines: string[] = [];
-      let currentLine: string[] = [];
-
-      const items = (textContent.items as any[]).sort((a, b) => {
-        const yDiff = b.transform[5] - a.transform[5];
-        if (Math.abs(yDiff) < 5) return a.transform[4] - b.transform[4];
-        return yDiff;
-      });
-
-      for (const item of items) {
-        const y = item.transform[5];
-        if (lastY !== null && Math.abs(y - lastY) > 5) {
-          lines.push(currentLine.join(' ').trim());
-          currentLine = [];
-        }
-        currentLine.push(item.str);
-        lastY = y;
-      }
-      
-      if (currentLine.length > 0) lines.push(currentLine.join(' ').trim());
-      fullText += `## Page ${i}\n\n` + lines.filter(l => l.length > 0).join('\n') + '\n\n';
+      const items = (textContent.items as any[]);
+      fullText += items.map(item => item.str).join(' ') + '\n\n';
     }
     
     return fullText.trim();
@@ -169,8 +135,6 @@ export const ImportService = {
   extractRtfText(rtf: string): string {
     return rtf.replace(/\\([a-z]{1,32})(-?\d+)? ?/g, '')
               .replace(/\{[^}]+\}/g, '')
-              .replace(/\r\n/g, '\n')
-              .replace(/\n{2,}/g, '\n\n')
               .trim();
   }
 };

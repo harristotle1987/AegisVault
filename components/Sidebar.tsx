@@ -193,11 +193,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
         
         <button 
-          onClick={onClose}
-          className="md:hidden w-10 h-10 rounded-full border border-white/10 flex items-center justify-center text-vault-dim hover:text-white transition-all bg-white/5 active:scale-90 z-[10005]"
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClose(); }}
+          className="md:hidden w-12 h-12 rounded-full border border-white/10 flex items-center justify-center text-vault-dim hover:text-white transition-all bg-white/10 active:scale-90 z-[10005]"
           aria-label="Close Sidebar"
         >
-          <X size={20} />
+          <X size={24} />
         </button>
 
         <button 

@@ -54,13 +54,20 @@ export default function App() {
   const listenMutexRef = useRef(false);
   const { isInstallable, install } = usePWAInstall();
 
+  // Platform Detection
+  const [isWindows, setIsWindows] = useState(false);
+
+  useEffect(() => {
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    setIsWindows(/windows|win32/i.test(userAgent));
+  }, []);
+
   // Async Audio Stabilization Protocol
   useEffect(() => {
     const initSpeech = async () => {
       if (typeof window !== 'undefined' && window.speechSynthesis) {
         window.speechSynthesis.cancel();
         
-        // Wait for voices with async reconciliation for mobile support
         const checkVoices = () => {
           const voices = window.speechSynthesis.getVoices();
           if (voices.length > 0) {
@@ -82,7 +89,6 @@ export default function App() {
       e.stopPropagation();
     }
     
-    // Sovereign Listen Mutex (Prevent double-trigger)
     if (listenMutexRef.current || !activeDoc || !speechReady) return;
     listenMutexRef.current = true;
     
@@ -93,14 +99,14 @@ export default function App() {
       return;
     }
 
-    // High-Fidelity Text Extraction: Only speak rendered text
+    // Direct Buffer Extraction for Sanitized Audio
     const html = marked.parse(activeDoc.content);
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = html as string;
     
-    // Comprehensive Artifact Scrubbing ($@, #, *, :, __1.__)
+    // Absolute Scrubber: Strip $@, #, *, :, and __1.__ artifacts
     const cleanText = (tempDiv.textContent || tempDiv.innerText || "")
-      .replace(/__\d+\.__/g, '') // Scrub legacy artifacts
+      .replace(/__\d+\.__/g, '') 
       .replace(/[\$@#\*:`>_\-\+\[\]\(\)\!@:;=]/g, ' ') 
       .replace(/\s+/g, ' ')                   
       .trim();
@@ -123,7 +129,7 @@ export default function App() {
     };
     
     utter.onerror = (err) => {
-      console.error('Speech Error:', err);
+      console.error('TTS protocol failure:', err);
       setIsPlayingAudio(false);
       listenMutexRef.current = false;
     };
@@ -133,7 +139,6 @@ export default function App() {
     
     window.speechSynthesis.speak(utter);
     
-    // mobile failsafe
     setTimeout(() => { if (!window.speechSynthesis.speaking) listenMutexRef.current = false; }, 1000);
   }, [activeDoc, speechReady, isPlayingAudio]);
 
@@ -146,6 +151,14 @@ export default function App() {
       saveDraft(updated);
       setVaultSynced(true);
     }, 800);
+  };
+
+  const handleLocalRefine = () => {
+    if (!activeDoc) return;
+    const refined = VaultRefiner.refine(activeDoc.content);
+    handleContentChange(refined);
+    setNotification({ message: 'Structural Hardening Executed', type: 'success' });
+    setTimeout(() => setNotification(null), 2000);
   };
 
   const handleScannerCapture = async (capturedMarkdown: string) => {
@@ -185,7 +198,7 @@ export default function App() {
         <Toolbar 
           onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
           onShare={() => {}} 
-          onLocalRefine={() => activeDoc && saveDraft({ ...activeDoc, content: VaultRefiner.refine(activeDoc.content) })}
+          onLocalRefine={handleLocalRefine}
         />
 
         <div className="flex-1 flex overflow-hidden relative min-h-0">
@@ -205,12 +218,13 @@ export default function App() {
         </div>
 
         {/* 
-            Action Bank: Locked to top-right corner.
-            Implements dynamic scaling and shifting logic to ensure zero overlap with Menu Tray.
+            Action Bank: Dynamic Anti-Overlap Positioning
+            3rem gap (gap-12) between icons.
+            Shrink and shift logic active when sidebar is open on mobile.
         */}
         <div 
-          className={`fixed top-3 md:top-4 right-4 md:right-8 flex items-center gap-10 md:gap-14 z-[10002] pointer-events-auto transition-all duration-300 ease-in-out origin-right ${
-            isSidebarOpen ? 'scale-75 translate-x-12 opacity-30 pointer-events-none grayscale' : 'scale-100 translate-x-0 opacity-100'
+          className={`fixed top-3 md:top-4 right-4 md:right-8 flex items-center gap-12 z-[10002] pointer-events-auto transition-all duration-300 ease-in-out origin-right ${
+            isSidebarOpen ? 'scale-75 translate-x-12 opacity-30 pointer-events-none' : 'scale-100 translate-x-0 opacity-100'
           }`}
         >
            <button 
@@ -239,12 +253,14 @@ export default function App() {
            </div>
         </div>
 
+        {/* Triple-Action Footer: HARDEN, DOCX, PDF */}
         <MobileActionBar 
+          onHarden={handleLocalRefine}
           onExportDocx={() => { setPendingFormat('docx'); setActiveModal('export'); }}
           onExportPdf={() => { setPendingFormat('pdf'); setActiveModal('export'); }}
         />
         
-        <div className="md:hidden fixed bottom-36 right-6 z-[9999]">
+        <div className="md:hidden fixed bottom-40 right-6 z-[9999]">
            <button 
              onClick={() => setMobileTab(prev => prev === 'editor' ? 'preview' : 'editor')} 
              className="w-14 h-14 rounded-full bg-emerald-vault text-black flex items-center justify-center shadow-lg active:scale-90 transition-transform"
