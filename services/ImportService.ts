@@ -34,6 +34,7 @@ export const ImportService = {
       // Absolute purge of __1.__ patterns and similar artifacts
       .replace(/__\d+\.__/g, '')
       .replace(/_\d+\._/g, '')
+      .replace(/\d+\.\s\_\_/g, ' ')
       // Strip other common ingestion debris
       .replace(/@\w+/g, ' ')
       // Cleanup whitespace artifacts left by purge
