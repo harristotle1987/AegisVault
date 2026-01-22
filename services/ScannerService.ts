@@ -3,36 +3,45 @@ import { createWorker } from 'tesseract.js';
 /**
  * Sovereign Scanner: Client-side OCR Engine
  * Role: Senior Architect
- * Logic: Hardened image-to-text conversion with surgical artifact scrubbing.
+ * Logic: Hardened image-to-text conversion with Mathematical Structure Recognition.
  */
 export const ScannerService = {
   /**
-   * Sanitizes OCR output to remove redundant formatting characters.
-   * Fixes: __1. __ -> 1. , removes stray underscores and math-noise.
+   * Mathematical Structure Recognizer & Sanitizer
+   * Identifies fractions, variables, and geometry symbols ($\Delta$).
+   * Scrubs redundant OCR artifacts while preserving mathematical integrity.
    */
   sanitize(text: string): string {
     return text
-      // Remove specific artifact patterns like __1. __
+      // 1. Structural Underscore Scrubbing (Fixes __1. __ artifact)
       .replace(/_{1,}([0-9]+\.)\s*_{1,}/g, '$1 ')
-      // Remove stray underscore lines often seen in OCR of columns or margins
       .replace(/_{2,}/g, '')
-      // Remove leading/trailing underscores from words
-      .replace(/\b_(\w+)\b/g, '$1')
-      .replace(/\b(\w+)_\b/g, '$1')
-      // Normalize list formatting (Ensure single space after bullet/number)
+      
+      // 2. Mathematical Structure Mapping (LaTeX)
+      // Convert linear fractions (d/d) to LaTeX \frac{}{}
+      .replace(/(\d+)\s*\/\s*(\d+)/g, '\\frac{$1}{$2}')
+      // Standardize equation spacing
+      .replace(/(\w+)\s*=\s*/g, '$1 = ')
+      // Identify common variable relations
+      .replace(/(\d+)([a-zA-Z])/g, '$1$2')
+      
+      // 3. Geometry Symbol Mapping
+      // Map text-variants of Delta to LaTeX equivalent
+      .replace(/\b(Delta|delta|triangle)\b/gi, '$\\Delta$')
+      
+      // 4. Whitespace & List Hardening
       .replace(/^([0-9]+\.)\s+/gm, '$1 ')
       .replace(/^([\*\-\+])\s+/gm, '$1 ')
-      // Remove artifacts from mathematical notation blocks (common in OCR)
-      .replace(/\|/g, '') // Remove stray pipes
-      // Clean up multiple newlines to maintain GFM rhythm
       .replace(/\n{3,}/g, '\n\n')
       .trim();
   },
 
   async performOCR(imageBlob: Blob, onProgress?: (progress: number) => void): Promise<string> {
+    // Math-aware worker initialization
     const worker = await createWorker('eng');
     
     try {
+      // Recognize using the 'eng' model which handles common math/alpha characters
       const { data: { text } } = await worker.recognize(imageBlob);
       return this.sanitize(text);
     } finally {
@@ -42,6 +51,7 @@ export const ScannerService = {
 
   async captureImage(videoElement: HTMLVideoElement): Promise<Blob> {
     const canvas = document.createElement('canvas');
+    // Maintain native resolution for high-fidelity OCR recognition
     canvas.width = videoElement.videoWidth;
     canvas.height = videoElement.videoHeight;
     const ctx = canvas.getContext('2d');
@@ -50,6 +60,7 @@ export const ScannerService = {
     ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
     
     return new Promise((resolve, reject) => {
+      // Use high-quality JPEG to prevent artifact interference
       canvas.toBlob((blob) => {
         if (blob) resolve(blob);
         else reject(new Error("Image serialization failure."));

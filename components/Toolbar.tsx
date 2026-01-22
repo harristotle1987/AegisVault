@@ -64,10 +64,15 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
         <div className="flex items-center gap-2 z-[9999]">
           <ShieldCheck className="text-emerald-vault w-5 h-5 md:w-4 md:h-4" />
-          {/* Silent Indicator: NO TEXT LABELS to avoid obstruction */}
-          <div 
-            className={`w-1.5 h-1.5 rounded-full transition-all duration-500 shadow-emerald-glow ml-1 ${isSaving ? 'bg-emerald-vault animate-pulse' : 'bg-emerald-vault/40'}`} 
-          />
+          {/* Status Indicator: 10% opacity Emerald Dot base, pulses to 100% on activity */}
+          <div className="flex items-center justify-center p-1">
+            <div 
+              className={`w-2 h-2 rounded-full transition-all duration-700 shadow-emerald-glow ${
+                isSaving ? 'bg-emerald-vault opacity-100 animate-pulse' : 'bg-emerald-vault opacity-10'
+              }`} 
+              style={{ backgroundColor: '#10B981' }}
+            />
+          </div>
         </div>
       </div>
 
@@ -83,7 +88,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <button 
             onClick={onOpenScanner}
             className="p-2.5 rounded-lg border border-vault-border bg-obsidian-muted hover:bg-emerald-glow hover:border-emerald-vault/50 transition-all text-vault-dim hover:text-emerald-vault active:scale-95"
-            title="Sovereign Scanner"
+            title="Sovereign Scanner (OCR/Math)"
           >
             <Scan size={18} />
           </button>

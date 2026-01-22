@@ -193,7 +193,7 @@ export default function App() {
   const initiateExport = (format: 'pdf' | 'docx') => {
     if (!activeDoc) return;
     setPendingFormat(format);
-    // Explicitly bind filename identifier to active title
+    // Explicitly bind filename identifier to active title for mathematical sovereignty
     setSuggestedName(sanitizeFilename(activeDoc.title) || "vault_export");
     setActiveModal('export');
   };
@@ -294,11 +294,12 @@ export default function App() {
           )}
         </div>
 
-        {/* 200px Scroll clearance is provided by Editor/Preview pb-props */}
-        
-        {/* Silent Indicator: Pure Emerald Pulse */}
+        {/* Status Indicator (Emerald Dot) - High priority corner positioning */}
         <div className="fixed bottom-24 right-6 md:bottom-8 md:right-8 flex items-center justify-center p-2 rounded-full z-[130] pointer-events-none">
-          <div className={`w-2 h-2 rounded-full transition-all duration-500 shadow-emerald-glow ${vaultSynced ? "bg-emerald-vault" : "bg-emerald-vault/20 animate-pulse"}`} />
+          <div 
+            className={`w-2 h-2 rounded-full transition-all duration-500 shadow-emerald-glow ${vaultSynced ? "opacity-10" : "opacity-100 animate-pulse"}`} 
+            style={{ backgroundColor: '#10B981' }}
+          />
         </div>
 
         <MobileActionBar 
