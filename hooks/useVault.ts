@@ -1,11 +1,12 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { StorageService } from '../services/storageService';
 import { SovereignDocument } from '../types';
 
 /**
  * Role: Senior Architect
- * Feature: Atomic Vault CRUD & ID Reconciliation
- * Logic: Ensures absolute local state persistence with zero-duplication renaming.
+ * Feature: Vault CRUD Logic & Seeding Integration
+ * Logic: Ensures absolute local state persistence with automatic recovery.
  */
 export const useVault = () => {
   const [documents, setDocuments] = useState<SovereignDocument[]>([]);
@@ -36,12 +37,11 @@ export const useVault = () => {
     setIsSaving(true);
     try {
       await StorageService.saveDocument(doc);
-      // Atomic Logic: Update by ID in the current state to maintain sort stability
-      setDocuments(prev => prev.map(d => d.id === doc.id ? { ...doc, lastModified: Date.now() } : d));
+      await refresh();
     } finally {
       setIsSaving(false);
     }
-  }, []);
+  }, [refresh]);
 
   const deleteDraft = useCallback(async (id: string) => {
     await StorageService.deleteDocument(id);
@@ -55,19 +55,15 @@ export const useVault = () => {
     const newDoc = await StorageService.createNewDocument();
     await refresh();
     setActiveDocId(newDoc.id);
-    return newDoc;
   }, [refresh]);
 
   /**
-   * Atomic Renaming: Modifies the title via unique ID without shifting sorting mid-keystroke.
+   * Atomic Renaming: Overwrites the title without shifting the sorting order mid-keystroke.
    */
   const renameDraft = useCallback(async (id: string, title: string) => {
     await StorageService.renameDocument(id, title);
-    
-    // Direct state map for immediate UI feedback without array duplication
-    setDocuments(prev => {
-      return prev.map(d => d.id === id ? { ...d, title, lastModified: Date.now() } : d);
-    });
+    // Optimistic local state update to keep the UI fluid and focused
+    setDocuments(prev => prev.map(d => d.id === id ? { ...d, title } : d));
   }, []);
 
   const activeDoc = documents.find(d => d.id === activeDocId) || null;

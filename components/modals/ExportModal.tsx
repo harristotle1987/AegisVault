@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { X, FileText, Download, Shield, Layout, AlertCircle } from 'lucide-react';
 
 interface ExportModalProps {
   initialName: string;
-  format: 'pdf' | 'docx' | 'html' | 'txt' | 'rtf' | null;
+  format: 'pdf' | 'docx' | null;
   onConfirm: (name: string) => void;
   onCancel: () => void;
 }
@@ -15,6 +16,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ initialName, format, o
   useEffect(() => {
     if (format) {
       setName(initialName);
+      // Precision auto-select for mechanical efficiency
       setTimeout(() => inputRef.current?.select(), 100);
     }
   }, [initialName, format]);
@@ -43,7 +45,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ initialName, format, o
           <div className="space-y-3">
             <div className="flex justify-between items-center px-1">
               <label className="text-[10px] uppercase tracking-[0.2em] text-vault-dim font-black opacity-40">Archive Identifier</label>
-              <span className="text-[9px] font-mono text-emerald-vault/60">.{format.toUpperCase()}</span>
+              <span className="text-[9px] font-mono text-emerald-vault/60">FILE_NAME_UTF8</span>
             </div>
             <div className="relative group">
               <input
@@ -65,17 +67,17 @@ export const ExportModal: React.FC<ExportModalProps> = ({ initialName, format, o
             <div className="bg-emerald-vault/[0.03] border border-emerald-vault/10 rounded-xl p-5 flex flex-col gap-3 transition-all hover:bg-emerald-vault/[0.05]">
               <div className="flex items-center gap-3">
                 <Layout size={14} className="text-emerald-vault" />
-                <span className="text-[10px] font-black text-vault-text uppercase tracking-widest">Bridge Mapping</span>
+                <span className="text-[10px] font-black text-vault-text uppercase tracking-widest">A4 Hardening</span>
               </div>
-              <p className="text-[10px] text-vault-dim leading-relaxed font-medium">100% editability preserved via Markdown intermediate state.</p>
+              <p className="text-[10px] text-vault-dim leading-relaxed font-medium">Auto-scaling logic will enforce ISO 216 dimensions and typographic rhythm during rendering.</p>
             </div>
 
             <div className="bg-white/[0.02] border border-white/5 rounded-xl p-5 flex flex-col gap-3">
               <div className="flex items-center gap-3">
                 <AlertCircle size={14} className="text-vault-dim" />
-                <span className="text-[10px] font-black text-vault-text uppercase tracking-widest">Binary Shard</span>
+                <span className="text-[10px] font-black text-vault-text uppercase tracking-widest">Binary Integrity</span>
               </div>
-              <p className="text-[10px] text-vault-dim leading-relaxed font-medium">All images (HD Plates) are embedded directly into the asset blob.</p>
+              <p className="text-[10px] text-vault-dim leading-relaxed font-medium">All font shards are embedded directly into the binary blob for sovereign offline compatibility.</p>
             </div>
           </div>
         </div>

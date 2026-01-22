@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { X, Shield, Save, Database, EyeOff, Zap, Layout, Monitor, RefreshCcw, Cloud, DownloadCloud } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { X, Moon, Shield, Save, Database, EyeOff, Zap, Layout, Monitor, RefreshCcw } from 'lucide-react';
 import { VaultFont } from '../../types';
 
 interface ConfigModalProps {
@@ -8,8 +8,6 @@ interface ConfigModalProps {
   docCount: number;
   activeFont: VaultFont;
   setActiveFont: (font: VaultFont) => void;
-  onShadowExport?: () => void;
-  onShadowImport?: (file: File) => void;
 }
 
 const ToggleOption = ({ label, description, defaultOn, icon }: { label: string, description: string, defaultOn?: boolean, icon: React.ReactNode }) => {
@@ -35,17 +33,8 @@ const ToggleOption = ({ label, description, defaultOn, icon }: { label: string, 
   );
 };
 
-export const ConfigModal: React.FC<ConfigModalProps> = ({ 
-  isOpen, 
-  onClose, 
-  docCount, 
-  activeFont, 
-  setActiveFont,
-  onShadowExport,
-  onShadowImport
-}) => {
+export const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, onClose, docCount, activeFont, setActiveFont }) => {
   const [isPurging, setIsPurging] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -74,18 +63,6 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
       console.error('Purge sequence failure:', err);
       setIsPurging(false);
     }
-  };
-
-  const handleImportClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && onShadowImport) {
-      onShadowImport(file);
-    }
-    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   return (
@@ -127,36 +104,6 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
             <div className="p-4 rounded-xl bg-obsidian-muted/30 border border-vault-border space-y-1">
               <span className="text-[8px] font-black uppercase tracking-widest text-vault-dim">Environment</span>
               <div className="text-sm font-bold text-emerald-vault">Sandboxed</div>
-            </div>
-          </section>
-
-          <section className="space-y-4">
-            <div className="flex items-center gap-2 px-1">
-              <Cloud size={12} className="text-emerald-vault" />
-              <h3 className="text-[10px] font-black text-emerald-vault uppercase tracking-[0.3em]">Shadow Cloud Sync</h3>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <button 
-                onClick={onShadowExport}
-                className="flex flex-col items-center gap-3 p-4 rounded-xl bg-white/[0.02] border border-vault-border hover:bg-emerald-vault/5 transition-all group active:scale-[0.98]"
-              >
-                <Cloud size={20} className="text-emerald-vault" />
-                <span className="text-[9px] font-black uppercase tracking-widest">Export Shadow</span>
-              </button>
-              <button 
-                onClick={handleImportClick}
-                className="flex flex-col items-center gap-3 p-4 rounded-xl bg-white/[0.02] border border-vault-border hover:bg-emerald-vault/5 transition-all group active:scale-[0.98]"
-              >
-                <DownloadCloud size={20} className="text-emerald-vault" />
-                <span className="text-[9px] font-black uppercase tracking-widest">Import Shadow</span>
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  onChange={handleFileChange} 
-                  className="hidden" 
-                  accept=".vshadow,.json" 
-                />
-              </button>
             </div>
           </section>
 
