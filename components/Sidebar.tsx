@@ -39,11 +39,6 @@ interface RegistryItemProps {
   onDelete: (id: string) => void;
 }
 
-/**
- * RegistryItem: Atomic Sovereign Sub-component
- * Feature: Debounced Renaming & ID-Based Stability
- * Fix: Prevents "jumpy" focus and duplication by isolating local title state.
- */
 const RegistryItem: React.FC<RegistryItemProps> = ({ 
   doc, 
   isActive, 
@@ -55,7 +50,6 @@ const RegistryItem: React.FC<RegistryItemProps> = ({
   const [localTitle, setLocalTitle] = useState(doc.title);
   const debounceRef = useRef<number | null>(null);
 
-  // Sync with registry title if changed externally (e.g., initial load)
   useEffect(() => {
     setLocalTitle(doc.title);
   }, [doc.title]);
@@ -66,7 +60,6 @@ const RegistryItem: React.FC<RegistryItemProps> = ({
     
     if (debounceRef.current) window.clearTimeout(debounceRef.current);
     
-    // Hardened 500ms Debounce for State Stability
     debounceRef.current = window.setTimeout(() => {
       onRename(doc.id, newVal);
       debounceRef.current = null;
@@ -129,13 +122,6 @@ const RegistryItem: React.FC<RegistryItemProps> = ({
               <Eye size={14} />
             </button>
             <button 
-              onClick={(e) => { e.stopPropagation(); onSelect(doc.id, 'edit'); }}
-              className="p-1.5 hover:text-emerald-vault text-vault-dim rounded-md hover:bg-white/5"
-              title="Edit"
-            >
-              <Edit3 size={14} />
-            </button>
-            <button 
               onClick={(e) => { e.stopPropagation(); onDelete(doc.id); }}
               className="p-1.5 hover:text-red-500 text-vault-dim rounded-md hover:bg-red-500/10"
               title="Purge Shard"
@@ -186,7 +172,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <aside 
       className={`
-        bg-obsidian border-r border-vault-border flex flex-col shrink-0 transition-all duration-300 ease-in-out z-[9999]
+        bg-obsidian border-r border-vault-border flex flex-col shrink-0 transition-all duration-300 ease-in-out z-[10001]
         fixed md:static inset-y-0 left-0 h-full shadow-2xl md:shadow-none pointer-events-auto
         overflow-y-auto overflow-x-hidden
         ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
@@ -208,9 +194,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         
         <button 
           onClick={onClose}
-          className="md:hidden w-10 h-10 rounded-full border border-white/10 flex items-center justify-center text-vault-dim hover:text-white transition-all bg-white/5 active:scale-90"
+          className="md:hidden w-10 h-10 rounded-full border border-white/10 flex items-center justify-center text-vault-dim hover:text-white transition-all bg-white/5 active:scale-90 z-[10005]"
+          aria-label="Close Sidebar"
         >
-          <X size={18} />
+          <X size={20} />
         </button>
 
         <button 
@@ -232,30 +219,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </button>
       </div>
 
-      {(!isCollapsed || window.innerWidth < 768) && (
-        <div className="px-5 mb-6 animate-in fade-in slide-in-from-top-1 duration-500">
-          <div className="relative group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-vault-dim/40 group-focus-within:text-emerald-vault transition-colors" size={12} />
-            <input 
-              type="text"
-              placeholder="Query Registry..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-obsidian-muted border border-vault-border rounded-lg pl-9 pr-4 py-2 text-[10px] font-mono uppercase tracking-widest text-vault-text focus:outline-none focus:border-emerald-vault/30 transition-all placeholder:text-vault-dim/20"
-            />
-          </div>
-        </div>
-      )}
-
       <div className="flex-1 overflow-y-auto px-4 space-y-2 no-scrollbar pb-10">
-        {(!isCollapsed || window.innerWidth < 768) && (
-          <div className="px-4 py-2 mb-1 flex items-center justify-between border-b border-vault-border/50">
-            <span className="text-[9px] uppercase tracking-[0.3em] text-vault-dim font-black text-white/40 uppercase tracking-widest">Vault Registry</span>
-            <span className="text-[8px] font-mono text-vault-dim/30">{filteredDocs.length} Shards</span>
-          </div>
-        )}
-        
-        {/* Strictly Keyed by ID to prevent duplication rendering during renames */}
         {filteredDocs.map((doc) => (
           <RegistryItem 
             key={doc.id}
@@ -270,29 +234,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       <div className={`p-6 border-t border-vault-border space-y-4 ${isCollapsed && window.innerWidth >= 768 ? 'items-center flex flex-col' : ''}`}>
-        <SidebarStaticItem 
-          icon={<Hash size={18} />} 
-          label="Tag Registry" 
-          isCollapsed={isCollapsed} 
-          onClick={onOpenTags}
-        />
-        <SidebarStaticItem 
-          icon={<Settings size={18} />} 
-          label="System Config" 
-          isCollapsed={isCollapsed} 
-          onClick={onOpenConfig}
-        />
-        
-        {installPrompt?.isInstallable && (
-          <button 
-            onClick={installPrompt.install}
-            className={`flex items-center gap-4 transition-all group w-full active:scale-[0.98] ${isCollapsed && window.innerWidth >= 768 ? 'justify-center p-2' : 'px-4 py-3 border border-emerald-vault/30 text-emerald-vault rounded-xl hover:bg-emerald-vault/10 shadow-emerald-glow/10'}`}
-            title="Sovereign Install"
-          >
-            <DownloadCloud size={18} />
-            {(!isCollapsed || window.innerWidth < 768) && <span className="text-[10px] font-black tracking-[0.3em] uppercase">Sovereign Link</span>}
-          </button>
-        )}
+        <SidebarStaticItem icon={<Hash size={18} />} label="Tag Registry" isCollapsed={isCollapsed} onClick={onOpenTags} />
+        <SidebarStaticItem icon={<Settings size={18} />} label="System Config" isCollapsed={isCollapsed} onClick={onOpenConfig} />
       </div>
     </aside>
   );
@@ -300,15 +243,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
 const SidebarStaticItem = ({ icon, label, isCollapsed, onClick }: { icon: any, label: string, isCollapsed: boolean, onClick: () => void }) => (
   <button 
-    onClick={(e) => {
-      e.stopPropagation();
-      onClick();
-    }}
+    onClick={(e) => { e.stopPropagation(); onClick(); }}
     className={`
-      flex items-center gap-4 transition-all group relative z-[120] active:scale-95
-      ${isCollapsed && window.innerWidth >= 768 ? 'justify-center w-full p-2 text-vault-dim hover:text-emerald-vault' : 'w-full px-4 py-2 text-vault-dim/60 hover:text-vault-text hover:bg-white/[0.04] rounded-lg border border-transparent hover:border-vault-border'}
+      flex items-center gap-4 transition-all group relative active:scale-95
+      ${isCollapsed && window.innerWidth >= 768 ? 'justify-center w-full p-2 text-vault-dim hover:text-emerald-vault' : 'w-full px-4 py-2 text-vault-dim/60 hover:text-vault-text hover:bg-white/[0.04] rounded-lg'}
     `}
-    title={label}
   >
     <div className="group-hover:text-emerald-vault transition-colors">{icon}</div>
     {(!isCollapsed || window.innerWidth < 768) && <span className="text-[10px] font-black tracking-[0.3em] uppercase">{label}</span>}

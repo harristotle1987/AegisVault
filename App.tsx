@@ -56,15 +56,18 @@ export default function App() {
 
   // Async Audio Stabilization Protocol
   useEffect(() => {
-    const initSpeech = () => {
+    const initSpeech = async () => {
       if (typeof window !== 'undefined' && window.speechSynthesis) {
         window.speechSynthesis.cancel();
+        
+        // Wait for voices with async reconciliation for mobile support
         const checkVoices = () => {
           const voices = window.speechSynthesis.getVoices();
           if (voices.length > 0) {
             setSpeechReady(true);
           }
         };
+        
         checkVoices();
         window.speechSynthesis.onvoiceschanged = checkVoices;
       }
@@ -79,30 +82,26 @@ export default function App() {
       e.stopPropagation();
     }
     
-    // Sovereign Listen Mutex: Eliminates double-clicking/rapid-fire race conditions
+    // Sovereign Listen Mutex (Prevent double-trigger)
     if (listenMutexRef.current || !activeDoc || !speechReady) return;
     listenMutexRef.current = true;
     
-    // Synchronize with hardware state directly to resolve any state drift
-    const isActuallySpeaking = window.speechSynthesis.speaking;
-    
-    if (isActuallySpeaking || isPlayingAudio) {
+    if (window.speechSynthesis.speaking || isPlayingAudio) {
       window.speechSynthesis.cancel();
       setIsPlayingAudio(false);
-      // Cooldown after cancellation to let browser clear its synthesis buffer
       setTimeout(() => { listenMutexRef.current = false; }, 300);
       return;
     }
 
-    // Direct-from-Render Sanitization Pipeline
+    // High-Fidelity Text Extraction: Only speak rendered text
     const html = marked.parse(activeDoc.content);
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = html as string;
     
-    // Purge all Markdown, Legacy Numbering artifacts, and special symbols from audio stream
+    // Comprehensive Artifact Scrubbing ($@, #, *, :, __1.__)
     const cleanText = (tempDiv.textContent || tempDiv.innerText || "")
-      .replace(/__\d+\.__/g, '') 
-      .replace(/[#*`>_\-\+\[\]\(\)\$\!@:;=]/g, ' ') 
+      .replace(/__\d+\.__/g, '') // Scrub legacy artifacts
+      .replace(/[\$@#\*:`>_\-\+\[\]\(\)\!@:;=]/g, ' ') 
       .replace(/\s+/g, ' ')                   
       .trim();
 
@@ -124,7 +123,7 @@ export default function App() {
     };
     
     utter.onerror = (err) => {
-      console.error('SpeechSynthesis Error:', err);
+      console.error('Speech Error:', err);
       setIsPlayingAudio(false);
       listenMutexRef.current = false;
     };
@@ -134,7 +133,7 @@ export default function App() {
     
     window.speechSynthesis.speak(utter);
     
-    // Safety fallback in case onstart event loop misses
+    // mobile failsafe
     setTimeout(() => { if (!window.speechSynthesis.speaking) listenMutexRef.current = false; }, 1000);
   }, [activeDoc, speechReady, isPlayingAudio]);
 
@@ -159,7 +158,6 @@ export default function App() {
 
   return (
     <div className={`fixed inset-0 overflow-hidden selection:bg-emerald-vault/30 flex flex-row bg-black text-white`}>
-      {/* Sidebar Overlay with High Z-Index & Backdrop Exit */}
       {isSidebarOpen && (
         <div 
           className="fixed inset-0 bg-black/80 backdrop-blur-md z-[10000] animate-in fade-in duration-300" 
@@ -207,12 +205,12 @@ export default function App() {
         </div>
 
         {/* 
-            Action Bank: Locked to far right edge. 
-            Implements professional auto-scaling logic when Sidebar is active. 
+            Action Bank: Locked to top-right corner.
+            Implements dynamic scaling and shifting logic to ensure zero overlap with Menu Tray.
         */}
         <div 
-          className={`fixed top-3 md:top-4 right-4 md:right-8 flex items-center gap-12 md:gap-14 z-[10002] pointer-events-auto transition-all duration-300 ease-in-out origin-right ${
-            isSidebarOpen ? 'scale-75 opacity-40 translate-x-4 grayscale' : 'scale-100 opacity-100 grayscale-0'
+          className={`fixed top-3 md:top-4 right-4 md:right-8 flex items-center gap-10 md:gap-14 z-[10002] pointer-events-auto transition-all duration-300 ease-in-out origin-right ${
+            isSidebarOpen ? 'scale-75 translate-x-12 opacity-30 pointer-events-none grayscale' : 'scale-100 translate-x-0 opacity-100'
           }`}
         >
            <button 
