@@ -16,9 +16,9 @@ export const ScannerService = {
       img.onload = () => {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
-        if (!ctx) return reject('Canvas failure');
+        if (!ctx) return reject('Canvas context acquisition failure.');
 
-        // Capture in high resolution for math clarity
+        // Capture in high resolution for absolute math clarity
         canvas.width = img.width;
         canvas.height = img.height;
         ctx.drawImage(img, 0, 0);
@@ -36,7 +36,8 @@ export const ScannerService = {
           // Weighted luminance
           const luma = 0.299 * r + 0.587 * g + 0.114 * b;
           
-          // Aggressive threshold for monochromatic "Digital Ink" look
+          // Hardened threshold for absolute monochromatic "Digital Ink" look
+          // Using 140 as a robust threshold for document paper vs ink
           const v = luma > 140 ? 255 : 0;
           
           data[i] = data[i + 1] = data[i + 2] = v;
@@ -45,12 +46,15 @@ export const ScannerService = {
 
         ctx.putImageData(imageData, 0, 0);
         
-        // Optimize for storage while maintaining edge fidelity
-        const hardenedData = canvas.toDataURL('image/jpeg', 0.85);
+        // Zero-loss PNG for architectural geometric integrity
+        const hardenedData = canvas.toDataURL('image/png');
         URL.revokeObjectURL(url);
         resolve(hardenedData);
       };
-      img.onerror = reject;
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject('Optic Asset Loading Failure.');
+      };
       img.src = url;
     });
   },
@@ -68,7 +72,7 @@ export const ScannerService = {
       canvas.toBlob((blob) => {
         if (blob) resolve(blob);
         else reject(new Error("Image serialization failure."));
-      }, 'image/jpeg', 0.95);
+      }, 'image/png');
     });
   }
 };

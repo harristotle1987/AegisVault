@@ -1,4 +1,3 @@
-
 import { Dexie } from 'dexie';
 import type { Table } from 'dexie';
 import { SovereignDocument } from '../types';
@@ -139,13 +138,20 @@ export const StorageService = {
   },
 
   /**
-   * Persists a document and ensures the timeline is updated.
+   * Persists a document and ensures the timeline is updated for LOCAL edits.
    */
   async saveDocument(doc: SovereignDocument): Promise<void> {
     await db.documents.put({
       ...doc,
       lastModified: Date.now()
     });
+  },
+
+  /**
+   * Preserve Shard Integrity: Used during sync to respect remote timestamps.
+   */
+  async importDocument(doc: SovereignDocument): Promise<void> {
+    await db.documents.put(doc);
   },
 
   /**

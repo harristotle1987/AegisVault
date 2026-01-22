@@ -17,7 +17,7 @@ import { ImportService } from './services/ImportService';
 import { SyncService } from './services/SyncService';
 import { useVault } from './hooks/useVault';
 import { VaultFont } from './types';
-import { Shield, ShieldCheck } from 'lucide-react';
+import { Shield, ShieldCheck, Volume2, BookOpen, Download, Upload } from 'lucide-react';
 import { usePWAInstall } from './hooks/usePWAInstall';
 
 type ModalType = 'export' | 'config' | 'tags' | 'purge' | 'success' | 'scanner' | null;
@@ -46,6 +46,7 @@ export default function App() {
   const [activeFont, setActiveFont] = useState<VaultFont>('sans');
   const [docToPurge, setDocToPurge] = useState<string | null>(null);
   const [vaultSynced, setVaultSynced] = useState(true);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   
   const [lastExportedFile, setLastExportedFile] = useState<{name: string, format: any, blobUrl: string | null}>({
     name: "", 
@@ -79,8 +80,22 @@ export default function App() {
       setNotification({ message: `Shadow Synced: ${result.success} shards ingested`, type: 'success' });
       setActiveModal(null);
     } catch (e) {
-      setNotification({ message: 'Corrupt Shadow Binary', type: 'error' });
+      setNotification({ message: e instanceof Error ? e.message : 'Corrupt Shadow Binary', type: 'error' });
     }
+  };
+
+  const handleListen = () => {
+    if (!activeDoc) return;
+    if (isPlayingAudio) {
+      window.speechSynthesis.cancel();
+      setIsPlayingAudio(false);
+      return;
+    }
+    const utter = new SpeechSynthesisUtterance(activeDoc.content);
+    utter.onend = () => setIsPlayingAudio(false);
+    utter.onerror = () => setIsPlayingAudio(false);
+    window.speechSynthesis.speak(utter);
+    setIsPlayingAudio(true);
   };
 
   useEffect(() => {
@@ -150,9 +165,13 @@ export default function App() {
     let successCount = 0;
     
     for (const file of Array.from(files)) {
-      if (file.name.includes('.vshadow')) {
-        await handleCloudShadowImport(file);
-        continue;
+      if (file.name.includes('.vshadow') || file.name.endsWith('.json')) {
+        try {
+          await handleCloudShadowImport(file);
+          continue;
+        } catch (e) {
+          console.warn("File appears to be JSON but not a sovereign shadow.");
+        }
       }
       try {
         const { title, content } = await ImportService.processFile(file);
@@ -333,13 +352,44 @@ export default function App() {
           )}
         </div>
 
-        {/* Global Sovereign Status Matrix */}
-        <div className="fixed top-4 right-4 flex items-center gap-2 z-[10000]">
-           <div className="p-2">
+        {/* Navbar Fixed Controls: 2rem Spacing + Permanent Labels */}
+        <div className="fixed top-4 right-8 flex items-center gap-8 z-[10001]">
+           <button 
+             onClick={() => document.getElementById('batch-upload-trigger')?.click()}
+             className="flex flex-col items-center gap-1.5 transition-all active:scale-90 group"
+           >
+             <div className="p-3 bg-white/5 border border-white/10 rounded-full text-emerald-vault group-hover:bg-emerald-vault/10">
+               <Upload size={20} />
+             </div>
+             <span className="text-[10px] font-black uppercase tracking-widest text-white">Batch</span>
+           </button>
+
+           <button 
+             onClick={handleListen}
+             className="flex flex-col items-center gap-1.5 transition-all active:scale-90 group"
+           >
+             <div className={`p-3 border rounded-full transition-all ${isPlayingAudio ? 'bg-emerald-vault text-black shadow-emerald-glow' : 'bg-white/5 border-white/10 text-emerald-vault group-hover:bg-emerald-vault/10'}`}>
+               {isPlayingAudio ? <BookOpen size={20} className="animate-pulse" /> : <Volume2 size={20} />}
+             </div>
+             <span className="text-[10px] font-black uppercase tracking-widest text-white">Audio</span>
+           </button>
+
+           <button 
+             onClick={() => initiateExport('pdf')}
+             className="flex flex-col items-center gap-1.5 transition-all active:scale-90 group"
+           >
+             <div className="p-3 bg-white/5 border border-white/10 rounded-full text-emerald-vault group-hover:bg-emerald-vault/10">
+               <Download size={20} />
+             </div>
+             <span className="text-[10px] font-black uppercase tracking-widest text-white">Export</span>
+           </button>
+           
+           <div className="p-2 border-l border-white/10 pl-8 flex flex-col items-center gap-1">
              <div 
-               className={`w-2.5 h-2.5 rounded-full transition-all duration-700 shadow-emerald-glow ${vaultSynced ? "opacity-10" : "opacity-100 animate-pulse"}`} 
+               className={`w-3.5 h-3.5 rounded-full transition-all duration-700 shadow-emerald-glow ${vaultSynced ? "opacity-10" : "opacity-100 animate-pulse"}`} 
                style={{ backgroundColor: '#10B981' }}
              />
+             <span className="text-[9px] font-black text-white/30 uppercase tracking-widest">Saved</span>
            </div>
         </div>
 
@@ -358,7 +408,7 @@ export default function App() {
            </button>
         </div>
 
-        <div className={`fixed top-16 right-6 z-[250] transition-all duration-500 transform ${notification ? 'translate-x-0 opacity-100' : 'translate-x-10 opacity-0 pointer-events-none'}`}>
+        <div className={`fixed top-24 right-8 z-[250] transition-all duration-500 transform ${notification ? 'translate-x-0 opacity-100' : 'translate-x-10 opacity-0 pointer-events-none'}`}>
           {notification && (
             <div className={`flex items-center gap-3 px-5 py-3 rounded-xl border backdrop-blur-md shadow-2xl ${
               notification.type === 'success' 
@@ -393,6 +443,15 @@ export default function App() {
           </div>
         )}
       </main>
+
+      <input 
+        id="batch-upload-trigger"
+        type="file" 
+        className="hidden" 
+        multiple
+        accept=".md,.txt,.html,.htm,.docx,.odt,.pdf,.rtf,.pptx,.vshadow,.json"
+        onChange={(e) => e.target.files && handleBatchImport(e.target.files)}
+      />
 
       {activeModal === 'scanner' && (
         <ScannerOverlay 

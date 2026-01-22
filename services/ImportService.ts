@@ -26,15 +26,19 @@ export const ImportService = {
   },
 
   /**
-   * Sanitization Protocol: Converts docx numbering artifacts into clean markers.
-   * Pattern matched: __2.__, _2._, etc. -> 2.
+   * Artifact Purge Engine: Aggressively converts legacy markers to standard 2. markers.
+   * Purges __1.__, _1._, __2.__, _2._ etc.
    */
   sanitize(content: string): string {
     return content
+      // Aggressive Numbering Conversion: __2.__ or _2._ -> 2.
       .replace(/__(\d+)\.__/g, '$1.')
-      .replace(/__(\d+)\.\s+__/g, '$1. ')
       .replace(/_(\d+)\._/g, '$1.')
-      .replace(/__\w+\.__/g, '') // Remove alphabetical artifacts
+      // Handle trailing spaces/newlines in artifacts
+      .replace(/__(\d+)\.\s+__/g, '$1. ')
+      .replace(/_(\d+)\.\s+_/g, '$1. ')
+      // Broader purge for leftover underscore markers
+      .replace(/__\w+\.__/g, '')
       .replace(/\n{3,}/g, '\n\n'); 
   },
 

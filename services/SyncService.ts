@@ -25,7 +25,7 @@ export const SyncService = {
   },
 
   /**
-   * Ingests a 'Vault Shadow' with high-fidelity validation.
+   * Ingests a 'Vault Shadow' with high-fidelity validation and resilient parsing.
    */
   async ingestVaultShadow(file: File): Promise<{ success: number; skipped: number }> {
     try {
@@ -49,13 +49,14 @@ export const SyncService = {
 
       for (const doc of remoteDocs) {
         if (!localIds.has(doc.id)) {
-          await StorageService.saveDocument(doc);
+          // New shard discovery
+          await StorageService.importDocument(doc);
           success++;
         } else {
-          // Conflict Resolution: Latest timestamp wins
+          // Conflict Resolution: Remote shard must have a newer modification timestamp to trigger override
           const local = localDocs.find(d => d.id === doc.id);
           if (local && doc.lastModified > local.lastModified) {
-            await StorageService.saveDocument(doc);
+            await StorageService.importDocument(doc);
             success++;
           } else {
             skipped++;
@@ -66,7 +67,7 @@ export const SyncService = {
       return { success, skipped };
     } catch (err) {
       console.error('Shadow Ingestion Critical Failure:', err);
-      throw new Error('Sovereign Import Protocol Terminated: Corrupt Binary.');
+      throw new Error('Sovereign Import Protocol Terminated: Data structure corruption detected.');
     }
   }
 };
