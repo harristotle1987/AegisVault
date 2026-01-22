@@ -52,19 +52,22 @@ export default function App() {
   const saveTimeoutRef = useRef<number | null>(null);
   const { isInstallable, install } = usePWAInstall();
 
-  // Async Audio Stabilization
+  // Async Audio Stabilization Protocol
   useEffect(() => {
     const initSpeech = () => {
-      if (window.speechSynthesis) {
-        window.speechSynthesis.getVoices();
-        setSpeechReady(true);
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        const voices = window.speechSynthesis.getVoices();
+        if (voices.length > 0) setSpeechReady(true);
+        window.speechSynthesis.onvoiceschanged = () => {
+          if (window.speechSynthesis.getVoices().length > 0) setSpeechReady(true);
+        };
       }
     };
     initSpeech();
     return () => window.speechSynthesis.cancel();
   }, []);
 
-  const handleListen = () => {
+  const handleListen = useCallback(() => {
     if (!activeDoc || !speechReady) return;
     if (isPlayingAudio) {
       window.speechSynthesis.cancel();
@@ -72,21 +75,23 @@ export default function App() {
       return;
     }
 
-    // Sanitized Audio Layer: Strip Markdown symbols and artifacts
+    // Sanitized Audio Layer: Comprehensive Markdown & Artifact Purge
     const cleanText = activeDoc.content
-      .replace(/[#*`>_\-\+\[\]\(\)\$\!@:]/g, ' ') // Strip all symbols
-      .replace(/__\d+\.__/g, '')               // Purge legacy artifacts
-      .replace(/\s+/g, ' ')                   // Normalize whitespace
+      .replace(/[#*`>_\-\+\[\]\(\)\$\!@:]/g, ' ') 
+      .replace(/__\d+\.__/g, '')               
+      .replace(/\s+/g, ' ')                   
       .trim();
+
+    if (!cleanText) return;
 
     const utter = new SpeechSynthesisUtterance(cleanText);
     utter.onend = () => setIsPlayingAudio(false);
     utter.onerror = () => setIsPlayingAudio(false);
-    utter.rate = 0.95; 
+    utter.rate = 1.0; 
     utter.pitch = 1.0;
     window.speechSynthesis.speak(utter);
     setIsPlayingAudio(true);
-  };
+  }, [activeDoc, speechReady, isPlayingAudio]);
 
   const handleExportInitiate = (format: 'pdf' | 'docx') => {
     if (!activeDoc) return;
@@ -155,7 +160,7 @@ export default function App() {
       <main className="flex-1 flex flex-col relative overflow-hidden h-full">
         <Toolbar 
           onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
-          onShare={() => {}} // Legacy
+          onShare={() => {}} 
           onLocalRefine={() => activeDoc && saveDraft({ ...activeDoc, content: VaultRefiner.refine(activeDoc.content) })}
         />
 
@@ -175,29 +180,28 @@ export default function App() {
           )}
         </div>
 
-        {/* Action Bank: Absolute Top-Right Corner alignment with 3rem gap */}
-        <div className="fixed top-2 md:top-4 right-4 md:right-8 flex items-center gap-12 z-[10001]">
-           <button onClick={() => setActiveModal('scanner')} className="flex flex-col items-center gap-1.5 transition-all active:scale-90 group">
-             <div className="p-3 bg-white/5 border border-white/10 rounded-full text-emerald-vault group-hover:bg-emerald-vault/10">
-               <Scan size={24} />
+        {/* Action Bank: Absolute Right Edge with 3rem gap and smaller icons */}
+        <div className="fixed top-3 md:top-4 right-3 md:right-4 flex items-center gap-12 z-[10001] pointer-events-auto">
+           <button onClick={() => setActiveModal('scanner')} className="flex flex-col items-center gap-1 transition-all active:scale-90 group">
+             <div className="p-2.5 bg-white/5 border border-white/10 rounded-full text-emerald-vault group-hover:bg-emerald-vault/10">
+               <Scan size={18} />
              </div>
-             <span className="text-[10px] font-black uppercase tracking-widest text-white">Scan</span>
+             <span className="text-[9px] font-black uppercase tracking-widest text-white/80">Scan</span>
            </button>
 
-           <button onClick={handleListen} className="flex flex-col items-center gap-1.5 transition-all active:scale-90 group">
-             <div className={`p-3 border rounded-full transition-all ${isPlayingAudio ? 'bg-emerald-vault text-black shadow-emerald-glow' : 'bg-white/5 border-white/10 text-emerald-vault group-hover:bg-emerald-vault/10'}`}>
-               {isPlayingAudio ? <BookOpen size={24} className="animate-pulse" /> : <Volume2 size={24} />}
+           <button onClick={handleListen} className="flex flex-col items-center gap-1 transition-all active:scale-90 group">
+             <div className={`p-2.5 border rounded-full transition-all ${isPlayingAudio ? 'bg-emerald-vault text-black shadow-emerald-glow' : 'bg-white/5 border-white/10 text-emerald-vault group-hover:bg-emerald-vault/10'}`}>
+               {isPlayingAudio ? <BookOpen size={18} className="animate-pulse" /> : <Volume2 size={18} />}
              </div>
-             <span className="text-[10px] font-black uppercase tracking-widest text-white">Listen</span>
+             <span className="text-[9px] font-black uppercase tracking-widest text-white/80">Listen</span>
            </button>
            
-           <div className="p-1 md:p-2 border-l border-white/10 pl-8 flex flex-col items-center gap-1 shrink-0">
-             <div className={`w-3.5 h-3.5 rounded-full transition-all duration-700 shadow-emerald-glow ${vaultSynced ? "opacity-10" : "opacity-100 animate-pulse"}`} style={{ backgroundColor: '#10B981' }} />
-             <span className="text-[9px] font-black text-white/30 uppercase tracking-widest">Saved</span>
+           <div className="p-1 md:p-2 border-l border-white/10 pl-6 flex flex-col items-center gap-1 shrink-0 opacity-40">
+             <div className={`w-2.5 h-2.5 rounded-full transition-all duration-700 ${vaultSynced ? "bg-emerald-vault/20" : "bg-emerald-vault animate-pulse shadow-emerald-glow"}`} />
+             <span className="text-[8px] font-black text-white/30 uppercase tracking-widest">Saved</span>
            </div>
         </div>
 
-        {/* Global Footer Controls: Fixed Positioning */}
         <MobileActionBar 
           onExportDocx={() => handleExportInitiate('docx')}
           onExportPdf={() => handleExportInitiate('pdf')}
@@ -210,7 +214,7 @@ export default function App() {
         </div>
 
         {notification && (
-          <div className="fixed top-24 right-8 z-[250] flex items-center gap-3 px-5 py-3 rounded-xl border backdrop-blur-md bg-emerald-vault/10 border-emerald-vault/30 text-emerald-vault">
+          <div className="fixed top-24 right-8 z-[250] flex items-center gap-3 px-5 py-3 rounded-xl border backdrop-blur-md bg-emerald-vault/10 border-emerald-vault/30 text-emerald-vault animate-in slide-in-from-right-10 duration-500">
             <ShieldCheck size={16} />
             <span className="text-xs font-bold uppercase tracking-wider">{notification.message}</span>
           </div>
