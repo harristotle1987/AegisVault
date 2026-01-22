@@ -136,7 +136,7 @@ export default function App() {
       const title = `Scan ${new Date().toLocaleDateString()}`;
       const newDoc = await createDraft();
       if (newDoc) {
-        // Pre-pend structural header
+        // Pre-pend structural header and clean text
         const content = `# ${title}\n\n${ocrText}`;
         await saveDraft({ ...newDoc, title, content });
         setNotification({ message: 'OCR Scan Ingested', type: 'success' });
@@ -193,8 +193,8 @@ export default function App() {
   const initiateExport = (format: 'pdf' | 'docx') => {
     if (!activeDoc) return;
     setPendingFormat(format);
-    // Explicitly bind to current document title state
-    setSuggestedName(sanitizeFilename(activeDoc.title) || "vault-export");
+    // Explicitly bind filename identifier to active title
+    setSuggestedName(sanitizeFilename(activeDoc.title) || "vault_export");
     setActiveModal('export');
   };
 
@@ -294,7 +294,9 @@ export default function App() {
           )}
         </div>
 
-        {/* Status indicator only - NO DISTRACTING LABELS */}
+        {/* 200px Scroll clearance is provided by Editor/Preview pb-props */}
+        
+        {/* Silent Indicator: Pure Emerald Pulse */}
         <div className="fixed bottom-24 right-6 md:bottom-8 md:right-8 flex items-center justify-center p-2 rounded-full z-[130] pointer-events-none">
           <div className={`w-2 h-2 rounded-full transition-all duration-500 shadow-emerald-glow ${vaultSynced ? "bg-emerald-vault" : "bg-emerald-vault/20 animate-pulse"}`} />
         </div>

@@ -64,16 +64,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
         <div className="flex items-center gap-2 z-[9999]">
           <ShieldCheck className="text-emerald-vault w-5 h-5 md:w-4 md:h-4" />
-          {/* Minimal labels only, NO "VAULT SYNCED" text */}
-          <span className="text-[12px] md:text-[10px] uppercase tracking-[0.2em] font-black text-vault-text hidden sm:inline-block">
-            Vault
-          </span>
-        </div>
-        
-        {/* Silent Emerald Pulse Indicator */}
-        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.02] border border-vault-border hidden lg:flex transition-all">
+          {/* Silent Indicator: NO TEXT LABELS to avoid obstruction */}
           <div 
-            className={`w-1.5 h-1.5 rounded-full transition-all duration-500 shadow-emerald-glow ${isSaving ? 'bg-emerald-vault animate-pulse' : 'bg-emerald-vault/40'}`} 
+            className={`w-1.5 h-1.5 rounded-full transition-all duration-500 shadow-emerald-glow ml-1 ${isSaving ? 'bg-emerald-vault animate-pulse' : 'bg-emerald-vault/40'}`} 
           />
         </div>
       </div>
@@ -143,11 +136,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             {isExporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
             <span className="hidden md:inline">Export PDF</span>
           </button>
-        </div>
-        
-        {/* Mobile Mini Status Dot */}
-        <div className="sm:hidden flex items-center gap-2 px-3 py-2 rounded-full bg-white/[0.02] border border-vault-border">
-          <div className={`w-1.5 h-1.5 rounded-full transition-all duration-500 shadow-emerald-glow ${isSaving ? 'bg-emerald-vault animate-pulse' : 'bg-emerald-vault/40'}`} />
         </div>
       </div>
     </nav>
