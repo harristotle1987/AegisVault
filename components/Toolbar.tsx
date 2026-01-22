@@ -64,14 +64,13 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
         <div className="flex items-center gap-2 z-[9999]">
           <ShieldCheck className="text-emerald-vault w-5 h-5 md:w-4 md:h-4" />
+          {/* Minimal labels only, NO "VAULT SYNCED" text */}
           <span className="text-[12px] md:text-[10px] uppercase tracking-[0.2em] font-black text-vault-text hidden sm:inline-block">
-            Sovereign Vault
-          </span>
-          <span className="text-[12px] uppercase tracking-[0.2em] font-black text-vault-text sm:hidden">
             Vault
           </span>
         </div>
         
+        {/* Silent Emerald Pulse Indicator */}
         <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.02] border border-vault-border hidden lg:flex transition-all">
           <div 
             className={`w-1.5 h-1.5 rounded-full transition-all duration-500 shadow-emerald-glow ${isSaving ? 'bg-emerald-vault animate-pulse' : 'bg-emerald-vault/40'}`} 
@@ -91,14 +90,14 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <button 
             onClick={onOpenScanner}
             className="p-2.5 rounded-lg border border-vault-border bg-obsidian-muted hover:bg-emerald-glow hover:border-emerald-vault/50 transition-all text-vault-dim hover:text-emerald-vault active:scale-95"
-            title="Sovereign Scanner (OCR)"
+            title="Sovereign Scanner"
           >
             <Scan size={18} />
           </button>
           <button 
             onClick={() => fileInputRef.current?.click()}
             className="p-2.5 rounded-lg border border-vault-border bg-obsidian-muted hover:bg-emerald-glow hover:border-emerald-vault/50 transition-all text-vault-dim hover:text-emerald-vault active:scale-95"
-            title="Ingest Asset (Universal)"
+            title="Ingest Asset"
           >
             <Upload size={18} />
           </button>
@@ -146,6 +145,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           </button>
         </div>
         
+        {/* Mobile Mini Status Dot */}
         <div className="sm:hidden flex items-center gap-2 px-3 py-2 rounded-full bg-white/[0.02] border border-vault-border">
           <div className={`w-1.5 h-1.5 rounded-full transition-all duration-500 shadow-emerald-glow ${isSaving ? 'bg-emerald-vault animate-pulse' : 'bg-emerald-vault/40'}`} />
         </div>

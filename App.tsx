@@ -133,9 +133,10 @@ export default function App() {
 
   const handleScannerCapture = async (ocrText: string) => {
     try {
+      const title = `Scan ${new Date().toLocaleDateString()}`;
       const newDoc = await createDraft();
       if (newDoc) {
-        const title = `Scan ${new Date().toLocaleDateString()}`;
+        // Pre-pend structural header
         const content = `# ${title}\n\n${ocrText}`;
         await saveDraft({ ...newDoc, title, content });
         setNotification({ message: 'OCR Scan Ingested', type: 'success' });
@@ -192,6 +193,7 @@ export default function App() {
   const initiateExport = (format: 'pdf' | 'docx') => {
     if (!activeDoc) return;
     setPendingFormat(format);
+    // Explicitly bind to current document title state
     setSuggestedName(sanitizeFilename(activeDoc.title) || "vault-export");
     setActiveModal('export');
   };
@@ -292,8 +294,7 @@ export default function App() {
           )}
         </div>
 
-        {/* 200px Scroll clearance ensured by pb-[200px] in Editor and Preview components */}
-
+        {/* Status indicator only - NO DISTRACTING LABELS */}
         <div className="fixed bottom-24 right-6 md:bottom-8 md:right-8 flex items-center justify-center p-2 rounded-full z-[130] pointer-events-none">
           <div className={`w-2 h-2 rounded-full transition-all duration-500 shadow-emerald-glow ${vaultSynced ? "bg-emerald-vault" : "bg-emerald-vault/20 animate-pulse"}`} />
         </div>
@@ -342,7 +343,6 @@ export default function App() {
                       </div>
                    </div>
                 </div>
-                <p className="text-[9px] text-vault-dim italic opacity-40">Hardening typographic rhythm within local memory...</p>
              </div>
           </div>
         )}
