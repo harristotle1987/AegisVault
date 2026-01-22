@@ -17,6 +17,7 @@ import { useVault } from './hooks/useVault';
 import { VaultFont } from './types';
 import { Shield, ShieldCheck, Volume2, BookOpen, Scan } from 'lucide-react';
 import { usePWAInstall } from './hooks/usePWAInstall';
+import { marked } from 'marked';
 
 type ModalType = 'config' | 'tags' | 'purge' | 'scanner' | 'export' | 'success' | null;
 
@@ -50,9 +51,9 @@ export default function App() {
   });
 
   const saveTimeoutRef = useRef<number | null>(null);
+  const isTogglingAudioRef = useRef(false);
   const { isInstallable, install } = usePWAInstall();
 
-  // Async Audio Stabilization Protocol
   useEffect(() => {
     const initSpeech = () => {
       if (typeof window !== 'undefined' && window.speechSynthesis) {
@@ -75,7 +76,10 @@ export default function App() {
       e.stopPropagation();
     }
     
-    if (!activeDoc || !speechReady) return;
+    // Mutex to prevent double-click clash
+    if (isTogglingAudioRef.current || !activeDoc || !speechReady) return;
+    isTogglingAudioRef.current = true;
+    setTimeout(() => { isTogglingAudioRef.current = false; }, 400);
     
     if (isPlayingAudio) {
       window.speechSynthesis.cancel();
@@ -83,11 +87,15 @@ export default function App() {
       return;
     }
 
-    // Pure-Text Audio Engine: Strip all Markdown symbols and legacy artifacts
-    const cleanText = activeDoc.content
-      .replace(/[#*`>_\-\+\[\]\(\)\$\!@:;]/g, ' ') 
-      .replace(/__\d+\.__/g, '') // Absolute purge of legacy artifacts
-      .replace(/\s+/g, ' ')                   
+    // Direct-from-Render Extraction: Extract text content from the parsed Markdown HTML
+    const html = marked.parse(activeDoc.content);
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html as string;
+    
+    // Remove code blocks and artifacts from audio stream
+    const cleanText = (tempDiv.textContent || tempDiv.innerText || "")
+      .replace(/__\d+\.__/g, '') // Scrub legacy artifacts
+      .replace(/\s+/g, ' ')
       .trim();
 
     if (!cleanText) return;
@@ -150,7 +158,6 @@ export default function App() {
 
   return (
     <div className={`fixed inset-0 overflow-hidden selection:bg-emerald-vault/30 flex flex-row bg-black text-white`}>
-      {/* Sidebar Overlay with High Z-Index for mobile close-on-click-outside */}
       {isSidebarOpen && (
         <div 
           className="md:hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] animate-in fade-in duration-300" 
@@ -197,8 +204,8 @@ export default function App() {
           )}
         </div>
 
-        {/* Action Bank: Absolute Right Edge with 3rem gap (gap-12) and smaller icons for zero overlap */}
-        <div className="fixed top-3 md:top-4 right-3 md:right-4 flex items-center gap-12 z-[10001] pointer-events-auto">
+        {/* Action Bank: Absolute Right Edge with 3rem gap (gap-12) */}
+        <div className="fixed top-3 md:top-4 right-6 md:right-10 flex items-center gap-12 z-[10001] pointer-events-auto">
            <button 
              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setActiveModal('scanner'); }} 
              className="flex flex-col items-center gap-1 transition-all active:scale-90 group"
@@ -230,7 +237,6 @@ export default function App() {
           onExportPdf={() => handleExportInitiate('pdf')}
         />
         
-        {/* Mobile Tab Toggle: Strategically Positioned to avoid UI clash */}
         <div className="md:hidden fixed bottom-36 right-4 z-[9999]">
            <button 
              onClick={() => setMobileTab(prev => prev === 'editor' ? 'preview' : 'editor')} 
