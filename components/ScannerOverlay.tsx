@@ -7,6 +7,10 @@ interface ScannerOverlayProps {
   onClose: () => void;
 }
 
+/**
+ * ScannerOverlay: HD Image Plate Capture
+ * Feature: 100% Document Validity (No OCR conversion)
+ */
 export const ScannerOverlay: React.FC<ScannerOverlayProps> = ({ onCapture, onClose }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -22,7 +26,7 @@ export const ScannerOverlay: React.FC<ScannerOverlayProps> = ({ onCapture, onClo
     async function startCamera() {
       try {
         stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { facingMode: 'environment' },
+          video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
           audio: false 
         });
         if (videoRef.current) {
@@ -51,15 +55,15 @@ export const ScannerOverlay: React.FC<ScannerOverlayProps> = ({ onCapture, onClo
     if (!videoRef.current || isProcessing) return;
     
     try {
-      const blob = await ScannerService.captureImage(videoRef.current);
       setIsProcessing(true);
-      
+      const blob = await ScannerService.captureImage(videoRef.current);
       const hardenedImage = await ScannerService.hardenDocumentPlate(blob);
       setCapturedUrl(hardenedImage);
       
-      // Inject as a markdown image plate
-      const markdownImage = `\n\n![HD Scan ${new Date().toLocaleTimeString()}](${hardenedImage})\n\n`;
+      // Inject strictly as a markdown image plate to preserve math/geometry integrity
+      const markdownImage = `\n\n![Sovereign Scan ${new Date().toLocaleTimeString()}](${hardenedImage})\n\n`;
       onCapture(markdownImage);
+      setIsProcessing(false);
     } catch (err) {
       setError("Plate hardening failure. Please try again.");
       setIsProcessing(false);
@@ -70,12 +74,12 @@ export const ScannerOverlay: React.FC<ScannerOverlayProps> = ({ onCapture, onClo
   const toggleZoom = () => setIsZoomed(!isZoomed);
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-obsidian/95 backdrop-blur-xl flex flex-col items-center justify-center p-6 animate-in fade-in duration-300">
-      <div className="w-full max-w-xl h-[70vh] relative rounded-3xl overflow-hidden border border-emerald-vault/20 bg-black shadow-sovereign">
+    <div className="fixed inset-0 z-[10005] bg-obsidian/95 backdrop-blur-xl flex flex-col items-center justify-center p-6 animate-in fade-in duration-300">
+      <div className="w-full max-w-2xl h-[75vh] relative rounded-3xl overflow-hidden border border-emerald-vault/20 bg-black shadow-sovereign">
         {isInitializing && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-emerald-vault z-10">
             <Loader2 className="w-8 h-8 animate-spin" />
-            <span className="text-[10px] font-black uppercase tracking-widest">Waking Optic Shards...</span>
+            <span className="text-[10px] font-black uppercase tracking-widest">Calibrating Optic Bridge...</span>
           </div>
         )}
 
@@ -95,8 +99,8 @@ export const ScannerOverlay: React.FC<ScannerOverlayProps> = ({ onCapture, onClo
           >
             <img 
               src={capturedUrl} 
-              className={`transition-transform duration-300 origin-top-left ${isZoomed ? 'scale-[2.5] w-auto h-auto max-w-none' : 'w-full h-full object-cover'}`} 
-              alt="Capture Preview" 
+              className={`transition-transform duration-300 origin-top-left ${isZoomed ? 'scale-[2.5] w-auto h-auto max-w-none' : 'w-full h-full object-contain'}`} 
+              alt="HD Plate Capture" 
             />
           </div>
         ) : (
@@ -111,7 +115,7 @@ export const ScannerOverlay: React.FC<ScannerOverlayProps> = ({ onCapture, onClo
         {capturedUrl && !isProcessing && (
            <button 
              onClick={(e) => { e.stopPropagation(); toggleZoom(); }}
-             className="absolute top-4 right-4 z-40 p-3 rounded-full bg-obsidian/80 border border-emerald-vault/20 text-emerald-vault hover:bg-emerald-vault hover:text-black transition-all"
+             className="absolute top-6 right-6 z-40 p-3 rounded-full bg-obsidian/80 border border-emerald-vault/20 text-emerald-vault hover:bg-emerald-vault hover:text-black transition-all"
            >
              {isZoomed ? <Minimize size={20} /> : <Maximize size={20} />}
            </button>
@@ -122,46 +126,47 @@ export const ScannerOverlay: React.FC<ScannerOverlayProps> = ({ onCapture, onClo
              <div className="w-20 h-20 rounded-full border-4 border-emerald-vault/10 border-t-emerald-vault animate-spin" />
              <div className="text-center space-y-1">
                 <span className="text-white font-black uppercase tracking-[0.4em] text-[10px]">Hardening Image Plate</span>
-                <p className="text-vault-dim text-[8px] font-mono uppercase tracking-widest">Applying Sovereign Filters</p>
+                <p className="text-vault-dim text-[8px] font-mono uppercase tracking-widest">Preserving Document Validity</p>
              </div>
           </div>
         )}
 
         {!isInitializing && !error && !isProcessing && !capturedUrl && (
           <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-            <div className="w-[85%] h-[85%] border-2 border-emerald-vault/20 rounded-2xl relative">
-              <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-emerald-vault rounded-tl-xl" />
-              <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-emerald-vault rounded-tr-xl" />
-              <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-emerald-vault rounded-bl-xl" />
-              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-emerald-vault rounded-br-xl" />
+            <div className="w-[85%] h-[85%] border-2 border-emerald-vault/10 rounded-2xl relative">
+              <div className="absolute top-0 left-0 w-10 h-10 border-t-4 border-l-4 border-emerald-vault rounded-tl-xl" />
+              <div className="absolute top-0 right-0 w-10 h-10 border-t-4 border-r-4 border-emerald-vault rounded-tr-xl" />
+              <div className="absolute bottom-0 left-0 w-10 h-10 border-b-4 border-l-4 border-emerald-vault rounded-bl-xl" />
+              <div className="absolute bottom-0 right-0 w-10 h-10 border-b-4 border-r-4 border-emerald-vault rounded-br-xl" />
+              <div className="absolute top-1/2 left-0 right-0 h-px bg-emerald-vault/20 animate-pulse" />
             </div>
           </div>
         )}
       </div>
 
-      <div className="mt-10 flex items-center gap-8">
+      <div className="mt-12 flex items-center gap-10">
         <button 
           onClick={onClose}
-          className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-vault-dim hover:text-white transition-all active:scale-90"
+          className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-vault-dim hover:text-white transition-all active:scale-90"
         >
-          <X size={24} />
+          <X size={28} />
         </button>
 
         <button 
           onClick={handleCapture}
           disabled={isInitializing || isProcessing || !!capturedUrl}
-          className="w-20 h-20 rounded-full bg-emerald-vault border-8 border-emerald-vault/20 flex items-center justify-center text-black shadow-emerald-glow active:scale-95 disabled:opacity-50 disabled:grayscale transition-all"
+          className="w-24 h-24 rounded-full bg-emerald-vault border-8 border-emerald-vault/10 flex items-center justify-center text-black shadow-emerald-glow active:scale-95 disabled:opacity-50 disabled:grayscale transition-all"
         >
-          {isProcessing ? <Loader2 size={32} className="animate-spin" /> : <Camera size={32} strokeWidth={2.5} />}
+          {isProcessing ? <Loader2 size={36} className="animate-spin" /> : <Camera size={36} strokeWidth={2.5} />}
         </button>
 
-        <div className="w-14 h-14" />
+        <div className="w-16 h-16" />
       </div>
 
-      <div className="mt-8 flex items-center gap-2 px-4 py-2 bg-emerald-vault/5 border border-emerald-vault/10 rounded-full">
-        <Zap size={12} className="text-emerald-vault" />
-        <span className="text-[9px] font-black uppercase tracking-[0.3em] text-emerald-vault/70">
-          {capturedUrl ? "100% Document Validity Verified" : "HD Plate Scanner Active"}
+      <div className="mt-8 flex items-center gap-2 px-6 py-2.5 bg-emerald-vault/5 border border-emerald-vault/10 rounded-full">
+        <Zap size={14} className="text-emerald-vault" />
+        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-vault/80">
+          {capturedUrl ? "100% Structural Validity Preserved" : "Sovereign Plate Bridge Active"}
         </span>
       </div>
     </div>
