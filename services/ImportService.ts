@@ -1,3 +1,4 @@
+
 import * as mammoth from 'mammoth';
 import * as pdfjs from 'pdfjs-dist';
 
@@ -53,18 +54,19 @@ export const ImportService = {
         
         case 'docx':
           const docxBuffer = await file.arrayBuffer();
-          // Defensive library access for mammoth (handles esm.sh module variations)
           const m: any = mammoth;
           
           // prioritize property access, then default object access, then the module itself
-          const converter = m.convertToMarkdown || m.default?.convertToMarkdown || m.default;
+          let conversionFn = m.convertToMarkdown || m.default?.convertToMarkdown;
           
-          if (typeof converter !== 'function' && !m.convertToMarkdown && !m.default?.convertToMarkdown) {
-            console.error("Mammoth Resolution Failure. Module Keys:", Object.keys(m));
-            throw new Error("Conversion engine (Mammoth) failed to resolve.");
+          if (typeof conversionFn !== 'function' && typeof m.default === 'function') {
+             conversionFn = m.default;
           }
-          
-          const conversionFn = typeof converter === 'function' ? converter : m.convertToMarkdown || m.default?.convertToMarkdown;
+
+          if (typeof conversionFn !== 'function') {
+            console.error("Mammoth Resolution Failure. Module Keys:", Object.keys(m));
+            throw new Error("Conversion engine (Mammoth) failed to resolve correctly.");
+          }
           
           const result = await conversionFn({ arrayBuffer: new Uint8Array(docxBuffer) });
           content = result.value || `# ${title}\n\n[Bridge.Notice]: Content converted.`;
