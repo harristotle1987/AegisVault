@@ -6,6 +6,10 @@ interface ScannerOverlayProps {
   onClose: () => void;
 }
 
+/**
+ * ScannerOverlay: Sovereign HD Monochrome Protocol
+ * Enhanced with thumb-accessible Exit trigger and HD filtering.
+ */
 export const ScannerOverlay: React.FC<ScannerOverlayProps> = ({ onCapture, onClose }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [hasPermission, setHasPermission] = useState(false);
@@ -55,7 +59,7 @@ export const ScannerOverlay: React.FC<ScannerOverlayProps> = ({ onCapture, onClo
   };
 
   return (
-    <div className="fixed inset-0 z-[200] bg-black flex flex-col items-center justify-center p-6">
+    <div className="fixed inset-0 z-[200] bg-black flex flex-col items-center justify-center p-6 animate-in fade-in duration-500">
       <div className="absolute top-8 left-8 flex items-center gap-3">
         <Shield className="text-emerald-vault w-6 h-6" />
         <div className="flex flex-col">
@@ -64,7 +68,11 @@ export const ScannerOverlay: React.FC<ScannerOverlayProps> = ({ onCapture, onClo
         </div>
       </div>
       
-      <button onClick={onClose} className="absolute top-8 right-8 text-white p-2 hover:bg-white/10 rounded-full transition-all active:scale-90">
+      <button 
+        onClick={onClose} 
+        className="absolute top-8 right-8 text-white p-2 hover:bg-white/10 rounded-full transition-all active:scale-90 z-10 hidden md:block"
+        aria-label="Close Scanner"
+      >
         <X size={28} />
       </button>
 
@@ -82,18 +90,36 @@ export const ScannerOverlay: React.FC<ScannerOverlayProps> = ({ onCapture, onClo
           <div className="w-4 h-4 border-t-2 border-r-2 border-emerald-vault absolute top-0 right-0" />
           <div className="w-4 h-4 border-b-2 border-l-2 border-emerald-vault absolute bottom-0 left-0" />
           <div className="w-4 h-4 border-b-2 border-r-2 border-emerald-vault absolute bottom-0 right-0" />
+          
+          <div className="w-px h-12 bg-emerald-vault/20 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+          <div className="w-12 h-px bg-emerald-vault/20 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
         </div>
       </div>
 
-      <button 
-        onClick={capture} 
-        className="mt-12 w-24 h-24 rounded-full bg-emerald-vault flex items-center justify-center text-black shadow-[0_15px_45px_rgba(16,185,129,0.3)] active:scale-90 transition-all hover:scale-105"
-      >
-        <Camera size={36} />
-      </button>
+      <div className="mt-12 flex items-center gap-12 md:gap-16">
+        <button 
+          onClick={onClose}
+          className="flex flex-col items-center gap-2 text-vault-dim hover:text-white transition-all active:scale-95 group"
+        >
+          <div className="w-14 h-14 rounded-full border border-white/10 flex items-center justify-center bg-white/5 group-hover:bg-white/10 transition-colors">
+            <X size={24} />
+          </div>
+          <span className="text-[10px] font-black uppercase tracking-[0.2em]">Exit</span>
+        </button>
 
-      <p className="mt-8 text-[9px] font-black uppercase tracking-[0.2em] text-vault-dim opacity-40 text-center max-w-[240px]">
-        Sovereign Visual Capture Protocol. Zero Text interference ensured.
+        <button 
+          onClick={capture} 
+          className="w-24 h-24 rounded-full bg-emerald-vault flex items-center justify-center text-black shadow-[0_15px_45px_rgba(16,185,129,0.3)] active:scale-90 transition-all hover:scale-105 border-4 border-black"
+          aria-label="Capture Document"
+        >
+          <Camera size={36} />
+        </button>
+
+        <div className="w-14 hidden md:block" /> {/* Layout balancer */}
+      </div>
+
+      <p className="mt-10 text-[9px] font-black uppercase tracking-[0.2em] text-vault-dim opacity-40 text-center max-w-[240px] leading-relaxed">
+        Sovereign Visual Capture Protocol.<br/>High Definition monochrome normalization active.
       </p>
     </div>
   );
