@@ -27,12 +27,12 @@ export const ImportService = {
 
   /**
    * Triple-Pass Artifact Scrub:
-   * Removes sequence sharding artifacts like __1.__, __2.__, etc.
+   * Removes sequence sharding artifacts like __1.__, _3._, etc.
    */
   sanitize(content: string): string {
     return content
       .replace(/__\d+\.__/g, '') // Scrub pattern: underscore underscore digits period underscore underscore
-      .replace(/_\d+\._/g, '')   
+      .replace(/_\d+\._/g, '')   // Scrub pattern: underscore digits period underscore (The "3." error)
       .replace(/\d+\.\s\_\_/g, ' ')
       .replace(/@\w+/g, ' ')
       .replace(/\n{3,}/g, '\n\n')

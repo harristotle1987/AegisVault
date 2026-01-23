@@ -38,7 +38,7 @@ export const MobileActionBar: React.FC<MobileActionBarProps> = ({
         <span className="text-[9px] font-black uppercase tracking-[0.2em]">Import</span>
       </button>
 
-      {/* Action 3: DOWNLOAD (With Toggle Menu) */}
+      {/* Action 3: DOWNLOAD (Sub-Menu Protocol) */}
       <div className="flex-1 relative">
         <button 
           onClick={onToggleMenu}
