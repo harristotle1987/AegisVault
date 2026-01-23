@@ -3,8 +3,8 @@ import * as pdfjs from 'pdfjs-dist';
 
 /**
  * Universal Ingestor Logic: Senior Lead Architect
- * Feature: Multi-format Batch Ingestion Bridge
- * Resolve: High-resiliency structural conversion for DOCX.
+ * Feature: Multi-format Batch Ingestion Bridge with Triple-Pass Artifact Scrubbing
+ * Resolve: High-resiliency structural conversion for DOCX/PDF.
  */
 export const ImportService = {
   initialized: false,
@@ -25,10 +25,14 @@ export const ImportService = {
     }
   },
 
+  /**
+   * Triple-Pass Artifact Scrub:
+   * Removes sequence sharding artifacts like __1.__, __2.__, etc.
+   */
   sanitize(content: string): string {
     return content
-      .replace(/__\d+\.__/g, '')
-      .replace(/_\d+\._/g, '')
+      .replace(/__\d+\.__/g, '') // Scrub pattern: underscore underscore digits period underscore underscore
+      .replace(/_\d+\._/g, '')   
       .replace(/\d+\.\s\_\_/g, ' ')
       .replace(/@\w+/g, ' ')
       .replace(/\n{3,}/g, '\n\n')
@@ -54,7 +58,6 @@ export const ImportService = {
           const docxBuffer = await file.arrayBuffer();
           const m: any = mammoth;
           
-          // Structural Markdown Resolution: Preserves bold, headers, and lists
           let conversionFn = m.convertToMarkdown || m.default?.convertToMarkdown;
           
           if (typeof conversionFn !== 'function' && typeof m.default === 'function') {
@@ -62,7 +65,7 @@ export const ImportService = {
           }
 
           if (typeof conversionFn !== 'function') {
-            throw new Error("Conversion engine (Mammoth) handshake failure.");
+            throw new Error("Conversion engine handshake failure.");
           }
           
           const result = await conversionFn({ arrayBuffer: new Uint8Array(docxBuffer) });
@@ -75,14 +78,13 @@ export const ImportService = {
           break;
 
         default:
-          throw new Error(`Format '${extension}' is not currently bridged.`);
+          throw new Error(`Format '${extension}' is not bridged.`);
       }
 
       return { title, content: this.sanitize(content) };
     } catch (err) {
-      console.error('Sovereign Bridge Failure Detail:', err);
-      const msg = err instanceof Error ? err.message : 'Bridge failure: Ingestion sequence interrupted';
-      throw new Error(msg);
+      console.error('Sovereign Bridge Failure:', err);
+      throw new Error(err instanceof Error ? err.message : 'Ingestion sequence interrupted');
     }
   },
 
