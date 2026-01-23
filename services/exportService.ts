@@ -35,7 +35,21 @@ const getImageDimensions = (base64: string): Promise<{ w: number, h: number }> =
   });
 };
 
+const base64ToUint8Array = (base64: string): Uint8Array => {
+  const base64Data = base64.includes(',') ? base64.split(',')[1] : base64;
+  const binaryString = window.atob(base64Data);
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
+};
+
 export class VaultConverter {
+  /**
+   * PDF Mirror: Precision Image Vector Scaling
+   */
   static async toPDF(markdown: string, fileName: string = 'vault-export.pdf', fontMode: VaultFont = 'sans'): Promise<Blob> {
     const pdf = new jsPDF('p', 'mm', 'a4');
     await FontLoader.loadForPDF(pdf);
@@ -113,8 +127,9 @@ export class VaultConverter {
             const scale = Math.min(contentWidth / dims.w, 1);
             const w = dims.w * scale;
             const h = dims.h * scale;
-            checkPageBreak(h + 5);
-            // Explicitly set format to JPEG/PNG based on URI if possible
+            checkPageBreak(h + 8);
+            
+            // Handle binary injection for PDF visibility
             const format = imgToken.href.includes('png') ? 'PNG' : 'JPEG';
             pdf.addImage(imgToken.href, format, margin, cursorY, w, h);
             cursorY += h + 8;
@@ -152,6 +167,9 @@ export class VaultConverter {
     return blob;
   }
 
+  /**
+   * DOCX Shard: Binary Image Injunction
+   */
   static async toDocx(markdown: string, fileName: string = 'vault-export.docx'): Promise<Blob> {
     const tokens = marked.lexer(markdown);
     const children: any[] = [];
@@ -160,16 +178,25 @@ export class VaultConverter {
       const runs = [];
       for (const t of inlineTokens) {
         if (t.type === 'image') {
-          const dims = await getImageDimensions(t.href);
-          const maxWidth = 550; // Internal DOCX points
-          const scale = Math.min(maxWidth / dims.w, 1);
-          runs.push(new ImageRun({
-            data: t.href,
-            transformation: {
-              width: dims.w * scale,
-              height: dims.h * scale,
-            }
-          }));
+          try {
+            const dims = await getImageDimensions(t.href);
+            const maxWidth = 550; // Internal DOCX coordinate space
+            const scale = Math.min(maxWidth / dims.w, 1);
+            
+            // Convert to binary Uint8Array for maximum compatibility with docx library
+            const binaryData = base64ToUint8Array(t.href);
+            
+            runs.push(new ImageRun({
+              data: binaryData,
+              transformation: {
+                width: dims.w * scale,
+                height: dims.h * scale,
+              }
+            }));
+          } catch (e) {
+            console.error("Image Shard Injection Failure:", e);
+            runs.push(new TextRun({ text: "[Image_Shard_Corrupted]", color: 'FF0000', size: 16 }));
+          }
           continue;
         }
 

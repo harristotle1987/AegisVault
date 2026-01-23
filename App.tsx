@@ -87,7 +87,7 @@ export default function App() {
 
     const text = utterances.current[currentUtteranceIndex.current];
     const utter = new SpeechSynthesisUtterance(text);
-    // Inject the configured speech rate
+    // Inject the sovereign speech rate
     utter.rate = speechRate;
     
     utter.onend = () => {
@@ -181,7 +181,10 @@ export default function App() {
         
         setNotification({ message: 'Protocol: Asset Ingested', type: 'success' });
       } catch (err) {
-        setNotification({ message: 'Bridge failure: Engine unresolved', type: 'error' });
+        setNotification({ 
+          message: err instanceof Error ? err.message : 'Bridge failure: Engine unresolved', 
+          type: 'error' 
+        });
       }
     };
     input.click();
@@ -329,8 +332,8 @@ export default function App() {
         </div>
 
         {notification && (
-          <div className="fixed top-24 right-8 z-[250] flex items-center gap-3 px-5 py-3 rounded-xl border backdrop-blur-md bg-emerald-vault/10 border-emerald-vault/30 text-emerald-vault animate-in slide-in-from-right-10 duration-500">
-            <ShieldCheck size={16} />
+          <div className="fixed top-24 right-8 z-[250] flex items-center gap-3 px-5 py-3 rounded-xl border backdrop-blur-md bg-emerald-vault/10 border-emerald-vault/30 text-emerald-vault animate-in slide-in-from-right-10 duration-500 max-w-[80vw]">
+            <ShieldCheck size={16} className="shrink-0" />
             <span className="text-xs font-bold uppercase tracking-wider">{notification.message}</span>
           </div>
         )}

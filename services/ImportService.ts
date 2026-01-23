@@ -4,6 +4,7 @@ import * as pdfjs from 'pdfjs-dist';
 /**
  * Universal Ingestor Logic: Senior Lead Architect
  * Feature: Multi-format Batch Ingestion Bridge
+ * Resolve: High-resiliency handshake for esm.sh modules.
  */
 export const ImportService = {
   initialized: false,
@@ -11,6 +12,7 @@ export const ImportService = {
   async initPdf() {
     if (this.initialized) return;
     try {
+      // Handle the complex export structure of pdfjs-dist on esm.sh
       const pdfjsLib: any = pdfjs;
       const GlobalWorkerOptions = pdfjsLib.GlobalWorkerOptions || pdfjsLib.default?.GlobalWorkerOptions;
       const version = pdfjsLib.version || pdfjsLib.default?.version || '3.11.174';
@@ -20,7 +22,7 @@ export const ImportService = {
       }
       this.initialized = true;
     } catch (e) {
-      console.warn("PDF engine initialization deferred.");
+      console.warn("Sovereign PDF engine initialization deferred.");
     }
   },
 
@@ -50,14 +52,21 @@ export const ImportService = {
           break;
         
         case 'docx':
-          const arrayBuffer = await file.arrayBuffer();
-          // Multi-path library resolution for mammoth
+          const docxBuffer = await file.arrayBuffer();
+          // Defensive library access for mammoth (handles esm.sh module variations)
           const m: any = mammoth;
-          const converter = m.convertToMarkdown || m.default?.convertToMarkdown;
           
-          if (!converter) throw new Error("Conversion engine handshake failed.");
+          // prioritize property access, then default object access, then the module itself
+          const converter = m.convertToMarkdown || m.default?.convertToMarkdown || m.default;
           
-          const result = await converter({ arrayBuffer: new Uint8Array(arrayBuffer) });
+          if (typeof converter !== 'function' && !m.convertToMarkdown && !m.default?.convertToMarkdown) {
+            console.error("Mammoth Resolution Failure. Module Keys:", Object.keys(m));
+            throw new Error("Conversion engine (Mammoth) failed to resolve.");
+          }
+          
+          const conversionFn = typeof converter === 'function' ? converter : m.convertToMarkdown || m.default?.convertToMarkdown;
+          
+          const result = await conversionFn({ arrayBuffer: new Uint8Array(docxBuffer) });
           content = result.value || `# ${title}\n\n[Bridge.Notice]: Content converted.`;
           break;
 
@@ -67,13 +76,14 @@ export const ImportService = {
           break;
 
         default:
-          throw new Error('Unsupported binary format.');
+          throw new Error(`Format '${extension}' is not currently bridged.`);
       }
 
       return { title, content: this.sanitize(content) };
     } catch (err) {
-      console.error('Sovereign Bridge Failure Trace:', err);
-      throw err;
+      console.error('Sovereign Bridge Failure Detail:', err);
+      const msg = err instanceof Error ? err.message : 'Bridge failure: Ingestion sequence interrupted';
+      throw new Error(msg);
     }
   },
 
@@ -81,9 +91,10 @@ export const ImportService = {
     const arrayBuffer = await file.arrayBuffer();
     const pdfjsLib: any = pdfjs;
     const getDocument = pdfjsLib.getDocument || pdfjsLib.default?.getDocument;
-    if (!getDocument) throw new Error("PDF engine handshake failed.");
+    
+    if (!getDocument) throw new Error("PDF engine (pdfjs) handshake failed.");
 
-    const loadingTask = getDocument({ data: arrayBuffer, useWorkerFetch: false });
+    const loadingTask = getDocument({ data: new Uint8Array(arrayBuffer), useWorkerFetch: false });
     const pdf = await loadingTask.promise;
     let fullText = '';
     

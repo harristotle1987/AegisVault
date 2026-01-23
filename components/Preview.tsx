@@ -38,16 +38,18 @@ export const Preview: React.FC<PreviewProps> = ({
     if (previewRef.current) {
       previewRef.current.innerHTML = html;
 
-      // Scan for Sovereign Plates and inject actions
+      // Scan for Sovereign Plates and inject actions + responsive constraints
       const images = previewRef.current.querySelectorAll('img');
       images.forEach((img) => {
         if (img.alt === 'Sovereign Plate') {
-          // Wrap image in a relative container
+          // Wrap image in a relative container that enforces bounds
           const wrapper = document.createElement('div');
-          wrapper.className = 'relative group mb-8 overflow-hidden rounded-xl border border-vault-border shadow-lg';
+          wrapper.className = 'relative group mb-8 overflow-hidden rounded-xl border border-vault-border shadow-lg max-w-full bg-black/20';
           img.parentNode?.insertBefore(wrapper, img);
           wrapper.appendChild(img);
-          img.className = 'w-full h-auto block grayscale contrast-125';
+          
+          // Enforce image fit within its wrapper and the screen
+          img.className = 'w-full max-w-full h-auto block grayscale contrast-125 object-contain';
 
           // Action Overlay
           const overlay = document.createElement('div');
@@ -91,7 +93,7 @@ export const Preview: React.FC<PreviewProps> = ({
       if (scrollContainerRef.current) {
         const container = scrollContainerRef.current;
         container.scrollTo({
-          top: container.scrollHeight,
+          top: 0, // Reset to top for new documents
           behavior: 'auto'
         });
         lastScrolledId.current = activeDocId;
@@ -123,7 +125,7 @@ export const Preview: React.FC<PreviewProps> = ({
           <div 
             id="preview-area"
             ref={previewRef}
-            className={`flex-1 p-16 md:p-24 pb-[200px] md:pb-[200px] prose-vault selection:bg-emerald-vault/20 transition-all duration-500 ease-in-out ${fontClass}`}
+            className={`flex-1 p-8 md:p-24 pb-[200px] md:pb-[200px] prose-vault selection:bg-emerald-vault/20 transition-all duration-500 ease-in-out ${fontClass}`}
           />
           
           <div className="h-32 flex items-center justify-center border-t border-vault-border/20 mt-8 mb-24">
