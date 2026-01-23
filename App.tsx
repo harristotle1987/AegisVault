@@ -142,7 +142,7 @@ export default function App() {
 
     if (!activeDoc) return;
 
-    // Transformative Audio: Convert __1.__ -> 1. for TTS clarity
+    // Transformative Rendering for Audio: Strip artifacts from vocal stream
     const transformedContent = activeDoc.content.replace(/__(\d+)\.__/g, '$1.');
     const html = marked.parse(transformedContent);
     const tempDiv = document.createElement('div');
@@ -206,11 +206,25 @@ export default function App() {
         await StorageService.purgeMocks();
         
         // UUID PROVISIONING before DB put to ensure state integrity
-        const newDoc = await createDraft();
-        const fullDoc = { ...newDoc, title, content };
+        const newId = crypto.randomUUID();
+        const newDoc: SovereignDocument = {
+          id: newId,
+          title,
+          content,
+          createdAt: Date.now(),
+          lastModified: Date.now(),
+          status: 'draft',
+          metadata: {
+            wordCount: content.split(/\s+/).length,
+            estimatedReadTime: Math.ceil(content.split(/\s+/).length / 200),
+            tags: [],
+            audioProgress: 0
+          },
+          theme: 'obsidian'
+        };
         
-        await saveDraft(fullDoc);
-        setActiveDocId(newDoc.id);
+        await StorageService.saveDocument(newDoc);
+        setActiveDocId(newId);
         
         setNotification({ message: 'Protocol: Asset Ingested', type: 'success' });
       } catch (err) {
