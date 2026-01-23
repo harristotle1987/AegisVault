@@ -146,7 +146,7 @@ export default function App() {
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = html as string;
     
-    // Hardened Sanitization Protocol: Strip Markdown symbols and sharding markers
+    // Hardened Sanitization Protocol: Strip Markdown symbols ($@, #, *, :) and sharding markers
     const cleanText = (tempDiv.textContent || tempDiv.innerText || "")
       .replace(/__\d+\.__/g, '') 
       .replace(/[\$@#\*:`>_\-\+\[\]\(\)\!@:;=]/g, ' ') 
@@ -308,7 +308,7 @@ export default function App() {
           )}
         </div>
 
-        {/* Action Bank: Positioned Far Right Edge with Collision Guard */}
+        {/* Action Bank: Positioned Far Right, Collision-Resistant on Mobile */}
         <div 
           className={`fixed top-[18px] md:top-[12px] right-4 md:right-8 flex items-center gap-6 md:gap-10 z-[10002] pointer-events-auto transition-all duration-300 ease-in-out origin-right ${
             isSidebarOpen ? 'scale-[0.6] translate-x-14 opacity-20 pointer-events-none' : 'scale-100 translate-x-0 opacity-100'
