@@ -50,7 +50,7 @@ export const StorageService = {
         const mock = MOCK_ARCHIVES[i];
         await db.documents.add({
           ...mock,
-          id: `mock-${i}`, // Identifier for mocks
+          id: `mock-${i}`, 
           createdAt: now - (i * 1000), 
           lastModified: now - (i * 1000)
         } as SovereignDocument);
@@ -59,7 +59,7 @@ export const StorageService = {
   },
 
   /**
-   * Mock Purge Protocol: Deletes all documents with 'mock-' prefix.
+   * Hardened Purge: Immediately evicts all mock placeholders from the registry.
    */
   async purgeMocks(): Promise<void> {
     const mocks = await db.documents.filter(doc => doc.id.startsWith('mock-')).toArray();
@@ -91,14 +91,16 @@ export const StorageService = {
     await db.documents.delete(id);
   },
 
+  /**
+   * Unified Entry Provisioning: Clears mocks before initializing new real shards.
+   */
   async createNewDocument(): Promise<SovereignDocument> {
-    // Before creating a real doc, purge the mocks to clean the workspace
     await this.purgeMocks();
     
     const newDoc: SovereignDocument = {
       id: crypto.randomUUID(),
-      title: 'New Archive Shard',
-      content: '# Sovereign Entry\n\nBegin your architectural draft here...',
+      title: 'New Sovereign Entry',
+      content: '# Sovereign Entry\n\nCommence architectural draft...',
       createdAt: Date.now(),
       lastModified: Date.now(),
       status: 'draft',
@@ -109,7 +111,7 @@ export const StorageService = {
       },
       theme: 'obsidian'
     };
-    await this.saveDocument(newDoc);
+    await db.documents.put(newDoc);
     return newDoc;
   }
 };

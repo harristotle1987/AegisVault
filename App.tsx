@@ -65,7 +65,7 @@ export default function App() {
     setIsWindows(/windows|win32/i.test(userAgent));
   }, []);
 
-  // Audio Initialization: Required for iOS/Android bypass
+  // Audio Synthesis Initialization: Lazy bypass for iOS/Android
   const initSpeech = useCallback(() => {
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       window.speechSynthesis.cancel();
@@ -78,17 +78,18 @@ export default function App() {
     }
   }, []);
 
+  /**
+   * Refined LISTEN engine: Reads only from the sanitized visible text buffer.
+   */
   const handleListen = useCallback((e?: React.MouseEvent) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
     }
     
-    // Lazy init for mobile audio bypass on first click
     if (!speechReady) {
       initSpeech();
-      // On some browsers, the first click must actually play something
-      // We wait a tiny bit to let voices load or just proceed if they are already there
+      return; 
     }
 
     if (listenMutexRef.current || !activeDoc) return;
@@ -101,16 +102,15 @@ export default function App() {
       return;
     }
 
-    // Direct Buffer Extraction for Sanitized Audio
-    // We parse to HTML then extract text to ensure we only get the visible content
+    // 1. Render content to a virtual div to strip markdown logic
     const html = marked.parse(activeDoc.content);
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = html as string;
     
-    // Absolute Scrubber: Strip all MD symbols and patterns
+    // 2. Extract plain text and apply Sovereign Scrubbing (strips symbols: #, *, :, etc.)
     const cleanText = (tempDiv.textContent || tempDiv.innerText || "")
-      .replace(/__\d+\.__/g, '') // Purge pattern
-      .replace(/[\$@#\*:`>_\-\+\[\]\(\)\!@:;=]/g, ' ') // Strip MD syntax
+      .replace(/__\d+\.__/g, '') // Strip artifact
+      .replace(/[\$@#\*:`>_\-\+\[\]\(\)\!@:;=]/g, ' ') // Scrub markdown artifacts
       .replace(/\s+/g, ' ')                   
       .trim();
 
@@ -124,7 +124,6 @@ export default function App() {
     utter.onend = () => { setIsPlayingAudio(false); listenMutexRef.current = false; };
     utter.onerror = () => { setIsPlayingAudio(false); listenMutexRef.current = false; };
     utter.rate = 1.0; 
-    utter.pitch = 1.0;
     
     window.speechSynthesis.speak(utter);
     setTimeout(() => { if (!window.speechSynthesis.speaking) listenMutexRef.current = false; }, 1000);
@@ -145,10 +144,13 @@ export default function App() {
     if (!activeDoc) return;
     const refined = VaultRefiner.refine(activeDoc.content);
     handleContentChange(refined);
-    setNotification({ message: 'Structural Hardening Executed', type: 'success' });
+    setNotification({ message: 'Shard Hardening Complete', type: 'success' });
     setTimeout(() => setNotification(null), 2000);
   };
 
+  /**
+   * Sovereign Import Logic: Clears mocks and switches to new real data immediately.
+   */
   const handleImport = async () => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -158,13 +160,13 @@ export default function App() {
       if (!file) return;
       try {
         const { title, content } = await ImportService.processFile(file);
-        // Provision a fresh manual entry, which triggers mock purge
+        // Provision entry which automatically purges mocks in StorageService
         const newDoc = await createDraft();
         await saveDraft({ ...newDoc, title, content });
         setActiveDocId(newDoc.id);
-        setNotification({ message: 'Binary Import Successful', type: 'success' });
+        setNotification({ message: 'Protocol: Import Successful', type: 'success' });
       } catch (err) {
-        setNotification({ message: 'Import protocol failure', type: 'error' });
+        setNotification({ message: 'Import failure', type: 'error' });
       }
     };
     input.click();
@@ -174,7 +176,7 @@ export default function App() {
     if (!activeDoc) return;
     const imgMd = `\n\n![Sovereign Plate](${base64Img})\n\n`;
     handleContentChange(activeDoc.content + imgMd);
-    setNotification({ message: 'HD Plate Shard Hardened', type: 'success' });
+    setNotification({ message: 'HD Image Plate Hardened', type: 'success' });
     setActiveModal(null);
   };
 
@@ -227,10 +229,10 @@ export default function App() {
           )}
         </div>
 
-        {/* Action Bank: Dynamic Anti-Overlap Scaling */}
+        {/* Action Bank: Dynamic Scaling & Anti-Overlap Logic */}
         <div 
-          className={`fixed top-3 md:top-4 right-4 md:right-8 flex items-center gap-12 z-[10002] pointer-events-auto transition-all duration-300 ease-in-out origin-right ${
-            isSidebarOpen ? 'scale-75 translate-x-12 opacity-30 pointer-events-none' : 'scale-100 translate-x-0 opacity-100'
+          className={`fixed top-3 md:top-4 right-4 md:right-8 flex items-center gap-10 z-[10002] pointer-events-auto transition-all duration-300 ease-in-out origin-right ${
+            isSidebarOpen ? 'scale-[0.65] translate-x-14 opacity-20 pointer-events-none' : 'scale-100 translate-x-0 opacity-100'
           }`}
         >
            <button 
@@ -238,9 +240,9 @@ export default function App() {
              className="flex flex-col items-center gap-1 transition-all active:scale-90 group"
            >
              <div className="p-2.5 bg-white/5 border border-white/10 rounded-full text-emerald-vault group-hover:bg-emerald-vault/20 transition-all">
-               <Scan size={18} className="md:w-5 md:h-5" />
+               <Scan size={18} />
              </div>
-             <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.2em] text-white/80">Scan</span>
+             <span className="text-[8px] font-black uppercase tracking-[0.2em] text-white/80">Scan</span>
            </button>
 
            <button 
@@ -248,18 +250,17 @@ export default function App() {
              className="flex flex-col items-center gap-1 transition-all active:scale-90 group"
            >
              <div className={`p-2.5 border rounded-full transition-all ${isPlayingAudio ? 'bg-emerald-vault text-black shadow-emerald-glow' : 'bg-white/5 border-white/10 text-emerald-vault group-hover:bg-emerald-vault/20'}`}>
-               {isPlayingAudio ? <BookOpen size={18} className="md:w-5 md:h-5 animate-pulse" /> : <Volume2 size={18} className="md:w-5 md:h-5" />}
+               {isPlayingAudio ? <BookOpen size={18} className="animate-pulse" /> : <Volume2 size={18} />}
              </div>
-             <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.2em] text-white/80">Listen</span>
+             <span className="text-[8px] font-black uppercase tracking-[0.2em] text-white/80">Listen</span>
            </button>
            
-           <div className="p-1 border-l border-white/10 pl-8 flex flex-col items-center gap-1 shrink-0 opacity-40">
+           <div className="p-1 border-l border-white/10 pl-6 flex flex-col items-center gap-1 shrink-0 opacity-40">
              <div className={`w-2 h-2 rounded-full transition-all duration-700 ${vaultSynced ? "bg-emerald-vault/20" : "bg-emerald-vault animate-pulse shadow-emerald-glow"}`} />
              <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.1em]">Saved</span>
            </div>
         </div>
 
-        {/* Triple-Action Footer: HARDEN, IMPORT, DOWNLOAD */}
         <MobileActionBar 
           isMenuOpen={isExportMenuOpen}
           onToggleMenu={() => setIsExportMenuOpen(!isExportMenuOpen)}
@@ -269,7 +270,6 @@ export default function App() {
           onExportPdf={() => { setPendingFormat('pdf'); setActiveModal('export'); setIsExportMenuOpen(false); }}
         />
         
-        {/* Anti-Overlap Floating Shield: Moves up when footer menu is expanded */}
         <div 
           className={`md:hidden fixed right-6 z-[125] transition-all duration-500 ease-in-out ${
             isExportMenuOpen ? 'bottom-72' : 'bottom-40'
@@ -278,7 +278,6 @@ export default function App() {
            <button 
              onClick={() => setMobileTab(prev => prev === 'editor' ? 'preview' : 'editor')} 
              className="w-14 h-14 rounded-full bg-emerald-vault text-black flex items-center justify-center shadow-[0_15px_35px_rgba(16,185,129,0.4)] active:scale-90 transition-transform"
-             aria-label="Toggle Render Shard"
            >
              <Shield size={28} />
            </button>

@@ -25,12 +25,11 @@ export const ImportService = {
   },
 
   /**
-   * Artifact Purge Engine: Aggressively removes legacy markers and artifacts.
+   * Sovereign Sanitizer: Absolute regex purge of legacy artifacts (__1.__).
    */
   sanitize(content: string): string {
     return content
-      // Absolute purge of __1.__ patterns and similar structural noise
-      .replace(/__\d+\.__/g, '')
+      .replace(/__\d+\.__/g, '') // Forced removal of underscore-number-period pattern
       .replace(/_\d+\._/g, '')
       .replace(/\d+\.\s\_\_/g, ' ')
       .replace(/@\w+/g, ' ')
