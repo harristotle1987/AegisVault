@@ -5,6 +5,7 @@ import * as pdfjs from 'pdfjs-dist';
  * Universal Ingestor Logic: Senior Lead Architect
  * Feature: Multi-format Batch Ingestion Bridge with Triple-Pass Artifact Scrubbing
  * Resolve: High-resiliency structural conversion for DOCX/PDF.
+ * Purge Protocol: Targets sharding artifacts (__1. __, _3. _) generated during import.
  */
 export const ImportService = {
   initialized: false,
@@ -27,13 +28,19 @@ export const ImportService = {
 
   /**
    * Triple-Pass Artifact Scrub:
-   * Removes sequence sharding artifacts like __1.__, _3._, etc.
+   * Aggressively removes sequence sharding artifacts like __1. __, _3. _, etc.
+   * This handles variants with/without trailing spaces inside the markers.
    */
   sanitize(content: string): string {
     return content
-      .replace(/__\d+\.__/g, '') // Scrub pattern: underscore underscore digits period underscore underscore
-      .replace(/_\d+\._/g, '')   // Scrub pattern: underscore digits period underscore (The "3." error)
-      .replace(/\d+\.\s\_\_/g, ' ')
+      // Pattern 1: Double underscore markers (e.g., __1. __)
+      .replace(/__\s*\d+\.\s*__/g, '') 
+      // Pattern 2: Single underscore markers (e.g., _3. _)
+      .replace(/_\s*\d+\.\s*_/g, '')   
+      // Pattern 3: Lone sharding residue
+      .replace(/\d+\.\s*_{1,2}/g, ' ')
+      .replace(/_{1,2}\s*\d+\./g, ' ')
+      // Clean standard Markdown artifacts
       .replace(/@\w+/g, ' ')
       .replace(/\n{3,}/g, '\n\n')
       .trim();
