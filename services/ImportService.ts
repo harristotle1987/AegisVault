@@ -3,7 +3,7 @@ import * as pdfjs from 'pdfjs-dist';
 
 /**
  * Universal Ingestor Logic: Senior Lead Architect
- * Feature: Multi-format Batch Ingestion Bridge with Triple-Pass Artifact Scrubbing
+ * Feature: Multi-format Batch Ingestion Bridge with Triple-Pass Artifact Purge
  * Resolve: High-resiliency structural conversion for DOCX/PDF.
  */
 export const ImportService = {
@@ -26,12 +26,12 @@ export const ImportService = {
   },
 
   /**
-   * Triple-Pass Artifact Scrub:
-   * Restores sharding artifacts like __1.__, __2.__ to standard 1., 2.
+   * Triple-Pass Artifact Purge:
+   * Permanently removes sequence artifacts like __1.__, __2.__, etc.
    */
   sanitize(content: string): string {
     return content
-      .replace(/__(\d+)\.__/g, '$1.') // RESTORATION: Render sharded numbers as Markdown list items
+      .replace(/__\d+\.__/g, '') // PURGE: Remove sharded markers entirely
       .replace(/_\d+\._/g, '')   
       .replace(/\d+\.\s\_\_/g, ' ')
       .replace(/@\w+/g, ' ')

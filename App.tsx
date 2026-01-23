@@ -93,7 +93,7 @@ export default function App() {
   const playNextChunk = useCallback(() => {
     if (currentUtteranceIndex.current >= utterances.current.length) {
       setIsPlayingAudio(false);
-      persistAudioProgress(0); // Reset on completion
+      persistAudioProgress(0); // Reset on finish
       return;
     }
 
@@ -146,17 +146,16 @@ export default function App() {
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = html as string;
     
-    // Triple-Pass Sanitization Protocol + Markdown Symbol Stripping
-    // Restoration: Restores digits for audio clarity
+    // Hardened Sanitization Protocol: Strip Markdown symbols and sharding markers
     const cleanText = (tempDiv.textContent || tempDiv.innerText || "")
-      .replace(/__(\d+)\.__/g, '$1.') 
+      .replace(/__\d+\.__/g, '') 
       .replace(/[\$@#\*:`>_\-\+\[\]\(\)\!@:;=]/g, ' ') 
       .replace(/\s+/g, ' ')                   
       .trim();
 
     if (!cleanText) return;
 
-    // Segment Streaming: 1000 characters per segment
+    // Segment Streaming Logic (1000 characters per volatile chunk)
     const chunkSize = 1000;
     const chunks = [];
     for (let i = 0; i < cleanText.length; i += chunkSize) {
@@ -202,10 +201,9 @@ export default function App() {
       try {
         const { title, content } = await ImportService.processFile(file);
         
-        // Immediate Mock Eviction
         await StorageService.purgeMocks();
         
-        // UUID Provisioning BEFORE DB handoff
+        // UUID Provisioning BEFORE database insertion
         const newDoc = await createDraft();
         const fullDoc = { ...newDoc, title, content };
         
