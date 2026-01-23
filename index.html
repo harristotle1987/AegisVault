@@ -116,7 +116,7 @@
           height: 100%;
           -webkit-overflow-scrolling: touch;
           overscroll-behavior: contain;
-          padding-bottom: 220px !important; /* Fixed Footer Padding */
+          padding-bottom: 220px !important; 
         }
 
         ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -128,6 +128,16 @@
           user-select: text;
           pointer-events: auto;
         }
+        
+        /* Responsive Image Protocol */
+        .prose-vault img {
+          max-width: 100% !important;
+          height: auto !important;
+          display: block;
+          margin-left: auto;
+          margin-right: auto;
+        }
+
         .prose-vault h1 { 
           font-size: 32px !important; 
           font-weight: 800; 
@@ -174,6 +184,10 @@
           font-size: 14px !important;
           color: #FFFFFF !important;
           font-weight: 700 !important;
+        }
+        
+        input[type="range"] {
+          cursor: pointer;
         }
     </style>
 </head>

@@ -4,7 +4,6 @@ import * as pdfjs from 'pdfjs-dist';
 /**
  * Universal Ingestor Logic: Senior Lead Architect
  * Feature: Multi-format Batch Ingestion Bridge
- * Resolve: Elimination of 'Bridge Failure' handshake errors.
  */
 export const ImportService = {
   initialized: false,
@@ -21,7 +20,7 @@ export const ImportService = {
       }
       this.initialized = true;
     } catch (e) {
-      console.warn("Sovereign PDF engine initialization deferred.");
+      console.warn("PDF engine initialization deferred.");
     }
   },
 
@@ -52,13 +51,13 @@ export const ImportService = {
         
         case 'docx':
           const arrayBuffer = await file.arrayBuffer();
-          // Defensive library access for esm.sh bundles
-          const mLib: any = mammoth;
-          const convertToMarkdown = mLib.convertToMarkdown || mLib.default?.convertToMarkdown;
+          // Multi-path library resolution for mammoth
+          const m: any = mammoth;
+          const converter = m.convertToMarkdown || m.default?.convertToMarkdown;
           
-          if (!convertToMarkdown) throw new Error("Mammoth core unresolved.");
+          if (!converter) throw new Error("Conversion engine handshake failed.");
           
-          const result = await convertToMarkdown({ arrayBuffer });
+          const result = await converter({ arrayBuffer: new Uint8Array(arrayBuffer) });
           content = result.value || `# ${title}\n\n[Bridge.Notice]: Content converted.`;
           break;
 
@@ -73,8 +72,8 @@ export const ImportService = {
 
       return { title, content: this.sanitize(content) };
     } catch (err) {
-      console.error('Sovereign Bridge Failure:', err);
-      throw new Error(`Ingestion handshake failed for ${file.name}`);
+      console.error('Sovereign Bridge Failure Trace:', err);
+      throw err;
     }
   },
 
@@ -82,7 +81,7 @@ export const ImportService = {
     const arrayBuffer = await file.arrayBuffer();
     const pdfjsLib: any = pdfjs;
     const getDocument = pdfjsLib.getDocument || pdfjsLib.default?.getDocument;
-    if (!getDocument) throw new Error("PDF engine failure.");
+    if (!getDocument) throw new Error("PDF engine handshake failed.");
 
     const loadingTask = getDocument({ data: arrayBuffer, useWorkerFetch: false });
     const pdf = await loadingTask.promise;

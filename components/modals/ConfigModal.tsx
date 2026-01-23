@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X, Moon, Shield, Save, Database, EyeOff, Zap, Layout, Monitor, RefreshCcw } from 'lucide-react';
+import { X, Moon, Shield, Save, Database, EyeOff, Zap, Layout, Monitor, RefreshCcw, Volume2 } from 'lucide-react';
 import { VaultFont } from '../../types';
 
 interface ConfigModalProps {
@@ -8,6 +8,8 @@ interface ConfigModalProps {
   docCount: number;
   activeFont: VaultFont;
   setActiveFont: (font: VaultFont) => void;
+  speechRate: number;
+  setSpeechRate: (rate: number) => void;
 }
 
 const ToggleOption = ({ label, description, defaultOn, icon }: { label: string, description: string, defaultOn?: boolean, icon: React.ReactNode }) => {
@@ -21,7 +23,7 @@ const ToggleOption = ({ label, description, defaultOn, icon }: { label: string, 
         <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${isOn ? 'bg-emerald-vault/20 text-emerald-vault' : 'bg-white/5 text-vault-dim'}`}>
           {icon}
         </div>
-        <div className="flex flex-col items-start">
+        <div className="flex flex-col items-start text-left">
           <span className="text-[10px] font-bold text-vault-text uppercase tracking-widest">{label}</span>
           <span className="text-[9px] text-vault-dim font-medium">{description}</span>
         </div>
@@ -33,7 +35,15 @@ const ToggleOption = ({ label, description, defaultOn, icon }: { label: string, 
   );
 };
 
-export const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, onClose, docCount, activeFont, setActiveFont }) => {
+export const ConfigModal: React.FC<ConfigModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  docCount, 
+  activeFont, 
+  setActiveFont,
+  speechRate,
+  setSpeechRate
+}) => {
   const [isPurging, setIsPurging] = useState(false);
 
   useEffect(() => {
@@ -107,6 +117,30 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, onClose, docCo
             </div>
           </section>
 
+          {/* Acoustic Protocol Settings */}
+          <section className="space-y-4">
+            <div className="flex items-center gap-2 px-1">
+              <Volume2 size={12} className="text-emerald-vault" />
+              <h3 className="text-[10px] font-black text-emerald-vault uppercase tracking-[0.3em]">Acoustic Engine</h3>
+            </div>
+            <div className="p-5 rounded-xl bg-white/[0.02] border border-vault-border space-y-6">
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] font-bold text-vault-text uppercase tracking-widest">Listen Speed</span>
+                <span className="text-[10px] font-mono text-emerald-vault">{speechRate.toFixed(1)}x</span>
+              </div>
+              <input 
+                type="range" 
+                min="0.5" 
+                max="2.0" 
+                step="0.1" 
+                value={speechRate} 
+                onChange={(e) => setSpeechRate(parseFloat(e.target.value))}
+                className="w-full accent-emerald-vault"
+              />
+              <p className="text-[9px] text-vault-dim leading-relaxed font-medium italic opacity-60">Adjusts the playback frequency of the chunked audio engine.</p>
+            </div>
+          </section>
+
           <section className="space-y-4">
             <div className="flex items-center gap-2 px-1">
               <Shield size={12} className="text-emerald-vault" />
@@ -129,33 +163,10 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, onClose, docCo
 
           <section className="space-y-4">
             <div className="flex items-center gap-2 px-1">
-              <Monitor size={12} className="text-vault-dim" />
-              <h3 className="text-[10px] font-black text-vault-dim uppercase tracking-[0.3em]">Maintenance Protocol</h3>
-            </div>
-            <button 
-              onClick={handlePurge}
-              disabled={isPurging}
-              className="w-full flex items-center justify-between p-4 rounded-xl bg-red-500/5 border border-red-500/20 hover:bg-red-500/10 transition-all group active:scale-[0.98] disabled:opacity-50"
-            >
-              <div className="flex items-center gap-4 text-left">
-                <div className="w-8 h-8 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center">
-                  <RefreshCcw size={14} className={isPurging ? 'animate-spin' : ''} />
-                </div>
-                <div className="flex flex-col text-left">
-                  <span className="text-[10px] font-bold text-red-400 uppercase tracking-widest">Purge Cache & Update</span>
-                  <span className="text-[9px] text-vault-dim font-medium">Reset PWA shell & local assets</span>
-                </div>
-              </div>
-            </button>
-          </section>
-
-          <section className="space-y-4">
-            <div className="flex items-center gap-2 px-1">
               <Layout size={12} className="text-vault-dim" />
               <h3 className="text-[10px] font-black text-vault-dim uppercase tracking-[0.3em]">Visual Logic</h3>
             </div>
             <div className="p-6 rounded-2xl bg-obsidian-muted border border-vault-border space-y-4">
-              <p className="text-[10px] text-vault-dim leading-relaxed font-medium">Select the primary typeface for document generation. Binary sharding embeds these assets automatically.</p>
               <div className="grid grid-cols-2 gap-3 relative z-[170]">
                 <button 
                   onClick={() => setActiveFont('sans')}
@@ -181,6 +192,28 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, onClose, docCo
                 </button>
               </div>
             </div>
+          </section>
+
+          <section className="space-y-4 pb-10">
+            <div className="flex items-center gap-2 px-1">
+              <RefreshCcw size={12} className="text-red-400" />
+              <h3 className="text-[10px] font-black text-red-400 uppercase tracking-[0.3em]">Maintenance Protocol</h3>
+            </div>
+            <button 
+              onClick={handlePurge}
+              disabled={isPurging}
+              className="w-full flex items-center justify-between p-4 rounded-xl bg-red-500/5 border border-red-500/20 hover:bg-red-500/10 transition-all group active:scale-[0.98] disabled:opacity-50"
+            >
+              <div className="flex items-center gap-4 text-left">
+                <div className="w-8 h-8 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center">
+                  <RefreshCcw size={14} className={isPurging ? 'animate-spin' : ''} />
+                </div>
+                <div className="flex flex-col text-left">
+                  <span className="text-[10px] font-bold text-red-400 uppercase tracking-widest">Purge Cache & Update</span>
+                  <span className="text-[9px] text-vault-dim font-medium">Reset PWA shell & local assets</span>
+                </div>
+              </div>
+            </button>
           </section>
         </div>
 

@@ -41,6 +41,7 @@ export default function App() {
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const [mobileTab, setMobileTab] = useState<'editor' | 'preview'>('editor');
   const [activeFont, setActiveFont] = useState<VaultFont>('sans');
+  const [speechRate, setSpeechRate] = useState(1.0);
   const [docToPurge, setDocToPurge] = useState<string | null>(null);
   const [vaultSynced, setVaultSynced] = useState(true);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
@@ -59,7 +60,6 @@ export default function App() {
   const utterances = useRef<string[]>([]);
   const { isInstallable, install } = usePWAInstall();
 
-  // Platform Detection
   const [isWindows, setIsWindows] = useState(false);
 
   useEffect(() => {
@@ -67,7 +67,6 @@ export default function App() {
     setIsWindows(/windows|win32/i.test(userAgent));
   }, []);
 
-  // Audio Initialization: Lazy bypass for iOS/Android
   const initSpeech = useCallback(() => {
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       window.speechSynthesis.cancel();
@@ -80,9 +79,6 @@ export default function App() {
     }
   }, []);
 
-  /**
-   * Chunked Audio Engine: Large-Data Support
-   */
   const playNextChunk = useCallback(() => {
     if (currentUtteranceIndex.current >= utterances.current.length) {
       setIsPlayingAudio(false);
@@ -91,6 +87,8 @@ export default function App() {
 
     const text = utterances.current[currentUtteranceIndex.current];
     const utter = new SpeechSynthesisUtterance(text);
+    // Inject the configured speech rate
+    utter.rate = speechRate;
     
     utter.onend = () => {
       currentUtteranceIndex.current++;
@@ -102,7 +100,7 @@ export default function App() {
     };
     
     window.speechSynthesis.speak(utter);
-  }, []);
+  }, [speechRate]);
 
   const handleListen = useCallback((e?: React.MouseEvent) => {
     if (e) {
@@ -123,7 +121,6 @@ export default function App() {
 
     if (!activeDoc) return;
 
-    // Sanitize rendered content for audio stream
     const html = marked.parse(activeDoc.content);
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = html as string;
@@ -167,9 +164,6 @@ export default function App() {
     setTimeout(() => setNotification(null), 2000);
   };
 
-  /**
-   * Universal Bridge Ingestion: Immediate Sync & Purge
-   */
   const handleImport = async () => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -187,7 +181,7 @@ export default function App() {
         
         setNotification({ message: 'Protocol: Asset Ingested', type: 'success' });
       } catch (err) {
-        setNotification({ message: 'Bridge failure: Engine handshake error', type: 'error' });
+        setNotification({ message: 'Bridge failure: Engine unresolved', type: 'error' });
       }
     };
     input.click();
@@ -198,7 +192,6 @@ export default function App() {
     await StorageService.purgeMocks();
 
     if (rescanTargetSrc) {
-      // Logic for replacing existing scan
       const targetMd = `![Sovereign Plate](${rescanTargetSrc})`;
       const replacementMd = `![Sovereign Plate](${base64Img})`;
       const newContent = activeDoc.content.replace(targetMd, replacementMd);
@@ -216,8 +209,7 @@ export default function App() {
   const handleRemoveImage = (src: string) => {
     if (!activeDoc) return;
     const targetMd = `![Sovereign Plate](${src})`;
-    // Also try to catch any slight variation in markdown format
-    const newContent = activeDoc.content.replace(targetMd, '').trim();
+    const newContent = activeDoc.content.split(targetMd).join('').trim();
     handleContentChange(newContent);
     setNotification({ message: 'Shard Plate Purged', type: 'success' });
   };
@@ -346,7 +338,15 @@ export default function App() {
 
       {activeModal === 'scanner' && <ScannerOverlay onCapture={handleScannerCapture} onClose={() => { setActiveModal(null); setRescanTargetSrc(null); }} />}
       <InstallPrompt />
-      <ConfigModal isOpen={activeModal === 'config'} onClose={() => setActiveModal(null)} docCount={documents.length} activeFont={activeFont} setActiveFont={setActiveFont} />
+      <ConfigModal 
+        isOpen={activeModal === 'config'} 
+        onClose={() => setActiveModal(null)} 
+        docCount={documents.length} 
+        activeFont={activeFont} 
+        setActiveFont={setActiveFont} 
+        speechRate={speechRate}
+        setSpeechRate={setSpeechRate}
+      />
       <TagsModal isOpen={activeModal === 'tags'} onClose={() => setActiveModal(null)} documents={documents} />
       <PurgeModal isOpen={activeModal === 'purge'} onConfirm={async () => { docToPurge && await deleteDraft(docToPurge); setActiveModal(null); }} onCancel={() => setActiveModal(null)} draftTitle={documents.find(d => d.id === docToPurge)?.title || ""} />
       <ExportModal initialName={activeDoc?.title || ""} format={pendingFormat} onConfirm={async (name) => {

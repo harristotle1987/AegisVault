@@ -36,9 +36,6 @@ const getImageDimensions = (base64: string): Promise<{ w: number, h: number }> =
 };
 
 export class VaultConverter {
-  /**
-   * PDF Mirror: Integrated Image Injunction logic.
-   */
   static async toPDF(markdown: string, fileName: string = 'vault-export.pdf', fontMode: VaultFont = 'sans'): Promise<Blob> {
     const pdf = new jsPDF('p', 'mm', 'a4');
     await FontLoader.loadForPDF(pdf);
@@ -106,28 +103,23 @@ export class VaultConverter {
           cursorY += token.depth === 1 ? 12 : 8;
           checkPageBreak(hSize * 0.3527 + 10);
           renderStyledLine(token.tokens || [{ text: token.text }], hSize, 'bold', 0, [0, 0, 0]);
-          if (token.depth <= 2) {
-            pdf.setDrawColor(0, 0, 0);
-            pdf.setLineWidth(0.3);
-            pdf.line(margin, cursorY - 1, margin + contentWidth, cursorY - 1);
-            cursorY += 2;
-          }
           cursorY += 4;
           break;
 
         case 'paragraph':
-          // Check for images within the paragraph
           const imgToken = token.tokens?.find((t: any) => t.type === 'image');
           if (imgToken) {
             const dims = await getImageDimensions(imgToken.href);
             const scale = Math.min(contentWidth / dims.w, 1);
             const w = dims.w * scale;
             const h = dims.h * scale;
-            checkPageBreak(h + 10);
-            pdf.addImage(imgToken.href, 'JPEG', margin, cursorY, w, h);
-            cursorY += h + 10;
+            checkPageBreak(h + 5);
+            // Explicitly set format to JPEG/PNG based on URI if possible
+            const format = imgToken.href.includes('png') ? 'PNG' : 'JPEG';
+            pdf.addImage(imgToken.href, format, margin, cursorY, w, h);
+            cursorY += h + 8;
           } else {
-            checkPageBreak(11 * 0.3527 * 2);
+            checkPageBreak(12);
             renderStyledLine(token.tokens || [{ text: token.text }], 11);
             cursorY += 4;
           }
@@ -137,29 +129,18 @@ export class VaultConverter {
           const isOrdered = (token as any).ordered;
           let itemCounter = (token as any).start || 1;
           for (const item of token.items) {
-            checkPageBreak(11 * 0.3527 * 2);
-            pdf.setFontSize(11);
-            pdf.setFont(fontMode === 'mono' ? 'Courier' : 'Helvetica', 'normal');
+            checkPageBreak(10);
             const indicator = isOrdered ? `${itemCounter}.` : '•';
-            pdf.text(indicator, margin + 2, cursorY + (11 * 0.3527));
+            pdf.text(indicator, margin + 2, cursorY + 4);
             renderStyledLine(item.tokens || [{ text: item.text }], 11, 'normal', isOrdered ? 10 : 8);
             if (isOrdered) itemCounter++;
           }
           cursorY += 4;
           break;
 
-        case 'blockquote':
-          const startY = cursorY;
-          pdf.setDrawColor(16, 185, 129); 
-          pdf.setLineWidth(1.5);
-          renderStyledLine([{ text: token.text }], 11, 'italic', 12, [80, 80, 80]);
-          pdf.line(margin, startY, margin, cursorY - 2);
-          cursorY += 4;
-          break;
-
         case 'hr':
           cursorY += 6;
-          pdf.setDrawColor(230, 230, 230);
+          pdf.setDrawColor(220, 220, 220);
           pdf.line(margin, cursorY, margin + contentWidth, cursorY);
           cursorY += 10;
           break;
@@ -180,7 +161,7 @@ export class VaultConverter {
       for (const t of inlineTokens) {
         if (t.type === 'image') {
           const dims = await getImageDimensions(t.href);
-          const maxWidth = 600; // DOCX internal width max
+          const maxWidth = 550; // Internal DOCX points
           const scale = Math.min(maxWidth / dims.w, 1);
           runs.push(new ImageRun({
             data: t.href,
@@ -203,8 +184,7 @@ export class VaultConverter {
             bold: isStrong, 
             italic: isEm,
             size: defaultSize, 
-            font: 'Inter',
-            color: '000000'
+            font: 'Inter'
           }));
         }
       }
@@ -220,13 +200,13 @@ export class VaultConverter {
             heading: token.depth === 1 ? HeadingLevel.HEADING_1 : 
                      token.depth === 2 ? HeadingLevel.HEADING_2 : 
                      HeadingLevel.HEADING_3,
-            spacing: { before: 400, after: 200, line: 360 },
+            spacing: { before: 400, after: 200 },
           }));
           break;
         case 'paragraph':
           children.push(new Paragraph({
             children: await mapInlineTokens(token.tokens, 22),
-            spacing: { after: 240, line: 360 },
+            spacing: { after: 240 },
           }));
           break;
         case 'list':
@@ -234,26 +214,18 @@ export class VaultConverter {
           let itemCounter = (token as any).start || 1;
           for (const item of token.items) {
             const pConfig: any = {
-              spacing: { after: 120, line: 360 },
-              children: await mapInlineTokens(item.tokens, 22)
+              children: await mapInlineTokens(item.tokens, 22),
+              spacing: { after: 120 }
             };
             if (isOrdered) {
-              const prefix = new TextRun({ text: `${itemCounter}. `, bold: true, font: 'Inter', size: 22 });
+              const prefix = new TextRun({ text: `${itemCounter}. `, bold: true, size: 22 });
               pConfig.children.unshift(prefix);
-              pConfig.indent = { left: 720, hanging: 360 };
               itemCounter++;
             } else {
               pConfig.bullet = { level: 0 };
             }
             children.push(new Paragraph(pConfig));
           }
-          break;
-        case 'blockquote':
-          children.push(new Paragraph({
-            children: [new TextRun({ text: token.text, italic: true, color: '666666', font: 'Inter', size: 22 })],
-            indent: { left: 720 },
-            spacing: { before: 200, after: 200, line: 360 },
-          }));
           break;
         case 'hr':
           children.push(new ThematicBreak());
@@ -263,7 +235,7 @@ export class VaultConverter {
 
     const doc = new Document({
       sections: [{
-        properties: { page: { margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 } } },
+        properties: {},
         children: children,
       }],
     });
