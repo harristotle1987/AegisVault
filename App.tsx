@@ -65,7 +65,7 @@ export default function App() {
     setIsWindows(/windows|win32/i.test(userAgent));
   }, []);
 
-  // Async Audio Stabilization Protocol
+  // Audio Initialization: Required for iOS/Android bypass
   const initSpeech = useCallback(() => {
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       window.speechSynthesis.cancel();
@@ -84,10 +84,11 @@ export default function App() {
       e.stopPropagation();
     }
     
-    // Lazy init for mobile audio bypass
+    // Lazy init for mobile audio bypass on first click
     if (!speechReady) {
       initSpeech();
-      return;
+      // On some browsers, the first click must actually play something
+      // We wait a tiny bit to let voices load or just proceed if they are already there
     }
 
     if (listenMutexRef.current || !activeDoc) return;
@@ -101,14 +102,15 @@ export default function App() {
     }
 
     // Direct Buffer Extraction for Sanitized Audio
+    // We parse to HTML then extract text to ensure we only get the visible content
     const html = marked.parse(activeDoc.content);
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = html as string;
     
-    // Absolute Scrubber: Strip $@, #, *, :, and __1.__ artifacts
+    // Absolute Scrubber: Strip all MD symbols and patterns
     const cleanText = (tempDiv.textContent || tempDiv.innerText || "")
-      .replace(/__\d+\.__/g, '') 
-      .replace(/[\$@#\*:`>_\-\+\[\]\(\)\!@:;=]/g, ' ') 
+      .replace(/__\d+\.__/g, '') // Purge pattern
+      .replace(/[\$@#\*:`>_\-\+\[\]\(\)\!@:;=]/g, ' ') // Strip MD syntax
       .replace(/\s+/g, ' ')                   
       .trim();
 
@@ -156,6 +158,7 @@ export default function App() {
       if (!file) return;
       try {
         const { title, content } = await ImportService.processFile(file);
+        // Provision a fresh manual entry, which triggers mock purge
         const newDoc = await createDraft();
         await saveDraft({ ...newDoc, title, content });
         setActiveDocId(newDoc.id);
@@ -224,7 +227,7 @@ export default function App() {
           )}
         </div>
 
-        {/* Action Bank: Dynamic Scaling & Alignment */}
+        {/* Action Bank: Dynamic Anti-Overlap Scaling */}
         <div 
           className={`fixed top-3 md:top-4 right-4 md:right-8 flex items-center gap-12 z-[10002] pointer-events-auto transition-all duration-300 ease-in-out origin-right ${
             isSidebarOpen ? 'scale-75 translate-x-12 opacity-30 pointer-events-none' : 'scale-100 translate-x-0 opacity-100'
