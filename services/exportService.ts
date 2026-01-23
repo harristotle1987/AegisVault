@@ -46,6 +46,13 @@ const base64ToUint8Array = (base64: string): Uint8Array => {
   return bytes;
 };
 
+/**
+ * Artifact Scrubbing Logic for Export Pass
+ */
+const scrubMarkdown = (markdown: string): string => {
+  return markdown.replace(/__\d+\.__/g, '');
+};
+
 export class VaultConverter {
   /**
    * PDF Mirror: Precision Image Vector Scaling
@@ -54,7 +61,10 @@ export class VaultConverter {
     const pdf = new jsPDF('p', 'mm', 'a4');
     await FontLoader.loadForPDF(pdf);
 
-    const tokens = marked.lexer(markdown);
+    // Apply Triple-Pass scrub before tokenization
+    const cleanMarkdown = scrubMarkdown(markdown);
+    const tokens = marked.lexer(cleanMarkdown);
+    
     const margin = 25.4; 
     const pageWidth = 210;
     const contentWidth = pageWidth - (margin * 2);
@@ -116,7 +126,7 @@ export class VaultConverter {
           const hSize = token.depth === 1 ? 24 : (token.depth === 2 ? 18 : 14);
           cursorY += token.depth === 1 ? 12 : 8;
           checkPageBreak(hSize * 0.3527 + 10);
-          renderStyledLine(token.tokens || [{ text: token.text }], hSize, 'bold', 0, [0, 0, 0]);
+          renderStyledLine(token.tokens || [{ text: token.text }], hSize, 'bold', 0, [16, 185, 129]); // Emerald headings
           cursorY += 4;
           break;
 
@@ -129,7 +139,6 @@ export class VaultConverter {
             const h = dims.h * scale;
             checkPageBreak(h + 8);
             
-            // Handle binary injection for PDF visibility
             const format = imgToken.href.includes('png') ? 'PNG' : 'JPEG';
             pdf.addImage(imgToken.href, format, margin, cursorY, w, h);
             cursorY += h + 8;
@@ -168,10 +177,12 @@ export class VaultConverter {
   }
 
   /**
-   * DOCX Shard: Binary Image Injunction
+   * DOCX Shard: Structural Standard Markdown Export
    */
   static async toDocx(markdown: string, fileName: string = 'vault-export.docx'): Promise<Blob> {
-    const tokens = marked.lexer(markdown);
+    // Apply Triple-Pass scrub
+    const cleanMarkdown = scrubMarkdown(markdown);
+    const tokens = marked.lexer(cleanMarkdown);
     const children: any[] = [];
 
     const mapInlineTokens = async (inlineTokens: any[] = [], defaultSize: number = 24, parentBold: boolean = false): Promise<any[]> => {
@@ -180,10 +191,8 @@ export class VaultConverter {
         if (t.type === 'image') {
           try {
             const dims = await getImageDimensions(t.href);
-            const maxWidth = 550; // Internal DOCX coordinate space
+            const maxWidth = 550; 
             const scale = Math.min(maxWidth / dims.w, 1);
-            
-            // Convert to binary Uint8Array for maximum compatibility with docx library
             const binaryData = base64ToUint8Array(t.href);
             
             runs.push(new ImageRun({
@@ -194,7 +203,6 @@ export class VaultConverter {
               }
             }));
           } catch (e) {
-            console.error("Image Shard Injection Failure:", e);
             runs.push(new TextRun({ text: "[Image_Shard_Corrupted]", color: 'FF0000', size: 16 }));
           }
           continue;
