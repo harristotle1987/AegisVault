@@ -1,14 +1,23 @@
 import React, { useMemo, useRef, useEffect, useLayoutEffect } from 'react';
 import { marked } from 'marked';
 import { VaultFont } from '../types';
+import { Trash2, RefreshCcw } from 'lucide-react';
 
 interface PreviewProps {
   content: string;
   font?: VaultFont;
   activeDocId?: string | null;
+  onRemoveImage?: (src: string) => void;
+  onRescanImage?: (src: string) => void;
 }
 
-export const Preview: React.FC<PreviewProps> = ({ content, font = 'sans', activeDocId }) => {
+export const Preview: React.FC<PreviewProps> = ({ 
+  content, 
+  font = 'sans', 
+  activeDocId,
+  onRemoveImage,
+  onRescanImage
+}) => {
   const previewRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const lastScrolledId = useRef<string | null>(null);
@@ -23,17 +32,59 @@ export const Preview: React.FC<PreviewProps> = ({ content, font = 'sans', active
   }, [content]);
 
   /**
-   * Renderer Sync
+   * Renderer Sync & Image Action Injunction
    */
   useEffect(() => {
     if (previewRef.current) {
       previewRef.current.innerHTML = html;
+
+      // Scan for Sovereign Plates and inject actions
+      const images = previewRef.current.querySelectorAll('img');
+      images.forEach((img) => {
+        if (img.alt === 'Sovereign Plate') {
+          // Wrap image in a relative container
+          const wrapper = document.createElement('div');
+          wrapper.className = 'relative group mb-8 overflow-hidden rounded-xl border border-vault-border shadow-lg';
+          img.parentNode?.insertBefore(wrapper, img);
+          wrapper.appendChild(img);
+          img.className = 'w-full h-auto block grayscale contrast-125';
+
+          // Action Overlay
+          const overlay = document.createElement('div');
+          overlay.className = 'absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 z-20';
+          
+          // Rescan Button
+          if (onRescanImage) {
+            const rescanBtn = document.createElement('button');
+            rescanBtn.className = 'p-2.5 bg-obsidian/80 backdrop-blur-md border border-emerald-vault/30 text-emerald-vault rounded-lg hover:bg-emerald-vault hover:text-black transition-all shadow-lg active:scale-90';
+            rescanBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>';
+            rescanBtn.onclick = (e) => {
+              e.preventDefault();
+              onRescanImage(img.src);
+            };
+            overlay.appendChild(rescanBtn);
+          }
+
+          // Delete Button
+          if (onRemoveImage) {
+            const delBtn = document.createElement('button');
+            delBtn.className = 'p-2.5 bg-obsidian/80 backdrop-blur-md border border-red-500/30 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-all shadow-lg active:scale-90';
+            delBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>';
+            delBtn.onclick = (e) => {
+              e.preventDefault();
+              onRemoveImage(img.src);
+            };
+            overlay.appendChild(delBtn);
+          }
+
+          wrapper.appendChild(overlay);
+        }
+      });
     }
-  }, [html]);
+  }, [html, onRemoveImage, onRescanImage]);
 
   /**
-   * Sovereign Scroll Stability Protocol:
-   * Sync to bottom ONLY when switching shards.
+   * Sovereign Scroll Stability Protocol
    */
   useLayoutEffect(() => {
     if (activeDocId && activeDocId !== lastScrolledId.current) {
@@ -69,7 +120,6 @@ export const Preview: React.FC<PreviewProps> = ({ content, font = 'sans', active
         className="flex-1 overflow-y-auto bg-obsidian-soft no-scrollbar vault-editor-scroll"
       >
         <div className="max-w-4xl mx-auto min-h-full flex flex-col shadow-[0_0_100px_rgba(0,0,0,0.4)]">
-          {/* pb-[200px] ensures text clears the bottom navigation area completely */}
           <div 
             id="preview-area"
             ref={previewRef}

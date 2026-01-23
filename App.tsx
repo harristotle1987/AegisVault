@@ -46,6 +46,7 @@ export default function App() {
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [speechReady, setSpeechReady] = useState(false);
   const [pendingFormat, setPendingFormat] = useState<'pdf' | 'docx' | null>(null);
+  const [rescanTargetSrc, setRescanTargetSrc] = useState<string | null>(null);
   const [lastExportedFile, setLastExportedFile] = useState<{name: string, format: any, blobUrl: string | null}>({
     name: "", 
     format: null, 
@@ -81,7 +82,6 @@ export default function App() {
 
   /**
    * Chunked Audio Engine: Large-Data Support
-   * Breaks text into 1000-char segments to ensure reliability.
    */
   const playNextChunk = useCallback(() => {
     if (currentUtteranceIndex.current >= utterances.current.length) {
@@ -129,14 +129,13 @@ export default function App() {
     tempDiv.innerHTML = html as string;
     
     const cleanText = (tempDiv.textContent || tempDiv.innerText || "")
-      .replace(/__\d+\.__/g, '') // Strip __1.__ artifacts
-      .replace(/[\$@#\*:`>_\-\+\[\]\(\)\!@:;=]/g, ' ') // Scrub Markdown
+      .replace(/__\d+\.__/g, '') 
+      .replace(/[\$@#\*:`>_\-\+\[\]\(\)\!@:;=]/g, ' ') 
       .replace(/\s+/g, ' ')                   
       .trim();
 
     if (!cleanText) return;
 
-    // Chunking Engine: 1000 characters per segment
     const chunkSize = 1000;
     const chunks = [];
     for (let i = 0; i < cleanText.length; i += chunkSize) {
@@ -181,7 +180,6 @@ export default function App() {
       try {
         const { title, content } = await ImportService.processFile(file);
         
-        // Execute absolute purge and provisioning
         await StorageService.purgeMocks();
         const newDoc = await createDraft();
         await saveDraft({ ...newDoc, title, content });
@@ -189,7 +187,7 @@ export default function App() {
         
         setNotification({ message: 'Protocol: Asset Ingested', type: 'success' });
       } catch (err) {
-        setNotification({ message: 'Bridge failure', type: 'error' });
+        setNotification({ message: 'Bridge failure: Engine handshake error', type: 'error' });
       }
     };
     input.click();
@@ -198,10 +196,35 @@ export default function App() {
   const handleScannerCapture = async (base64Img: string) => {
     if (!activeDoc) return;
     await StorageService.purgeMocks();
-    const imgMd = `\n\n![Sovereign Plate](${base64Img})\n\n`;
-    handleContentChange(activeDoc.content + imgMd);
-    setNotification({ message: 'HD Plate Ingested', type: 'success' });
+
+    if (rescanTargetSrc) {
+      // Logic for replacing existing scan
+      const targetMd = `![Sovereign Plate](${rescanTargetSrc})`;
+      const replacementMd = `![Sovereign Plate](${base64Img})`;
+      const newContent = activeDoc.content.replace(targetMd, replacementMd);
+      handleContentChange(newContent);
+      setRescanTargetSrc(null);
+      setNotification({ message: 'Shard Re-calibrated', type: 'success' });
+    } else {
+      const imgMd = `\n\n![Sovereign Plate](${base64Img})\n\n`;
+      handleContentChange(activeDoc.content + imgMd);
+      setNotification({ message: 'HD Plate Ingested', type: 'success' });
+    }
     setActiveModal(null);
+  };
+
+  const handleRemoveImage = (src: string) => {
+    if (!activeDoc) return;
+    const targetMd = `![Sovereign Plate](${src})`;
+    // Also try to catch any slight variation in markdown format
+    const newContent = activeDoc.content.replace(targetMd, '').trim();
+    handleContentChange(newContent);
+    setNotification({ message: 'Shard Plate Purged', type: 'success' });
+  };
+
+  const handleRescanImage = (src: string) => {
+    setRescanTargetSrc(src);
+    setActiveModal('scanner');
   };
 
   return (
@@ -245,7 +268,13 @@ export default function App() {
               </div>
               <div className={`hidden md:block w-px z-10 h-full bg-vault-border`} />
               <div className={`flex-1 flex flex-col h-full overflow-hidden bg-obsidian-soft ${mobileTab === 'editor' ? 'hidden md:flex' : 'flex'}`}>
-                <Preview font={activeFont} content={activeDoc.content} activeDocId={activeDocId} />
+                <Preview 
+                  font={activeFont} 
+                  content={activeDoc.content} 
+                  activeDocId={activeDocId} 
+                  onRemoveImage={handleRemoveImage}
+                  onRescanImage={handleRescanImage}
+                />
               </div>
             </>
           ) : (
@@ -253,7 +282,7 @@ export default function App() {
           )}
         </div>
 
-        {/* Action Bank: Dynamic Scaling & Right-Edge Shifting */}
+        {/* Action Bank */}
         <div 
           className={`fixed top-3 md:top-4 right-4 md:right-8 flex items-center gap-10 z-[10002] pointer-events-auto transition-all duration-300 ease-in-out origin-right ${
             isSidebarOpen ? 'scale-[0.65] translate-x-12 opacity-30 pointer-events-none' : 'scale-100 translate-x-0 opacity-100'
@@ -315,7 +344,7 @@ export default function App() {
         )}
       </main>
 
-      {activeModal === 'scanner' && <ScannerOverlay onCapture={handleScannerCapture} onClose={() => setActiveModal(null)} />}
+      {activeModal === 'scanner' && <ScannerOverlay onCapture={handleScannerCapture} onClose={() => { setActiveModal(null); setRescanTargetSrc(null); }} />}
       <InstallPrompt />
       <ConfigModal isOpen={activeModal === 'config'} onClose={() => setActiveModal(null)} docCount={documents.length} activeFont={activeFont} setActiveFont={setActiveFont} />
       <TagsModal isOpen={activeModal === 'tags'} onClose={() => setActiveModal(null)} documents={documents} />

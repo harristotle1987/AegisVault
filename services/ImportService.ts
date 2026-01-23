@@ -12,6 +12,7 @@ export const ImportService = {
     if (this.initialized) return;
     try {
       const pdfjsLib: any = pdfjs;
+      // Handle different ESM.sh export structures
       const GlobalWorkerOptions = pdfjsLib.GlobalWorkerOptions || pdfjsLib.default?.GlobalWorkerOptions;
       const version = pdfjsLib.version || pdfjsLib.default?.version || '3.11.174';
       
@@ -20,7 +21,7 @@ export const ImportService = {
       }
       this.initialized = true;
     } catch (e) {
-      console.warn("PDF engine initialization deferred.");
+      console.warn("PDF engine initialization deferred:", e);
     }
   },
 
@@ -53,8 +54,12 @@ export const ImportService = {
           break;
         
         case 'docx':
-          const arrayBuffer = await file.arrayBuffer();
-          const result = await mammoth.convertToMarkdown({ arrayBuffer });
+          const docxBuffer = await file.arrayBuffer();
+          // mammoth on esm.sh can sometimes be nested under .default
+          const converter = (mammoth as any).convertToMarkdown || (mammoth as any).default?.convertToMarkdown;
+          if (!converter) throw new Error("Mammoth engine not found");
+          
+          const result = await converter({ arrayBuffer: docxBuffer });
           content = result.value || `# ${title}\n\n[Bridge.Notice]: Content converted.`;
           break;
 
@@ -69,8 +74,8 @@ export const ImportService = {
 
       return { title, content: this.sanitize(content) };
     } catch (err) {
-      console.error('Ingestion failure:', err);
-      throw new Error(`Failed to ingest ${file.name}.`);
+      console.error('Ingestion Bridge Failure Detail:', err);
+      throw err;
     }
   },
 
