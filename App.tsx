@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Editor } from './components/Editor';
 import { Preview } from './components/Preview';
@@ -9,6 +10,7 @@ import { TagsModal } from './components/modals/TagsModal';
 import { PurgeModal } from './components/modals/PurgeModal';
 import { ExportModal } from './components/modals/ExportModal';
 import { DownloadSuccessModal } from './components/modals/DownloadSuccessModal';
+import { ResumeAudioModal } from './components/modals/ResumeAudioModal';
 import { InstallPrompt } from './components/InstallPrompt';
 import { ScannerOverlay } from './components/ScannerOverlay';
 import { VaultRefiner } from './services/localRefineService';
@@ -16,12 +18,12 @@ import { VaultConverter } from './services/exportService';
 import { ImportService } from './services/ImportService';
 import { StorageService } from './services/storageService';
 import { useVault } from './hooks/useVault';
-import { VaultFont } from './types';
+import { VaultFont, SovereignDocument } from './types';
 import { Shield, ShieldCheck, Volume2, BookOpen, Scan } from 'lucide-react';
 import { usePWAInstall } from './hooks/usePWAInstall';
 import { marked } from 'marked';
 
-type ModalType = 'config' | 'tags' | 'purge' | 'scanner' | 'export' | 'success' | null;
+type ModalType = 'config' | 'tags' | 'purge' | 'scanner' | 'export' | 'success' | 'resume' | null;
 
 export default function App() {
   const { 
@@ -79,17 +81,32 @@ export default function App() {
     }
   }, []);
 
+  const persistAudioProgress = useCallback((index: number) => {
+    if (!activeDoc) return;
+    saveDraft({
+      ...activeDoc,
+      metadata: {
+        ...activeDoc.metadata,
+        audioProgress: index
+      }
+    });
+  }, [activeDoc, saveDraft]);
+
   const playNextChunk = useCallback(() => {
     if (currentUtteranceIndex.current >= utterances.current.length) {
       setIsPlayingAudio(false);
+      persistAudioProgress(0); // Reset on finish
       return;
     }
 
     const text = utterances.current[currentUtteranceIndex.current];
     const utter = new SpeechSynthesisUtterance(text);
-    // Inject the sovereign speech rate
     utter.rate = speechRate;
     
+    utter.onstart = () => {
+      persistAudioProgress(currentUtteranceIndex.current);
+    };
+
     utter.onend = () => {
       currentUtteranceIndex.current++;
       playNextChunk();
@@ -100,7 +117,14 @@ export default function App() {
     };
     
     window.speechSynthesis.speak(utter);
-  }, [speechRate]);
+  }, [speechRate, persistAudioProgress]);
+
+  const startPlayback = useCallback((startIndex: number = 0) => {
+    currentUtteranceIndex.current = startIndex;
+    setIsPlayingAudio(true);
+    playNextChunk();
+    setActiveModal(null);
+  }, [playNextChunk]);
 
   const handleListen = useCallback((e?: React.MouseEvent) => {
     if (e) {
@@ -140,10 +164,14 @@ export default function App() {
     }
 
     utterances.current = chunks;
-    currentUtteranceIndex.current = 0;
-    setIsPlayingAudio(true);
-    playNextChunk();
-  }, [activeDoc, speechReady, initSpeech, isPlayingAudio, playNextChunk]);
+
+    const savedProgress = activeDoc.metadata.audioProgress || 0;
+    if (savedProgress > 0 && savedProgress < chunks.length) {
+      setActiveModal('resume');
+    } else {
+      startPlayback(0);
+    }
+  }, [activeDoc, speechReady, initSpeech, isPlayingAudio, startPlayback]);
 
   const handleContentChange = (content: string) => {
     if (!activeDoc) return;
@@ -352,6 +380,18 @@ export default function App() {
       />
       <TagsModal isOpen={activeModal === 'tags'} onClose={() => setActiveModal(null)} documents={documents} />
       <PurgeModal isOpen={activeModal === 'purge'} onConfirm={async () => { docToPurge && await deleteDraft(docToPurge); setActiveModal(null); }} onCancel={() => setActiveModal(null)} draftTitle={documents.find(d => d.id === docToPurge)?.title || ""} />
+      
+      {activeModal === 'resume' && (
+        <ResumeAudioModal 
+          isOpen={true}
+          progress={activeDoc?.metadata.audioProgress || 0}
+          total={utterances.current.length}
+          onResume={() => startPlayback(activeDoc?.metadata.audioProgress || 0)}
+          onRestart={() => startPlayback(0)}
+          onCancel={() => setActiveModal(null)}
+        />
+      )}
+
       <ExportModal initialName={activeDoc?.title || ""} format={pendingFormat} onConfirm={async (name) => {
         if (!activeDoc || !pendingFormat) return;
         try {

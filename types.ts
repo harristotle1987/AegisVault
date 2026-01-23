@@ -15,6 +15,7 @@ export interface SovereignDocument {
     wordCount: number;
     estimatedReadTime: number;
     tags: string[];
+    audioProgress?: number;
   };
   theme: VaultTheme;
   font?: VaultFont;
