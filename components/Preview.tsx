@@ -23,7 +23,10 @@ export const Preview: React.FC<PreviewProps> = ({
   const lastScrolledId = useRef<string | null>(null);
 
   const html = useMemo(() => {
-    return marked.parse(content, { 
+    // Transformative Rendering: Convert __1.__ -> 1. for visual output
+    const transformedContent = content.replace(/__(\d+)\.__/g, '$1.');
+    
+    return marked.parse(transformedContent, { 
       breaks: true, 
       gfm: true,
       mangle: false,

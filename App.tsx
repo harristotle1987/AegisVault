@@ -142,15 +142,15 @@ export default function App() {
 
     if (!activeDoc) return;
 
-    const html = marked.parse(activeDoc.content);
+    // Transformative Audio: Convert __1.__ -> 1. for TTS clarity
+    const transformedContent = activeDoc.content.replace(/__(\d+)\.__/g, '$1.');
+    const html = marked.parse(transformedContent);
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = html as string;
     
     // TRIPLE-PASS STRIP: Absolute artifact removal for vocal stream
     const cleanText = (tempDiv.textContent || tempDiv.innerText || "")
-      .replace(/__\s*\d+\.\s*__/g, '') // Scrub pattern: __1. __
-      .replace(/_\s*\d+\.\s*_/g, '')   // Scrub pattern: _3. _
-      .replace(/[\$@#\*:`>_\-\+\[\]\(\)\!@:;=]/g, ' ') // Strip Markdown symbols
+      .replace(/[\$@#\*:`>_\-\+\[\]\(\)\!@:;=]/g, ' ') // Strip remaining Markdown symbols
       .replace(/\s+/g, ' ')                   
       .trim();
 
@@ -313,7 +313,7 @@ export default function App() {
         {/* Action Bank: QUADRANT-LOCKED FAR RIGHT with Collision Guard for Mobile Menu */}
         <div 
           className={`fixed top-[18px] md:top-[12px] right-4 md:right-8 flex items-center gap-6 md:gap-10 z-[10002] pointer-events-auto transition-all duration-300 ease-in-out origin-right ${
-            isSidebarOpen ? 'scale-[0.6] translate-x-14 opacity-20 pointer-events-none' : 'scale-100 translate-x-0 opacity-100'
+            isSidebarOpen ? 'scale-[0.5] translate-x-20 opacity-0 pointer-events-none' : 'scale-100 translate-x-0 opacity-100'
           }`}
         >
            <button 
