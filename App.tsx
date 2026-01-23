@@ -39,6 +39,7 @@ export default function App() {
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const [mobileTab, setMobileTab] = useState<'editor' | 'preview'>('editor');
   const [activeFont, setActiveFont] = useState<VaultFont>('sans');
   const [docToPurge, setDocToPurge] = useState<string | null>(null);
@@ -257,16 +258,24 @@ export default function App() {
 
         {/* Triple-Action Footer: HARDEN, IMPORT, DOWNLOAD */}
         <MobileActionBar 
+          isMenuOpen={isExportMenuOpen}
+          onToggleMenu={() => setIsExportMenuOpen(!isExportMenuOpen)}
           onHarden={handleLocalRefine}
           onImport={handleImport}
-          onExportDocx={() => { setPendingFormat('docx'); setActiveModal('export'); }}
-          onExportPdf={() => { setPendingFormat('pdf'); setActiveModal('export'); }}
+          onExportDocx={() => { setPendingFormat('docx'); setActiveModal('export'); setIsExportMenuOpen(false); }}
+          onExportPdf={() => { setPendingFormat('pdf'); setActiveModal('export'); setIsExportMenuOpen(false); }}
         />
         
-        <div className="md:hidden fixed bottom-40 right-6 z-[9999]">
+        {/* Anti-Overlap Floating Shield: Moves up when footer menu is expanded */}
+        <div 
+          className={`md:hidden fixed right-6 z-[125] transition-all duration-500 ease-in-out ${
+            isExportMenuOpen ? 'bottom-72' : 'bottom-40'
+          }`}
+        >
            <button 
              onClick={() => setMobileTab(prev => prev === 'editor' ? 'preview' : 'editor')} 
-             className="w-14 h-14 rounded-full bg-emerald-vault text-black flex items-center justify-center shadow-lg active:scale-90 transition-transform"
+             className="w-14 h-14 rounded-full bg-emerald-vault text-black flex items-center justify-center shadow-[0_15px_35px_rgba(16,185,129,0.4)] active:scale-90 transition-transform"
+             aria-label="Toggle Render Shard"
            >
              <Shield size={28} />
            </button>
