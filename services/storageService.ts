@@ -59,7 +59,7 @@ export const StorageService = {
   },
 
   /**
-   * Hardened Purge: Immediately evicts all mock placeholders from the registry.
+   * Absolute Mock Purge: Evicts all placeholder data from the registry.
    */
   async purgeMocks(): Promise<void> {
     const mocks = await db.documents.filter(doc => doc.id.startsWith('mock-')).toArray();
@@ -92,7 +92,7 @@ export const StorageService = {
   },
 
   /**
-   * Unified Entry Provisioning: Clears mocks before initializing new real shards.
+   * Provisions a new shard and purges all mocks to ensure workspace sovereignty.
    */
   async createNewDocument(): Promise<SovereignDocument> {
     await this.purgeMocks();
@@ -100,7 +100,7 @@ export const StorageService = {
     const newDoc: SovereignDocument = {
       id: crypto.randomUUID(),
       title: 'New Sovereign Entry',
-      content: '# Sovereign Entry\n\nCommence architectural draft...',
+      content: '# Sovereign Entry\n\nBegin architectural draft...',
       createdAt: Date.now(),
       lastModified: Date.now(),
       status: 'draft',

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Editor } from './components/Editor';
 import { Preview } from './components/Preview';
 import { Sidebar } from './components/Sidebar';
@@ -14,6 +14,7 @@ import { ScannerOverlay } from './components/ScannerOverlay';
 import { VaultRefiner } from './services/localRefineService';
 import { VaultConverter } from './services/exportService';
 import { ImportService } from './services/ImportService';
+import { StorageService } from './services/storageService';
 import { useVault } from './hooks/useVault';
 import { VaultFont } from './types';
 import { Shield, ShieldCheck, Volume2, BookOpen, Scan } from 'lucide-react';
@@ -28,12 +29,10 @@ export default function App() {
     activeDoc, 
     activeDocId, 
     setActiveDocId, 
-    isSaving, 
     saveDraft, 
     deleteDraft, 
     createDraft,
-    renameDraft,
-    refresh
+    renameDraft
   } = useVault();
 
   const [activeModal, setActiveModal] = useState<ModalType>(null);
@@ -55,6 +54,8 @@ export default function App() {
 
   const saveTimeoutRef = useRef<number | null>(null);
   const listenMutexRef = useRef(false);
+  const currentUtteranceIndex = useRef(0);
+  const utterances = useRef<string[]>([]);
   const { isInstallable, install } = usePWAInstall();
 
   // Platform Detection
@@ -65,7 +66,7 @@ export default function App() {
     setIsWindows(/windows|win32/i.test(userAgent));
   }, []);
 
-  // Audio Synthesis Initialization: Lazy bypass for iOS/Android
+  // Audio Initialization: Lazy bypass for iOS/Android
   const initSpeech = useCallback(() => {
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       window.speechSynthesis.cancel();
@@ -79,8 +80,30 @@ export default function App() {
   }, []);
 
   /**
-   * Refined LISTEN engine: Reads only from the sanitized visible text buffer.
+   * Chunked Audio Engine: Large-Data Support
+   * Breaks text into 1000-char segments to ensure reliability.
    */
+  const playNextChunk = useCallback(() => {
+    if (currentUtteranceIndex.current >= utterances.current.length) {
+      setIsPlayingAudio(false);
+      return;
+    }
+
+    const text = utterances.current[currentUtteranceIndex.current];
+    const utter = new SpeechSynthesisUtterance(text);
+    
+    utter.onend = () => {
+      currentUtteranceIndex.current++;
+      playNextChunk();
+    };
+    utter.onerror = () => {
+      setIsPlayingAudio(false);
+      listenMutexRef.current = false;
+    };
+    
+    window.speechSynthesis.speak(utter);
+  }, []);
+
   const handleListen = useCallback((e?: React.MouseEvent) => {
     if (e) {
       e.preventDefault();
@@ -92,42 +115,39 @@ export default function App() {
       return; 
     }
 
-    if (listenMutexRef.current || !activeDoc) return;
-    listenMutexRef.current = true;
-    
     if (window.speechSynthesis.speaking || isPlayingAudio) {
       window.speechSynthesis.cancel();
       setIsPlayingAudio(false);
-      setTimeout(() => { listenMutexRef.current = false; }, 300);
       return;
     }
 
-    // 1. Render content to a virtual div to strip markdown logic
+    if (!activeDoc) return;
+
+    // Sanitize rendered content for audio stream
     const html = marked.parse(activeDoc.content);
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = html as string;
     
-    // 2. Extract plain text and apply Sovereign Scrubbing (strips symbols: #, *, :, etc.)
     const cleanText = (tempDiv.textContent || tempDiv.innerText || "")
-      .replace(/__\d+\.__/g, '') // Strip artifact
-      .replace(/[\$@#\*:`>_\-\+\[\]\(\)\!@:;=]/g, ' ') // Scrub markdown artifacts
+      .replace(/__\d+\.__/g, '') // Strip __1.__ artifacts
+      .replace(/[\$@#\*:`>_\-\+\[\]\(\)\!@:;=]/g, ' ') // Scrub Markdown
       .replace(/\s+/g, ' ')                   
       .trim();
 
-    if (!cleanText) {
-      listenMutexRef.current = false;
-      return;
+    if (!cleanText) return;
+
+    // Chunking Engine: 1000 characters per segment
+    const chunkSize = 1000;
+    const chunks = [];
+    for (let i = 0; i < cleanText.length; i += chunkSize) {
+      chunks.push(cleanText.substring(i, i + chunkSize));
     }
 
-    const utter = new SpeechSynthesisUtterance(cleanText);
-    utter.onstart = () => { setIsPlayingAudio(true); listenMutexRef.current = false; };
-    utter.onend = () => { setIsPlayingAudio(false); listenMutexRef.current = false; };
-    utter.onerror = () => { setIsPlayingAudio(false); listenMutexRef.current = false; };
-    utter.rate = 1.0; 
-    
-    window.speechSynthesis.speak(utter);
-    setTimeout(() => { if (!window.speechSynthesis.speaking) listenMutexRef.current = false; }, 1000);
-  }, [activeDoc, speechReady, initSpeech, isPlayingAudio]);
+    utterances.current = chunks;
+    currentUtteranceIndex.current = 0;
+    setIsPlayingAudio(true);
+    playNextChunk();
+  }, [activeDoc, speechReady, initSpeech, isPlayingAudio, playNextChunk]);
 
   const handleContentChange = (content: string) => {
     if (!activeDoc) return;
@@ -144,12 +164,12 @@ export default function App() {
     if (!activeDoc) return;
     const refined = VaultRefiner.refine(activeDoc.content);
     handleContentChange(refined);
-    setNotification({ message: 'Shard Hardening Complete', type: 'success' });
+    setNotification({ message: 'Hardened State Active', type: 'success' });
     setTimeout(() => setNotification(null), 2000);
   };
 
   /**
-   * Sovereign Import Logic: Clears mocks and switches to new real data immediately.
+   * Universal Bridge Ingestion: Immediate Sync & Purge
    */
   const handleImport = async () => {
     const input = document.createElement('input');
@@ -160,13 +180,16 @@ export default function App() {
       if (!file) return;
       try {
         const { title, content } = await ImportService.processFile(file);
-        // Provision entry which automatically purges mocks in StorageService
+        
+        // Execute absolute purge and provisioning
+        await StorageService.purgeMocks();
         const newDoc = await createDraft();
         await saveDraft({ ...newDoc, title, content });
         setActiveDocId(newDoc.id);
-        setNotification({ message: 'Protocol: Import Successful', type: 'success' });
+        
+        setNotification({ message: 'Protocol: Asset Ingested', type: 'success' });
       } catch (err) {
-        setNotification({ message: 'Import failure', type: 'error' });
+        setNotification({ message: 'Bridge failure', type: 'error' });
       }
     };
     input.click();
@@ -174,9 +197,10 @@ export default function App() {
 
   const handleScannerCapture = async (base64Img: string) => {
     if (!activeDoc) return;
+    await StorageService.purgeMocks();
     const imgMd = `\n\n![Sovereign Plate](${base64Img})\n\n`;
     handleContentChange(activeDoc.content + imgMd);
-    setNotification({ message: 'HD Image Plate Hardened', type: 'success' });
+    setNotification({ message: 'HD Plate Ingested', type: 'success' });
     setActiveModal(null);
   };
 
@@ -229,10 +253,10 @@ export default function App() {
           )}
         </div>
 
-        {/* Action Bank: Dynamic Scaling & Anti-Overlap Logic */}
+        {/* Action Bank: Dynamic Scaling & Right-Edge Shifting */}
         <div 
           className={`fixed top-3 md:top-4 right-4 md:right-8 flex items-center gap-10 z-[10002] pointer-events-auto transition-all duration-300 ease-in-out origin-right ${
-            isSidebarOpen ? 'scale-[0.65] translate-x-14 opacity-20 pointer-events-none' : 'scale-100 translate-x-0 opacity-100'
+            isSidebarOpen ? 'scale-[0.65] translate-x-12 opacity-30 pointer-events-none' : 'scale-100 translate-x-0 opacity-100'
           }`}
         >
            <button 
@@ -255,7 +279,7 @@ export default function App() {
              <span className="text-[8px] font-black uppercase tracking-[0.2em] text-white/80">Listen</span>
            </button>
            
-           <div className="p-1 border-l border-white/10 pl-6 flex flex-col items-center gap-1 shrink-0 opacity-40">
+           <div className="hidden sm:flex p-1 border-l border-white/10 pl-6 flex-col items-center gap-1 shrink-0 opacity-40">
              <div className={`w-2 h-2 rounded-full transition-all duration-700 ${vaultSynced ? "bg-emerald-vault/20" : "bg-emerald-vault animate-pulse shadow-emerald-glow"}`} />
              <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.1em]">Saved</span>
            </div>

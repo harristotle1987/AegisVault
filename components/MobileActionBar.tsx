@@ -20,6 +20,7 @@ export const MobileActionBar: React.FC<MobileActionBarProps> = ({
 }) => {
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-black border-t border-vault-border pb-safe pt-4 px-4 sm:px-8 z-[120] flex items-center justify-between gap-3 sm:gap-6 shadow-[0_-15px_50px_rgba(0,0,0,1)] pointer-events-auto">
+      {/* Action 1: HARDEN */}
       <button 
         onClick={onHarden}
         className="flex-1 flex flex-col items-center justify-center gap-2 py-3 rounded-xl bg-white/[0.03] border border-white/5 text-vault-dim hover:text-emerald-vault active:scale-95 transition-all group"
@@ -28,6 +29,7 @@ export const MobileActionBar: React.FC<MobileActionBarProps> = ({
         <span className="text-[9px] font-black uppercase tracking-[0.2em]">Harden</span>
       </button>
 
+      {/* Action 2: IMPORT */}
       <button 
         onClick={onImport}
         className="flex-1 flex flex-col items-center justify-center gap-2 py-3 rounded-xl bg-white/[0.03] border border-white/5 text-vault-dim hover:text-white active:scale-95 transition-all group"
@@ -36,6 +38,7 @@ export const MobileActionBar: React.FC<MobileActionBarProps> = ({
         <span className="text-[9px] font-black uppercase tracking-[0.2em]">Import</span>
       </button>
 
+      {/* Action 3: DOWNLOAD (With Toggle Menu) */}
       <div className="flex-1 relative">
         <button 
           onClick={onToggleMenu}

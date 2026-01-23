@@ -25,14 +25,17 @@ export const ImportService = {
   },
 
   /**
-   * Sovereign Sanitizer: Absolute regex purge of legacy artifacts (__1.__).
+   * Sovereign Sanitizer: Absolute regex purge of legacy artifacts and numbering noise.
    */
   sanitize(content: string): string {
     return content
-      .replace(/__\d+\.__/g, '') // Forced removal of underscore-number-period pattern
+      // Remove __1.__ pattern (and any digit variation)
+      .replace(/__\d+\.__/g, '')
+      // Remove underscore-digit-underscore variations
       .replace(/_\d+\._/g, '')
-      .replace(/\d+\.\s\_\_/g, ' ')
-      .replace(/@\w+/g, ' ')
+      // Remove artifacts like @ or $ symbols often found in math/OCR
+      .replace(/[\$@]/g, '')
+      // Clean up multiple newlines
       .replace(/\n{3,}/g, '\n\n')
       .trim();
   },
