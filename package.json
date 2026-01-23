@@ -1,5 +1,5 @@
 {
-  "name": "obsidian-vault-converter",
+  "name": "aegisvault-sovereign-editor",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -11,13 +11,13 @@
   "dependencies": {
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "marked": "9.1.6",
     "lucide-react": "0.344.0",
+    "marked": "9.1.6",
     "jspdf": "2.5.1",
-    "html2canvas": "1.4.1",
     "docx": "8.5.0",
-    "file-saver": "2.0.5",
-    "dexie": "3.2.4"
+    "dexie": "3.2.4",
+    "mammoth": "1.6.0",
+    "pdfjs-dist": "3.11.174"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
