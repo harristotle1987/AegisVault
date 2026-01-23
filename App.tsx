@@ -147,9 +147,10 @@ export default function App() {
     tempDiv.innerHTML = html as string;
     
     // Triple-Pass Sanitization Protocol + Markdown Symbol Stripping
+    // Restoration: Restores digits for audio clarity
     const cleanText = (tempDiv.textContent || tempDiv.innerText || "")
-      .replace(/__\d+\.__/g, '') // Scrub pattern: __1.__
-      .replace(/[\$@#\*:`>_\-\+\[\]\(\)\!@:;=]/g, ' ') // Strip Markdown symbols
+      .replace(/__(\d+)\.__/g, '$1.') 
+      .replace(/[\$@#\*:`>_\-\+\[\]\(\)\!@:;=]/g, ' ') 
       .replace(/\s+/g, ' ')                   
       .trim();
 

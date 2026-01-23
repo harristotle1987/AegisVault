@@ -48,9 +48,10 @@ const base64ToUint8Array = (base64: string): Uint8Array => {
 
 /**
  * Artifact Scrubbing Logic for Export Pass
+ * Restores sharded digits to their numerical form.
  */
 const scrubMarkdown = (markdown: string): string => {
-  return markdown.replace(/__\d+\.__/g, '');
+  return markdown.replace(/__(\d+)\.__/g, '$1.');
 };
 
 export class VaultConverter {

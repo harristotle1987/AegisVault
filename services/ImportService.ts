@@ -27,11 +27,11 @@ export const ImportService = {
 
   /**
    * Triple-Pass Artifact Scrub:
-   * Removes sequence sharding artifacts like __1.__, __2.__, etc.
+   * Restores sharding artifacts like __1.__, __2.__ to standard 1., 2.
    */
   sanitize(content: string): string {
     return content
-      .replace(/__\d+\.__/g, '') // Scrub pattern: underscore underscore digits period underscore underscore
+      .replace(/__(\d+)\.__/g, '$1.') // RESTORATION: Render sharded numbers as Markdown list items
       .replace(/_\d+\._/g, '')   
       .replace(/\d+\.\s\_\_/g, ' ')
       .replace(/@\w+/g, ' ')
