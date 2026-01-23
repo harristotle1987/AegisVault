@@ -69,6 +69,9 @@ export const StorageService = {
   },
 
   async saveDocument(doc: SovereignDocument): Promise<void> {
+    if (!doc.id) {
+      throw new Error("Provisioning Failure: Primary Key missing from entry.");
+    }
     await db.documents.put({
       ...doc,
       lastModified: Date.now()
@@ -107,7 +110,8 @@ export const StorageService = {
       metadata: {
         wordCount: 0,
         estimatedReadTime: 1,
-        tags: []
+        tags: [],
+        audioProgress: 0
       },
       theme: 'obsidian'
     };

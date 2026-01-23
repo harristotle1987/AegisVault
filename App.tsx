@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Editor } from './components/Editor';
 import { Preview } from './components/Preview';
@@ -57,7 +56,6 @@ export default function App() {
   });
 
   const saveTimeoutRef = useRef<number | null>(null);
-  const listenMutexRef = useRef(false);
   const currentUtteranceIndex = useRef(0);
   const utterances = useRef<string[]>([]);
   const { isInstallable, install } = usePWAInstall();
@@ -113,7 +111,6 @@ export default function App() {
     };
     utter.onerror = () => {
       setIsPlayingAudio(false);
-      listenMutexRef.current = false;
     };
     
     window.speechSynthesis.speak(utter);
@@ -149,14 +146,16 @@ export default function App() {
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = html as string;
     
+    // Hardened Sanitization Protocol
     const cleanText = (tempDiv.textContent || tempDiv.innerText || "")
-      .replace(/__\d+\.__/g, '') 
-      .replace(/[\$@#\*:`>_\-\+\[\]\(\)\!@:;=]/g, ' ') 
+      .replace(/__\d+\.__/g, '') // Strip __1.__ artifacts
+      .replace(/[\$@#\*:`>_\-\+\[\]\(\)\!@:;=]/g, ' ') // Strip Markdown symbols
       .replace(/\s+/g, ' ')                   
       .trim();
 
     if (!cleanText) return;
 
+    // Segment Streaming Logic (1000 chars)
     const chunkSize = 1000;
     const chunks = [];
     for (let i = 0; i < cleanText.length; i += chunkSize) {
@@ -202,9 +201,14 @@ export default function App() {
       try {
         const { title, content } = await ImportService.processFile(file);
         
+        // Force mock purge immediately
         await StorageService.purgeMocks();
+        
+        // Provision new doc with ID
         const newDoc = await createDraft();
-        await saveDraft({ ...newDoc, title, content });
+        const fullDoc = { ...newDoc, title, content };
+        
+        await saveDraft(fullDoc);
         setActiveDocId(newDoc.id);
         
         setNotification({ message: 'Protocol: Asset Ingested', type: 'success' });
@@ -305,10 +309,10 @@ export default function App() {
           )}
         </div>
 
-        {/* Action Bank */}
+        {/* Action Bank: Positioned Far Right, Adjusted for Mobile Sidebar Collision */}
         <div 
-          className={`fixed top-3 md:top-4 right-4 md:right-8 flex items-center gap-10 z-[10002] pointer-events-auto transition-all duration-300 ease-in-out origin-right ${
-            isSidebarOpen ? 'scale-[0.65] translate-x-12 opacity-30 pointer-events-none' : 'scale-100 translate-x-0 opacity-100'
+          className={`fixed top-[18px] md:top-[12px] right-4 md:right-8 flex items-center gap-6 md:gap-10 z-[10002] pointer-events-auto transition-all duration-300 ease-in-out origin-right ${
+            isSidebarOpen ? 'scale-[0.6] translate-x-14 opacity-20 pointer-events-none' : 'scale-100 translate-x-0 opacity-100'
           }`}
         >
            <button 
@@ -331,7 +335,7 @@ export default function App() {
              <span className="text-[8px] font-black uppercase tracking-[0.2em] text-white/80">Listen</span>
            </button>
            
-           <div className="hidden sm:flex p-1 border-l border-white/10 pl-6 flex-col items-center gap-1 shrink-0 opacity-40">
+           <div className="hidden lg:flex p-1 border-l border-white/10 pl-6 flex-col items-center gap-1 shrink-0 opacity-40">
              <div className={`w-2 h-2 rounded-full transition-all duration-700 ${vaultSynced ? "bg-emerald-vault/20" : "bg-emerald-vault animate-pulse shadow-emerald-glow"}`} />
              <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.1em]">Saved</span>
            </div>
