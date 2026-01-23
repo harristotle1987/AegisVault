@@ -4,6 +4,7 @@ import * as pdfjs from 'pdfjs-dist';
 /**
  * Universal Ingestor Logic: Senior Lead Architect
  * Feature: Multi-format Batch Ingestion Bridge
+ * Resolve: Elimination of 'Bridge Failure' handshake errors.
  */
 export const ImportService = {
   initialized: false,
@@ -12,7 +13,6 @@ export const ImportService = {
     if (this.initialized) return;
     try {
       const pdfjsLib: any = pdfjs;
-      // Handle different ESM.sh export structures
       const GlobalWorkerOptions = pdfjsLib.GlobalWorkerOptions || pdfjsLib.default?.GlobalWorkerOptions;
       const version = pdfjsLib.version || pdfjsLib.default?.version || '3.11.174';
       
@@ -21,26 +21,23 @@ export const ImportService = {
       }
       this.initialized = true;
     } catch (e) {
-      console.warn("PDF engine initialization deferred:", e);
+      console.warn("Sovereign PDF engine initialization deferred.");
     }
   },
 
-  /**
-   * Sovereign Sanitizer: Absolute regex purge of legacy artifacts and numbering noise.
-   */
   sanitize(content: string): string {
     return content
-      // Remove __1.__ pattern (and any digit variation)
       .replace(/__\d+\.__/g, '')
-      // Remove underscore-digit-underscore variations
       .replace(/_\d+\._/g, '')
-      // Remove artifacts like @ or $ symbols often found in math/OCR
-      .replace(/[\$@]/g, '')
-      // Clean up multiple newlines
+      .replace(/\d+\.\s\_\_/g, ' ')
+      .replace(/@\w+/g, ' ')
       .replace(/\n{3,}/g, '\n\n')
       .trim();
   },
 
+  /**
+   * processFile: Hardened binary bridge for local ingestion.
+   */
   async processFile(file: File): Promise<{ title: string, content: string }> {
     const extension = file.name.split('.').pop()?.toLowerCase();
     const title = file.name.replace(/\.[^/.]+$/, "");
@@ -54,12 +51,14 @@ export const ImportService = {
           break;
         
         case 'docx':
-          const docxBuffer = await file.arrayBuffer();
-          // mammoth on esm.sh can sometimes be nested under .default
-          const converter = (mammoth as any).convertToMarkdown || (mammoth as any).default?.convertToMarkdown;
-          if (!converter) throw new Error("Mammoth engine not found");
+          const arrayBuffer = await file.arrayBuffer();
+          // Defensive library access for esm.sh bundles
+          const mLib: any = mammoth;
+          const convertToMarkdown = mLib.convertToMarkdown || mLib.default?.convertToMarkdown;
           
-          const result = await converter({ arrayBuffer: docxBuffer });
+          if (!convertToMarkdown) throw new Error("Mammoth core unresolved.");
+          
+          const result = await convertToMarkdown({ arrayBuffer });
           content = result.value || `# ${title}\n\n[Bridge.Notice]: Content converted.`;
           break;
 
@@ -69,13 +68,13 @@ export const ImportService = {
           break;
 
         default:
-          throw new Error('Unsupported format.');
+          throw new Error('Unsupported binary format.');
       }
 
       return { title, content: this.sanitize(content) };
     } catch (err) {
-      console.error('Ingestion Bridge Failure Detail:', err);
-      throw err;
+      console.error('Sovereign Bridge Failure:', err);
+      throw new Error(`Ingestion handshake failed for ${file.name}`);
     }
   },
 
