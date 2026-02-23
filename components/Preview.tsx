@@ -9,6 +9,7 @@ interface PreviewProps {
   activeDocId?: string | null;
   onRemoveImage?: (src: string) => void;
   onRescanImage?: (src: string) => void;
+  onResizeImage?: (src: string, width: number, height: number) => void;
 }
 
 export const Preview: React.FC<PreviewProps> = ({ 
@@ -16,7 +17,8 @@ export const Preview: React.FC<PreviewProps> = ({
   font = 'sans', 
   activeDocId,
   onRemoveImage,
-  onRescanImage
+  onRescanImage,
+  onResizeImage
 }) => {
   const previewRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -44,15 +46,20 @@ export const Preview: React.FC<PreviewProps> = ({
       // Scan for Sovereign Plates and inject actions + responsive constraints
       const images = previewRef.current.querySelectorAll('img');
       images.forEach((img) => {
-        if (img.alt === 'Sovereign Plate') {
+        if (img.alt.startsWith('Sovereign Plate')) {
+          const altParts = img.alt.split('|');
+          const savedWidth = altParts[1] ? parseInt(altParts[1]) : null;
+          const savedHeight = altParts[2] ? parseInt(altParts[2]) : null;
+
           // Wrap image in a relative container that enforces bounds
           const wrapper = document.createElement('div');
-          wrapper.className = 'relative group mb-8 overflow-hidden rounded-xl border border-vault-border shadow-lg max-w-full bg-black/20';
+          wrapper.className = 'relative group mb-8 overflow-hidden rounded-xl border border-vault-border shadow-lg max-w-full bg-black/20 inline-block';
           img.parentNode?.insertBefore(wrapper, img);
           wrapper.appendChild(img);
           
-          // Enforce image fit within its wrapper and the screen
-          img.className = 'w-full max-w-full h-auto block grayscale contrast-125 object-contain';
+          if (savedWidth) img.style.width = `${savedWidth}px`;
+          if (savedHeight) img.style.height = `${savedHeight}px`;
+          img.className = 'max-w-full h-auto block grayscale contrast-125 object-contain';
 
           // Action Overlay
           const overlay = document.createElement('div');
@@ -83,10 +90,67 @@ export const Preview: React.FC<PreviewProps> = ({
           }
 
           wrapper.appendChild(overlay);
+
+          // Resize Handle
+          if (onResizeImage) {
+            const resizeHandle = document.createElement('div');
+            resizeHandle.className = 'absolute bottom-0 right-0 w-8 h-8 cursor-nwse-resize bg-emerald-vault/20 hover:bg-emerald-vault/50 transition-colors z-30 flex items-center justify-center rounded-tl-lg opacity-0 group-hover:opacity-100 touch-none';
+            resizeHandle.innerHTML = '<div class="w-2 h-2 bg-emerald-vault rounded-full shadow-emerald-glow" />'
+            
+            let startX: number, startY: number, startWidth: number, startHeight: number;
+
+            const onMove = (clientX: number, clientY: number) => {
+              const newWidth = Math.max(50, startWidth + (clientX - startX));
+              const newHeight = Math.max(50, startHeight + (clientY - startY));
+              img.style.width = `${newWidth}px`;
+              img.style.height = `${newHeight}px`;
+            };
+
+            const onMouseMove = (e: MouseEvent) => onMove(e.clientX, e.clientY);
+            const onTouchMove = (e: TouchEvent) => {
+              if (e.touches.length > 0) {
+                onMove(e.touches[0].clientX, e.touches[0].clientY);
+              }
+            };
+
+            const onEnd = () => {
+              document.removeEventListener('mousemove', onMouseMove);
+              document.removeEventListener('mouseup', onEnd);
+              document.removeEventListener('touchmove', onTouchMove);
+              document.removeEventListener('touchend', onEnd);
+              onResizeImage(img.src, parseInt(img.style.width), parseInt(img.style.height));
+            };
+
+            const onStart = (clientX: number, clientY: number) => {
+              startX = clientX;
+              startY = clientY;
+              startWidth = img.clientWidth;
+              startHeight = img.clientHeight;
+              document.addEventListener('mousemove', onMouseMove);
+              document.addEventListener('mouseup', onEnd);
+              document.addEventListener('touchmove', onTouchMove, { passive: false });
+              document.addEventListener('touchend', onEnd);
+            };
+
+            resizeHandle.onmousedown = (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onStart(e.clientX, e.clientY);
+            };
+
+            resizeHandle.ontouchstart = (e) => {
+              e.stopPropagation();
+              if (e.touches.length > 0) {
+                onStart(e.touches[0].clientX, e.touches[0].clientY);
+              }
+            };
+
+            wrapper.appendChild(resizeHandle);
+          }
         }
       });
     }
-  }, [html, onRemoveImage, onRescanImage]);
+  }, [html, onRemoveImage, onRescanImage, onResizeImage]);
 
   /**
    * Sovereign Scroll Stability Protocol

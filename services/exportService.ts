@@ -131,22 +131,41 @@ export class VaultConverter {
           break;
 
         case 'paragraph':
-          const imgToken = token.tokens?.find((t: any) => t.type === 'image');
-          if (imgToken) {
-            const dims = await getImageDimensions(imgToken.href);
-            const scale = Math.min(contentWidth / dims.w, 1);
-            const w = dims.w * scale;
-            const h = dims.h * scale;
-            checkPageBreak(h + 8);
-            
-            const format = imgToken.href.includes('png') ? 'PNG' : 'JPEG';
-            pdf.addImage(imgToken.href, format, margin, cursorY, w, h);
-            cursorY += h + 8;
-          } else {
-            checkPageBreak(12);
-            renderStyledLine(token.tokens || [{ text: token.text }], 11);
-            cursorY += 4;
+          const inlineTokens = token.tokens || [];
+          for (const t of inlineTokens) {
+            if (t.type === 'image') {
+              try {
+                const altParts = (t.text || '').split('|');
+                const savedWidth = altParts[1] ? parseInt(altParts[1]) : null;
+                const savedHeight = altParts[2] ? parseInt(altParts[2]) : null;
+
+                const dims = await getImageDimensions(t.href);
+                let w, h;
+
+                if (savedWidth && savedHeight) {
+                  const scale = Math.min(contentWidth / savedWidth, 1);
+                  w = savedWidth * scale;
+                  h = savedHeight * scale;
+                } else {
+                  const scale = Math.min(contentWidth / dims.w, 1);
+                  w = dims.w * scale;
+                  h = dims.h * scale;
+                }
+
+                checkPageBreak(h + 8);
+                
+                const format = t.href.includes('png') ? 'PNG' : 'JPEG';
+                pdf.addImage(t.href, format, margin, cursorY, w, h);
+                cursorY += h + 8;
+              } catch (e) {
+                console.error("PDF Image Render Failure", e);
+              }
+            } else {
+              checkPageBreak(12);
+              renderStyledLine([t], 11);
+            }
           }
+          cursorY += 4;
           break;
 
         case 'list':
@@ -190,16 +209,31 @@ export class VaultConverter {
       for (const t of inlineTokens) {
         if (t.type === 'image') {
           try {
+            const altParts = (t.text || '').split('|');
+            const savedWidth = altParts[1] ? parseInt(altParts[1]) : null;
+            const savedHeight = altParts[2] ? parseInt(altParts[2]) : null;
+
             const dims = await getImageDimensions(t.href);
             const maxWidth = 550; 
-            const scale = Math.min(maxWidth / dims.w, 1);
+            
+            let w, h;
+            if (savedWidth && savedHeight) {
+              const scale = Math.min(maxWidth / savedWidth, 1);
+              w = savedWidth * scale;
+              h = savedHeight * scale;
+            } else {
+              const scale = Math.min(maxWidth / dims.w, 1);
+              w = dims.w * scale;
+              h = dims.h * scale;
+            }
+
             const binaryData = base64ToUint8Array(t.href);
             
             runs.push(new ImageRun({
               data: binaryData,
               transformation: {
-                width: dims.w * scale,
-                height: dims.h * scale,
+                width: w,
+                height: h,
               }
             }));
           } catch (e) {

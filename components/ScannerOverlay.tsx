@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { X, Camera, Shield } from 'lucide-react';
+import { X, Camera, Shield, Image as ImageIcon } from 'lucide-react';
 
 interface ScannerOverlayProps {
   onCapture: (base64Img: string) => void;
@@ -58,6 +58,23 @@ export const ScannerOverlay: React.FC<ScannerOverlayProps> = ({ onCapture, onClo
     }
   };
 
+  const handleGallery = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e: any) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64 = event.target?.result as string;
+        onCapture(base64);
+      };
+      reader.readAsDataURL(file);
+    };
+    input.click();
+  };
+
   return (
     <div className="fixed inset-0 z-[200] bg-black flex flex-col items-center justify-center p-6 animate-in fade-in duration-500">
       <div className="absolute top-8 left-8 flex items-center gap-3">
@@ -96,15 +113,15 @@ export const ScannerOverlay: React.FC<ScannerOverlayProps> = ({ onCapture, onClo
         </div>
       </div>
 
-      <div className="mt-12 flex items-center gap-12 md:gap-16">
+      <div className="mt-12 flex items-center gap-8 md:gap-16">
         <button 
-          onClick={onClose}
+          onClick={handleGallery}
           className="flex flex-col items-center gap-2 text-vault-dim hover:text-white transition-all active:scale-95 group"
         >
           <div className="w-14 h-14 rounded-full border border-white/10 flex items-center justify-center bg-white/5 group-hover:bg-white/10 transition-colors">
-            <X size={24} />
+            <ImageIcon size={24} />
           </div>
-          <span className="text-[10px] font-black uppercase tracking-[0.2em]">Exit</span>
+          <span className="text-[10px] font-black uppercase tracking-[0.2em]">Gallery</span>
         </button>
 
         <button 
@@ -115,7 +132,15 @@ export const ScannerOverlay: React.FC<ScannerOverlayProps> = ({ onCapture, onClo
           <Camera size={36} />
         </button>
 
-        <div className="w-14 hidden md:block" /> {/* Layout balancer */}
+        <button 
+          onClick={onClose}
+          className="flex flex-col items-center gap-2 text-vault-dim hover:text-white transition-all active:scale-95 group"
+        >
+          <div className="w-14 h-14 rounded-full border border-white/10 flex items-center justify-center bg-white/5 group-hover:bg-white/10 transition-colors">
+            <X size={24} />
+          </div>
+          <span className="text-[10px] font-black uppercase tracking-[0.2em]">Exit</span>
+        </button>
       </div>
 
       <p className="mt-10 text-[9px] font-black uppercase tracking-[0.2em] text-vault-dim opacity-40 text-center max-w-[240px] leading-relaxed">

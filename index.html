@@ -133,11 +133,18 @@
         
         /* Responsive Image Protocol */
         .prose-vault img {
-          max-width: 100% !important;
-          height: auto !important;
+          max-width: 100%;
+          height: auto;
           display: block;
           margin-left: auto;
           margin-right: auto;
+        }
+
+        @media (pointer: coarse) {
+          .cursor-nwse-resize {
+            opacity: 1 !important;
+            background-color: rgba(16, 185, 129, 0.4) !important;
+          }
         }
 
         .prose-vault h1 { 

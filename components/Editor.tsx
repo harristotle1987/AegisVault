@@ -1,21 +1,33 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { VaultFont } from '../types';
-import { Undo2, Redo2 } from 'lucide-react';
+import { Undo2, Redo2, Image as ImageIcon } from 'lucide-react';
 
 interface EditorProps {
   value: string;
   onChange: (value: string) => void;
   font?: VaultFont;
   activeDocId?: string | null;
+  onImageUpload?: (file: File) => void;
 }
 
 /**
  * Editor: Sovereign Text Entry Interface
  * Enhanced with state-tracked Undo/Redo protocol.
  */
-export const Editor: React.FC<EditorProps> = ({ value, onChange, font = 'mono', activeDocId }) => {
+export const Editor = React.forwardRef<HTMLTextAreaElement, EditorProps>(({ value, onChange, font = 'mono', activeDocId, onImageUpload }, ref) => {
   const fontClass = font === 'mono' ? 'font-mono' : 'font-sans';
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const internalRef = useRef<HTMLTextAreaElement>(null);
+  
+  // Combine refs
+  useEffect(() => {
+    if (!ref) return;
+    if (typeof ref === 'function') {
+      ref(internalRef.current);
+    } else if (ref) {
+      ref.current = internalRef.current;
+    }
+  }, [ref]);
+
   const lastScrolledId = useRef<string | null>(null);
   
   const [internalValue, setInternalValue] = useState(value);
@@ -30,8 +42,8 @@ export const Editor: React.FC<EditorProps> = ({ value, onChange, font = 'mono', 
       setPointer(0);
       setInternalValue(value);
       
-      if (textareaRef.current) {
-        const el = textareaRef.current;
+      if (internalRef.current) {
+        const el = internalRef.current;
         requestAnimationFrame(() => {
           el.scrollTop = el.scrollHeight;
           lastScrolledId.current = activeDocId;
@@ -81,6 +93,32 @@ export const Editor: React.FC<EditorProps> = ({ value, onChange, font = 'mono', 
       onChange(val);
     }
   }, [pointer, history, onChange]);
+
+  const handleImageClick = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (event: Event) => {
+      const target = event.target as HTMLInputElement;
+      const file = target.files?.[0];
+      if (file && onImageUpload) {
+        onImageUpload(file);
+      }
+    };
+    input.click();
+  };
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith('image/') && onImageUpload) {
+      onImageUpload(file);
+    }
+  }, [onImageUpload]);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -134,14 +172,24 @@ export const Editor: React.FC<EditorProps> = ({ value, onChange, font = 'mono', 
             <Redo2 size={14} />
           </button>
           <div className="w-px h-3 bg-vault-border mx-1" />
+          <button 
+            onClick={handleImageClick}
+            className="p-1.5 hover:bg-white/5 rounded-md transition-all text-vault-dim hover:text-white active:scale-90"
+            title="Insert Image"
+          >
+            <ImageIcon size={14} />
+          </button>
+          <div className="w-px h-3 bg-vault-border mx-1" />
           <span className="text-[9px] opacity-50 font-mono">MD.GFM</span>
         </div>
       </div>
       <div className="flex-1 relative overflow-hidden">
         <textarea
-          ref={textareaRef}
+          ref={internalRef}
           value={internalValue}
           onChange={handleChange}
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
           className={`absolute inset-0 w-full h-full bg-obsidian p-8 md:p-12 pb-[200px] md:pb-[200px] focus:outline-none resize-none text-sm leading-relaxed text-vault-text placeholder:text-zinc-800 caret-emerald-vault transition-colors overflow-y-auto vault-editor-scroll ${fontClass}`}
           placeholder="Commence entry..."
           spellCheck={false}
@@ -152,4 +200,4 @@ export const Editor: React.FC<EditorProps> = ({ value, onChange, font = 'mono', 
       </div>
     </div>
   );
-};
+});

@@ -48,7 +48,7 @@ export const StorageService = {
       const now = Date.now();
       for (let i = 0; i < MOCK_ARCHIVES.length; i++) {
         const mock = MOCK_ARCHIVES[i];
-        await db.documents.add({
+        await db.documents.put({
           ...mock,
           id: `mock-${i}`, 
           createdAt: now - (i * 1000), 

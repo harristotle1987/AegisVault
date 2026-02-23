@@ -26,12 +26,12 @@ export const useVault = () => {
     const initVault = async () => {
       await StorageService.seedIfEmpty();
       const docs = await refresh();
-      if (docs.length > 0 && !activeDocId) {
-        setActiveDocId(docs[0].id);
+      if (docs.length > 0) {
+        setActiveDocId(prev => prev || docs[0].id);
       }
     };
     initVault();
-  }, [refresh, activeDocId]);
+  }, [refresh]);
 
   const saveDraft = useCallback(async (doc: SovereignDocument) => {
     setIsSaving(true);

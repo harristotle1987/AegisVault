@@ -20,7 +20,7 @@ export const ImportService = {
         GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${version}/pdf.worker.min.js`;
       }
       this.initialized = true;
-    } catch (e) {
+    } catch {
       console.warn("Sovereign PDF engine initialization deferred.");
     }
   },
@@ -41,7 +41,7 @@ export const ImportService = {
    * processFile: Hardened binary bridge for structural conversion.
    */
   async processFile(file: File): Promise<{ title: string, content: string }> {
-    const extension = file.name.split('.').pop()?.toLowerCase();
+    const extension = file.name.split('.').pop()?.toLowerCase().trim();
     const title = file.name.replace(/\.[^/.]+$/, "");
     
     try {
@@ -52,7 +52,7 @@ export const ImportService = {
           content = await file.text();
           break;
         
-        case 'docx':
+        case 'docx': {
           const docxBuffer = await file.arrayBuffer();
           const m: any = mammoth;
           
@@ -69,11 +69,25 @@ export const ImportService = {
           const result = await conversionFn({ arrayBuffer: new Uint8Array(docxBuffer) });
           content = result.value || `# ${title}\n\n[Bridge.Notice]: Content converted.`;
           break;
-
+        }
+        
         case 'pdf':
           await this.initPdf();
           content = await this.extractPdfText(file);
           break;
+
+        case 'jpg':
+        case 'jpeg':
+        case 'png':
+        case 'webp': {
+          const reader = new FileReader();
+          const base64 = await new Promise<string>((resolve) => {
+            reader.onload = (event) => resolve(event.target?.result as string);
+            reader.readAsDataURL(file);
+          });
+          content = `![Sovereign Plate](${base64})`;
+          break;
+        }
 
         default:
           throw new Error(`Format '${extension}' is not bridged.`);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { Editor } from './components/Editor';
 import { Preview } from './components/Preview';
 import { Sidebar } from './components/Sidebar';
@@ -49,23 +49,18 @@ export default function App() {
   const [speechReady, setSpeechReady] = useState(false);
   const [pendingFormat, setPendingFormat] = useState<'pdf' | 'docx' | null>(null);
   const [rescanTargetSrc, setRescanTargetSrc] = useState<string | null>(null);
-  const [lastExportedFile, setLastExportedFile] = useState<{name: string, format: any, blobUrl: string | null}>({
+  const [lastExportedFile, setLastExportedFile] = useState<{name: string, format: 'pdf' | 'docx' | null, blobUrl: string | null}>({
     name: "", 
     format: null, 
     blobUrl: null
   });
 
   const saveTimeoutRef = useRef<number | null>(null);
+  const editorRef = useRef<HTMLTextAreaElement>(null);
+  const lastSelectionRef = useRef<number>(0);
   const currentUtteranceIndex = useRef(0);
   const utterances = useRef<string[]>([]);
   const { isInstallable, install } = usePWAInstall();
-
-  const [isWindows, setIsWindows] = useState(false);
-
-  useEffect(() => {
-    const userAgent = window.navigator.userAgent.toLowerCase();
-    setIsWindows(/windows|win32/i.test(userAgent));
-  }, []);
 
   const initSpeech = useCallback(() => {
     if (typeof window !== 'undefined' && window.speechSynthesis) {
@@ -150,7 +145,7 @@ export default function App() {
     
     // TRIPLE-PASS STRIP: Absolute artifact removal for vocal stream
     const cleanText = (tempDiv.textContent || tempDiv.innerText || "")
-      .replace(/[\$@#\*:`>_\-\+\[\]\(\)\!@:;=]/g, ' ') // Strip remaining Markdown symbols
+      .replace(/[$@#*:>`_\-+[]()!@:;=]/g, ' ') // Strip remaining Markdown symbols
       .replace(/\s+/g, ' ')                   
       .trim();
 
@@ -195,13 +190,29 @@ export default function App() {
   const handleImport = async () => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.docx,.pdf,.txt,.md';
-    input.onchange = async (e: any) => {
-      const file = e.target.files?.[0];
+    input.accept = '.docx,.pdf,.txt,.md,.jpg,.jpeg,.png,.webp';
+    input.onchange = async (event: Event) => {
+      const target = event.target as HTMLInputElement;
+      const file = target.files?.[0];
       if (!file) return;
+      
+      const extension = file.name.split('.').pop()?.toLowerCase().trim();
+      const isImage = ['jpg', 'jpeg', 'png', 'webp'].includes(extension || '');
+
       try {
         const { title, content } = await ImportService.processFile(file);
         
+        if (isImage && activeDoc) {
+          // If it's an image and we have an active doc, insert it at cursor or end
+          const imgMd = `\n\n${content}\n\n`;
+          const pos = lastSelectionRef.current;
+          const docContent = activeDoc.content;
+          const newContent = docContent.substring(0, pos) + imgMd + docContent.substring(pos);
+          handleContentChange(newContent);
+          setNotification({ message: 'Plate Ingested into Shard', type: 'success' });
+          return;
+        }
+
         // Immediate Mock Eviction
         await StorageService.purgeMocks();
         
@@ -242,15 +253,19 @@ export default function App() {
     await StorageService.purgeMocks();
 
     if (rescanTargetSrc) {
-      const targetMd = `![Sovereign Plate](${rescanTargetSrc})`;
-      const replacementMd = `![Sovereign Plate](${base64Img})`;
-      const newContent = activeDoc.content.replace(targetMd, replacementMd);
+      // Use a replacement function to avoid putting large base64 strings into a regex pattern
+      const newContent = activeDoc.content.replace(/!\[Sovereign Plate[^\]]*\]\((.*?)\)/g, (match, p1) => {
+        return p1 === rescanTargetSrc ? `![Sovereign Plate](${base64Img})` : match;
+      });
       handleContentChange(newContent);
       setRescanTargetSrc(null);
       setNotification({ message: 'Shard Re-calibrated', type: 'success' });
     } else {
       const imgMd = `\n\n![Sovereign Plate](${base64Img})\n\n`;
-      handleContentChange(activeDoc.content + imgMd);
+      const pos = lastSelectionRef.current;
+      const content = activeDoc.content;
+      const newContent = content.substring(0, pos) + imgMd + content.substring(pos);
+      handleContentChange(newContent);
       setNotification({ message: 'HD Plate Ingested', type: 'success' });
     }
     setActiveModal(null);
@@ -258,8 +273,10 @@ export default function App() {
 
   const handleRemoveImage = (src: string) => {
     if (!activeDoc) return;
-    const targetMd = `![Sovereign Plate](${src})`;
-    const newContent = activeDoc.content.split(targetMd).join('').trim();
+    // Use a replacement function to avoid putting large base64 strings into a regex pattern
+    const newContent = activeDoc.content.replace(/!\[Sovereign Plate[^\]]*\]\((.*?)\)/g, (match, p1) => {
+      return p1 === src ? '' : match;
+    }).trim();
     handleContentChange(newContent);
     setNotification({ message: 'Shard Plate Purged', type: 'success' });
   };
@@ -267,6 +284,33 @@ export default function App() {
   const handleRescanImage = (src: string) => {
     setRescanTargetSrc(src);
     setActiveModal('scanner');
+  };
+
+  const handleResizeImage = (src: string, width: number, height: number) => {
+    if (!activeDoc) return;
+    // Use a replacement function to avoid putting large base64 strings into a regex pattern
+    const newContent = activeDoc.content.replace(/!\[Sovereign Plate[^\]]*\]\((.*?)\)/g, (match, p1) => {
+      return p1 === src ? `![Sovereign Plate|${width}|${height}](${src})` : match;
+    });
+    handleContentChange(newContent);
+  };
+
+  const handleImageUpload = async (file: File) => {
+    if (!activeDoc) return;
+    try {
+      const { content } = await ImportService.processFile(file);
+      const imgMd = `\n\n${content}\n\n`;
+      const pos = editorRef.current?.selectionStart || activeDoc.content.length;
+      const docContent = activeDoc.content;
+      const newContent = docContent.substring(0, pos) + imgMd + docContent.substring(pos);
+      handleContentChange(newContent);
+      setNotification({ message: 'Plate Ingested', type: 'success' });
+    } catch (err) {
+      setNotification({ 
+        message: err instanceof Error ? err.message : 'Ingestion failed', 
+        type: 'error' 
+      });
+    }
   };
 
   return (
@@ -306,7 +350,14 @@ export default function App() {
           {activeDoc ? (
             <>
               <div className={`flex-1 flex flex-col h-full overflow-hidden ${mobileTab === 'preview' ? 'hidden md:flex' : 'flex'}`}>
-                <Editor font={activeFont} value={activeDoc.content} onChange={handleContentChange} activeDocId={activeDocId} />
+                <Editor 
+                  ref={editorRef}
+                  font={activeFont} 
+                  value={activeDoc.content} 
+                  onChange={handleContentChange} 
+                  activeDocId={activeDocId} 
+                  onImageUpload={handleImageUpload}
+                />
               </div>
               <div className={`hidden md:block w-px z-10 h-full bg-vault-border`} />
               <div className={`flex-1 flex flex-col h-full overflow-hidden bg-obsidian-soft ${mobileTab === 'editor' ? 'hidden md:flex' : 'flex'}`}>
@@ -316,6 +367,7 @@ export default function App() {
                   activeDocId={activeDocId} 
                   onRemoveImage={handleRemoveImage}
                   onRescanImage={handleRescanImage}
+                  onResizeImage={handleResizeImage}
                 />
               </div>
             </>
@@ -331,7 +383,12 @@ export default function App() {
           }`}
         >
            <button 
-             onClick={(e) => { e.preventDefault(); e.stopPropagation(); setActiveModal('scanner'); }} 
+             onClick={(e) => { 
+               e.preventDefault(); 
+               e.stopPropagation(); 
+               lastSelectionRef.current = editorRef.current?.selectionStart || activeDoc?.content.length || 0;
+               setActiveModal('scanner'); 
+             }} 
              className="flex flex-col items-center gap-1 transition-all active:scale-90 group"
            >
              <div className="p-2.5 bg-white/5 border border-white/10 rounded-full text-emerald-vault group-hover:bg-emerald-vault/20 transition-all">
@@ -398,14 +455,16 @@ export default function App() {
         setSpeechRate={setSpeechRate}
       />
       <TagsModal isOpen={activeModal === 'tags'} onClose={() => setActiveModal(null)} documents={documents} />
-      <PurgeModal isOpen={activeModal === 'purge'} onConfirm={async () => { docToPurge && await deleteDraft(docToPurge); setActiveModal(null); }} onCancel={() => setActiveModal(null)} draftTitle={documents.find(d => d.id === docToPurge)?.title || ""} />
+      <PurgeModal isOpen={activeModal === 'purge'} onConfirm={async () => { if (docToPurge) await deleteDraft(docToPurge); setActiveModal(null); }} onCancel={() => setActiveModal(null)} draftTitle={documents.find(d => d.id === docToPurge)?.title || ""} />
       
       {activeModal === 'resume' && (
         <ResumeAudioModal 
           isOpen={true}
           progress={activeDoc?.metadata.audioProgress || 0}
           total={utterances.current.length}
-          onResume={() => startPlayback(activeDoc?.metadata.audioProgress || 0)}
+          onResume={() => {
+            if (activeDoc) startPlayback(activeDoc.metadata.audioProgress || 0);
+          }}
           onRestart={() => startPlayback(0)}
           onCancel={() => setActiveModal(null)}
         />
@@ -420,7 +479,7 @@ export default function App() {
           else blob = await VaultConverter.toDocx(activeDoc.content, fileName);
           setLastExportedFile({ name, format: pendingFormat, blobUrl: URL.createObjectURL(blob) });
           setActiveModal('success');
-        } catch (e) { setNotification({ message: 'Export sequence failure', type: 'error' }); }
+        } catch { setNotification({ message: 'Export sequence failure', type: 'error' }); }
         finally { setPendingFormat(null); }
       }} onCancel={() => { setActiveModal(null); setPendingFormat(null); }} />
       <DownloadSuccessModal isOpen={activeModal === 'success'} onClose={() => { if (lastExportedFile.blobUrl) URL.revokeObjectURL(lastExportedFile.blobUrl); setActiveModal(null); }} fileName={lastExportedFile.name} format={lastExportedFile.format} blobUrl={lastExportedFile.blobUrl} />
