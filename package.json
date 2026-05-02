@@ -1,0 +1,37 @@
+{
+  "name": "aegis-vault",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint . --ext js,jsx,ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@types/papaparse": "^5.5.2",
+    "clsx": "^2.1.0",
+    "dexie": "^3.2.4",
+    "docx": "^8.5.0",
+    "jspdf": "^2.5.1",
+    "lucide-react": "^0.474.0",
+    "mammoth": "^1.6.0",
+    "marked": "^9.1.6",
+    "papaparse": "^5.5.3",
+    "pdfjs-dist": "^3.11.174",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "tailwind-merge": "^2.2.1"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.17",
+    "postcss": "^8.4.35",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.2.2",
+    "vite": "^5.1.4"
+  }
+}

@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#000000">
+    
+    <!-- Import Map for Module Resolution -->
+    <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@19.2.3",
+    "react-dom": "https://esm.sh/react-dom@19.2.3",
+    "react-dom/client": "https://esm.sh/react-dom@19.2.3/client",
+    "react/jsx-runtime": "https://esm.sh/react@19.2.3/jsx-runtime",
+    "lucide-react": "https://esm.sh/lucide-react@0.474.0",
+    "marked": "https://esm.sh/marked@9.1.6",
+    "jspdf": "https://esm.sh/jspdf@2.5.1",
+    "docx": "https://esm.sh/docx@8.5.0",
+    "dexie": "https://esm.sh/dexie@3.2.4",
+    "papaparse": "https://esm.sh/papaparse@5.4.1",
+    "mammoth": "https://esm.sh/mammoth@1.6.0",
+    "pdfjs-dist": "https://esm.sh/pdfjs-dist@3.11.174",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/"
+  }
+}
+</script>
+
+    <!-- iOS Sovereign Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="AegisVault">
+    <link rel="apple-touch-icon" href="/icon-192.svg">
+    
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="format-detection" content="telephone=no">
+    
+    <title>AegisVault | Sovereign Editor</title>
+    
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="manifest" href="/manifest.json">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&family=Playfair+Display:ital,wght@0,700;0,800;1,700;1,800&display=swap" rel="stylesheet">
+    
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              obsidian: {
+                DEFAULT: "var(--bg-primary)",
+                soft: "var(--bg-secondary)",
+                muted: "var(--bg-secondary)",
+              },
+              emerald: {
+                vault: "#10B981",
+                glow: "rgba(16, 185, 129, 0.25)",
+              },
+              vault: {
+                border: "var(--border-color)",
+                text: "var(--text-primary)",
+                dim: "var(--text-secondary)",
+              },
+            },
+            fontFamily: {
+              sans: ["Inter", "system-ui", "sans-serif"],
+              mono: ["JetBrains Mono", "monospace"],
+              serif: ["Playfair Display", "serif"],
+            },
+            boxShadow: {
+              'sovereign': '0 20px 60px rgba(0, 0, 0, 0.1), 0 0 0 1px var(--border-color)',
+              'emerald-glow': '0 0 30px rgba(16, 185, 129, 0.35)',
+            },
+          },
+        },
+      }
+    </script>
+    <style>
+        :root {
+            --bg-primary: #FFFFFF;
+            --bg-secondary: #F8FAFC;
+            --text-primary: #0F172A;
+            --text-secondary: #475569;
+            --border-color: rgba(0, 0, 0, 0.1);
+            --emerald-vault: #10B981;
+        }
+
+        .dark {
+            --bg-primary: #000000;
+            --bg-secondary: #050505;
+            --text-primary: #FFFFFF;
+            --text-secondary: #CBD5E1;
+            --border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        html, body {
+            min-height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-primary) !important;
+            color: var(--text-primary) !important;
+            transition: background-color 0.3s ease, color 0.3s ease;
+            overflow-x: auto !important;
+            overflow-y: auto !important;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            overscroll-behavior: auto;
+            user-select: auto;
+            touch-action: auto;
+            -webkit-tap-highlight-color: transparent;
+            font-size: 18px !important; 
+        }
+        
+        #root {
+          min-height: 100vh;
+          width: 100vw;
+          position: relative;
+          z-index: 1;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .vault-editor-scroll {
+          overflow-y: auto !important;
+          height: 100%;
+          -webkit-overflow-scrolling: touch;
+          overscroll-behavior: contain;
+          padding-bottom: 220px !important; 
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-primary); }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--emerald-vault); }
+
+        .prose-vault {
+          user-select: text;
+          pointer-events: auto;
+        }
+        
+        .prose-vault table {
+          display: table;
+          width: 100%;
+          border-collapse: collapse;
+          margin-bottom: 3rem;
+          background: var(--bg-primary);
+          border-radius: 12px;
+          overflow: hidden;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+          border: 1px solid var(--border-color);
+        }
+
+        .prose-vault th {
+          background-color: var(--bg-secondary);
+          color: var(--text-secondary);
+          font-weight: 800;
+          text-transform: uppercase;
+          font-size: 0.65rem;
+          letter-spacing: 0.2em;
+          padding: 1.5rem 1.5rem;
+          text-align: left;
+          border-bottom: 2px solid var(--border-color);
+        }
+
+        .prose-vault td {
+          padding: 1.5rem 1.5rem;
+          text-align: left;
+          border-bottom: 1px solid var(--border-color);
+          color: var(--text-primary);
+          font-size: 15px;
+          line-height: 1.8;
+          vertical-align: top;
+        }
+
+        .prose-vault tr:last-child td {
+          border-bottom: none;
+        }
+
+        .prose-vault tr:hover td {
+          background-color: rgba(16, 185, 129, 0.03);
+        }
+
+        /* Badge Protocol */
+        .vault-badge {
+          display: inline-flex;
+          align-items: center;
+          padding: 0.35rem 0.85rem;
+          border-radius: 8px;
+          font-size: 0.65rem;
+          font-weight: 900;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          white-space: nowrap;
+          box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .vault-badge-success { background: #ECFDF5; color: #059669; border: 1px solid #A7F3D0; }
+        .vault-badge-warning { background: #FFFBEB; color: #D97706; border: 1px solid #FDE68A; }
+        .vault-badge-danger { background: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; }
+        .vault-badge-neutral { background: #F8FAFC; color: #475569; border: 1px solid #E2E8F0; }
+        
+        /* Responsive Image Protocol */
+        .prose-vault img {
+          max-width: 100% !important;
+          height: auto !important;
+          display: block;
+          margin-left: auto;
+          margin-right: auto;
+        }
+
+        .prose-vault h1 { 
+          font-size: 32px !important; 
+          font-weight: 800; 
+          margin-bottom: 2rem; 
+          color: var(--emerald-vault); 
+          border-bottom: 2px solid var(--emerald-vault); 
+          padding-bottom: 1rem; 
+          font-family: 'Playfair Display', serif; 
+          letter-spacing: -0.05em;
+          line-height: 1.1;
+          text-transform: uppercase;
+        }
+
+        .prose-vault h2 { 
+          font-size: 32px !important; 
+          font-weight: 700; 
+          margin-top: 3rem; 
+          margin-bottom: 1.5rem; 
+          color: var(--emerald-vault); 
+          font-family: 'Playfair Display', serif; 
+          letter-spacing: -0.03em;
+        }
+
+        .prose-vault p { 
+          margin-bottom: 2rem; 
+          line-height: 1.9; 
+          color: var(--text-primary); 
+          font-size: 18px !important;
+          font-weight: 400;
+        }
+
+        .prose-vault blockquote { 
+          border-left: 4px solid var(--emerald-vault); 
+          padding: 1.5rem 2rem; 
+          color: var(--text-secondary); 
+          font-style: italic; 
+          margin: 2rem 0; 
+          background: rgba(16, 185, 129, 0.05); 
+          font-size: 20px !important;
+          font-family: 'Playfair Display', serif;
+        }
+
+        .prose-vault details {
+          margin: 1.5rem 0;
+          border: 1px solid var(--border-color);
+          border-radius: 8px;
+          overflow: hidden;
+          background: var(--bg-secondary);
+        }
+
+        .prose-vault summary {
+          padding: 1rem;
+          cursor: pointer;
+          font-weight: 700;
+          font-size: 14px;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          background: var(--bg-secondary);
+          color: var(--emerald-vault);
+          user-select: none;
+        }
+
+        .prose-vault summary:hover {
+          background: rgba(16, 185, 129, 0.05);
+        }
+
+        .prose-vault details[open] summary {
+          border-bottom: 1px solid var(--border-color);
+        }
+
+        label {
+          font-size: 14px !important;
+          color: var(--text-primary) !important;
+          font-weight: 700 !important;
+        }
+        
+        input[type="range"] {
+          cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+</body>
+</html>
