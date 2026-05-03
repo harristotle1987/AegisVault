@@ -1,7 +1,7 @@
-import React, { useMemo, useRef, useEffect, useLayoutEffect } from 'react';
+import React, { useMemo, useRef, useEffect, useLayoutEffect, useState } from 'react';
 import { marked } from 'marked';
 import { VaultFont } from '../types';
-import { Trash2, RefreshCcw } from 'lucide-react';
+import { Trash2, RefreshCcw, ChevronUp, ChevronDown, ArrowUpToLine, ArrowDownToLine } from 'lucide-react';
 
 interface PreviewProps {
   content: string;
@@ -106,8 +106,31 @@ export const Preview: React.FC<PreviewProps> = ({
 
   const fontClass = font === 'mono' ? 'font-mono' : 'font-sans';
 
+  const scrollToTop = () => {
+    scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const scrollToBottom = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({ 
+        top: scrollContainerRef.current.scrollHeight, 
+        behavior: 'smooth' 
+      });
+    }
+  };
+
+  const scrollStep = (direction: 'up' | 'down') => {
+    if (scrollContainerRef.current) {
+      const step = window.innerHeight * 0.4;
+      scrollContainerRef.current.scrollBy({ 
+        top: direction === 'up' ? -step : step, 
+        behavior: 'smooth' 
+      });
+    }
+  };
+
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden relative group/preview">
       <div className="h-10 px-6 flex items-center justify-between bg-obsidian-soft border-b border-vault-border shrink-0 z-10">
         <div className="flex items-center gap-2">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-vault animate-pulse" />
@@ -122,13 +145,13 @@ export const Preview: React.FC<PreviewProps> = ({
 
       <div 
         ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto bg-obsidian-soft no-scrollbar vault-editor-scroll"
+        className="flex-1 overflow-y-auto bg-obsidian-soft vault-editor-scroll overflow-x-auto"
       >
         <div className="max-w-4xl mx-auto min-h-full flex flex-col shadow-[0_0_100px_rgba(0,0,0,0.4)]">
           <div 
             id="preview-area"
             ref={previewRef}
-            className={`flex-1 p-8 md:p-24 pb-[200px] md:pb-[200px] prose-vault selection:bg-emerald-vault/20 transition-all duration-500 ease-in-out ${fontClass}`}
+            className={`flex-1 p-6 sm:p-12 md:p-24 pb-[150px] md:pb-[200px] prose-vault selection:bg-emerald-vault/20 transition-all duration-500 ease-in-out ${fontClass}`}
           />
           
           <div className="h-32 flex items-center justify-center border-t border-vault-border/20 mt-8 mb-24">
@@ -138,6 +161,40 @@ export const Preview: React.FC<PreviewProps> = ({
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Floating Scroll Assistant - One-Handed Support */}
+      <div className="absolute right-4 sm:right-6 bottom-20 sm:bottom-8 flex flex-col gap-2 sm:gap-3 z-[1000] opacity-100 sm:opacity-0 sm:group-hover/preview:opacity-100 transition-all duration-300">
+        <button 
+          onClick={scrollToTop}
+          className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-obsidian-soft/90 backdrop-blur-md border border-vault-border flex items-center justify-center text-vault-dim hover:text-emerald-vault hover:border-emerald-vault/30 transition-all shadow-sovereign active:scale-90"
+          title="Return to Zenith"
+        >
+          <ArrowUpToLine size={18} className="sm:size-5" />
+        </button>
+        <div className="flex flex-col gap-1 p-1 bg-obsidian-soft/90 backdrop-blur-md border border-vault-border rounded-2xl shadow-sovereign">
+          <button 
+            onClick={() => scrollStep('up')}
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-vault-dim hover:bg-emerald-vault/10 hover:text-emerald-vault transition-all active:scale-95"
+            aria-label="Scroll Up"
+          >
+            <ChevronUp size={20} />
+          </button>
+          <button 
+            onClick={() => scrollStep('down')}
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-vault-dim hover:bg-emerald-vault/10 hover:text-emerald-vault transition-all active:scale-95"
+            aria-label="Scroll Down"
+          >
+            <ChevronDown size={20} />
+          </button>
+        </div>
+        <button 
+          onClick={scrollToBottom}
+          className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-obsidian-soft/90 backdrop-blur-md border border-vault-border flex items-center justify-center text-vault-dim hover:text-emerald-vault hover:border-emerald-vault/30 transition-all shadow-sovereign active:scale-90"
+          title="Descend to Abyss"
+        >
+          <ArrowDownToLine size={18} className="sm:size-5" />
+        </button>
       </div>
     </div>
   );

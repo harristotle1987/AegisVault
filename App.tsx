@@ -17,6 +17,7 @@ import { VaultConverter } from './services/exportService';
 import { ImportService } from './services/ImportService';
 import { StorageService } from './storageService';
 import { useVault } from './hooks/useVault';
+import { useGoogleDrive } from './hooks/useGoogleDrive';
 import { VaultFont, SovereignDocument } from './types';
 import { Shield, ShieldCheck, Volume2, BookOpen, Scan } from 'lucide-react';
 import { usePWAInstall } from './hooks/usePWAInstall';
@@ -33,8 +34,18 @@ export default function App() {
     saveDraft, 
     deleteDraft, 
     createDraft,
-    renameDraft
+    renameDraft,
+    mergeDocuments
   } = useVault();
+
+  const {
+    isCloudConnected,
+    isSyncing,
+    lastSyncTime,
+    connect: handleCloudConnect,
+    disconnect: handleCloudDisconnect,
+    sync: triggerManualSync
+  } = useGoogleDrive(documents, mergeDocuments);
 
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
@@ -47,6 +58,7 @@ export default function App() {
   const [speechPitch, setSpeechPitch] = useState(1.0);
   const [selectedVoiceURI, setSelectedVoiceURI] = useState<string | null>(null);
   const [docToPurge, setDocToPurge] = useState<string | null>(null);
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
   const [vaultSynced, setVaultSynced] = useState(true);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [speechReady, setSpeechReady] = useState(false);
@@ -70,6 +82,10 @@ export default function App() {
   useEffect(() => {
     const userAgent = window.navigator.userAgent.toLowerCase();
     setIsWindows(/windows|win32/i.test(userAgent));
+
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   useEffect(() => {
@@ -125,6 +141,17 @@ export default function App() {
       setSplitPosition(newPosition);
     }
   }, [isResizing]);
+
+  const handleAppUpdate = () => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        for (let registration of registrations) {
+          registration.update();
+        }
+      });
+    }
+    window.location.reload();
+  };
 
   useEffect(() => {
     if (isResizing) {
@@ -410,7 +437,7 @@ export default function App() {
   };
 
   return (
-    <div className={`min-h-screen selection:bg-emerald-vault/30 flex flex-row bg-obsidian text-vault-text`}>
+    <div className={`h-[100dvh] overflow-hidden selection:bg-emerald-vault/30 flex flex-row bg-obsidian text-vault-text`}>
       {isSidebarOpen && (
         <div 
           className="fixed inset-0 bg-black/80 backdrop-blur-md z-[10000] animate-in fade-in duration-300" 
@@ -430,6 +457,7 @@ export default function App() {
           onClose={() => setIsSidebarOpen(false)}
           onOpenConfig={() => setActiveModal('config')}
           onOpenTags={() => setActiveModal('tags')}
+          onUpdate={handleAppUpdate}
           installPrompt={{ isInstallable, install }}
         />
       </div>
@@ -446,29 +474,34 @@ export default function App() {
         setSpeechPitch={setSpeechPitch}
         selectedVoiceURI={selectedVoiceURI}
         setSelectedVoiceURI={setSelectedVoiceURI}
+        isCloudConnected={isCloudConnected}
+        onCloudConnect={handleCloudConnect}
+        onCloudDisconnect={handleCloudDisconnect}
+        lastSyncTime={lastSyncTime}
+        isSyncing={isSyncing}
       />
 
-      <main className="flex-1 flex flex-col relative min-h-full overflow-x-auto">
+      <main className="flex-1 flex flex-col relative h-full min-h-0 overflow-hidden">
         <Toolbar 
           isSidebarOpen={isSidebarOpen}
           onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
-          onShare={() => {}} 
           onLocalRefine={handleLocalRefine}
           isDarkMode={isDarkMode}
           onToggleTheme={() => setIsDarkMode(!isDarkMode)}
           onListen={handleListen}
-          onScan={() => setActiveModal('scanner')}
-          onOpenConfig={() => setActiveModal('config')}
+          onUpdate={handleAppUpdate}
           isPlayingAudio={isPlayingAudio}
           vaultSynced={vaultSynced}
+          isCloudConnected={isCloudConnected}
+          isSyncing={isSyncing}
         />
 
-        <div className="flex-1 flex relative min-h-0 overflow-hidden">
+        <div className="flex-1 flex relative h-full min-h-0 overflow-hidden">
           {activeDoc ? (
             <>
               <div 
-                className={`flex flex-col min-h-full ${mobileTab === 'preview' ? 'hidden md:flex' : 'flex'}`}
-                style={{ width: window.innerWidth < 768 ? '100%' : `${splitPosition}%`, minWidth: window.innerWidth < 768 ? '0' : '200px' }}
+                className={`flex flex-col h-full overflow-hidden ${mobileTab === 'preview' ? 'hidden sm:flex' : 'flex'}`}
+                style={{ width: windowWidth < 640 ? '100%' : `${splitPosition}%`, minWidth: windowWidth < 640 ? '0' : '200px' }}
               >
                 <Editor 
                   font={activeFont} 
@@ -482,14 +515,14 @@ export default function App() {
               <div 
                 onMouseDown={startResizing}
                 onTouchStart={startResizing}
-                className="hidden md:flex w-1.5 z-50 h-full bg-vault-border hover:bg-emerald-vault cursor-col-resize items-center justify-center transition-colors group"
+                className="hidden sm:flex w-1.5 z-50 h-full bg-vault-border hover:bg-emerald-vault cursor-col-resize items-center justify-center transition-colors group"
               >
                 <div className="w-0.5 h-8 bg-vault-dim/20 rounded-full group-hover:bg-emerald-vault/50" />
               </div>
 
               <div 
-                className={`flex flex-col min-h-full bg-obsidian-soft ${mobileTab === 'editor' ? 'hidden md:flex' : 'flex'}`}
-                style={{ width: window.innerWidth < 768 ? '100%' : `${100 - splitPosition}%`, minWidth: window.innerWidth < 768 ? '0' : '200px' }}
+                className={`flex flex-col h-full overflow-hidden bg-obsidian-soft ${mobileTab === 'editor' ? 'hidden sm:flex' : 'flex'}`}
+                style={{ width: windowWidth < 640 ? '100%' : `${100 - splitPosition}%`, minWidth: windowWidth < 640 ? '0' : '200px' }}
               >
                 <Preview 
                   font={activeFont} 

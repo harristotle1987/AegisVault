@@ -12,7 +12,8 @@ import {
   Hash,
   Eye,
   Edit3,
-  FileText
+  FileText,
+  RefreshCcw
 } from 'lucide-react';
 import { SovereignDocument } from '../types';
 
@@ -25,6 +26,7 @@ interface SidebarProps {
   onRename: (id: string, name: string) => void;
   onOpenConfig: () => void;
   onOpenTags: () => void;
+  onUpdate?: () => void;
   isOpen: boolean;
   onClose: () => void;
   installPrompt?: { isInstallable: boolean; install: () => void };
@@ -75,7 +77,7 @@ const RegistryItem: React.FC<RegistryItemProps> = ({
     <div 
       onClick={() => onSelect(doc.id)}
       className={`group relative flex flex-col gap-1 rounded-2xl cursor-pointer transition-all duration-300 border active:scale-[0.98] ${
-        isCollapsed && window.innerWidth >= 768 ? 'p-3 items-center' : 'px-5 py-4'
+        isCollapsed && window.innerWidth >= 640 ? 'p-3 items-center' : 'px-5 py-4'
       } ${
         isActive 
           ? 'bg-emerald-vault/5 border-emerald-vault/30 text-vault-text shadow-sm' 
@@ -83,7 +85,7 @@ const RegistryItem: React.FC<RegistryItemProps> = ({
       }`}
     >
       <div className="flex items-center justify-between w-full">
-        {isCollapsed && window.innerWidth >= 768 ? (
+        {isCollapsed && window.innerWidth >= 640 ? (
           <div className="w-6 h-6 flex items-center justify-center shrink-0">
             <FileText size={16} className={isActive ? 'text-emerald-vault' : ''} />
           </div>
@@ -106,7 +108,7 @@ const RegistryItem: React.FC<RegistryItemProps> = ({
           </div>
         )}
         
-        {(!isCollapsed || window.innerWidth < 768) && (
+        {(!isCollapsed || window.innerWidth < 640) && (
           <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
             <button 
               onClick={(e) => { e.stopPropagation(); onSelect(doc.id, 'view'); }}
@@ -125,7 +127,7 @@ const RegistryItem: React.FC<RegistryItemProps> = ({
       </div>
 
       {isActive && (
-        <div className={`absolute left-0 top-3 bottom-3 w-1 bg-emerald-vault rounded-full shadow-emerald-glow transition-all duration-500 ${isCollapsed && window.innerWidth >= 768 ? '-left-0.5' : 'left-0'}`} />
+        <div className={`absolute left-0 top-3 bottom-3 w-1 bg-emerald-vault rounded-full shadow-emerald-glow transition-all duration-500 ${isCollapsed && window.innerWidth >= 640 ? '-left-0.5' : 'left-0'}`} />
       )}
     </div>
   );
@@ -140,6 +142,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onRename,
   onOpenConfig,
   onOpenTags,
+  onUpdate,
   isOpen,
   onClose,
   installPrompt
@@ -150,13 +153,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <aside 
       className={`
         bg-obsidian border-r border-vault-border flex flex-col shrink-0 transition-all duration-300 ease-in-out z-[10001]
-        fixed md:static inset-y-0 left-0 h-full shadow-2xl md:shadow-none pointer-events-auto
+        fixed sm:static inset-y-0 left-0 h-full shadow-2xl sm:shadow-none pointer-events-auto
         overflow-y-auto overflow-x-hidden
-        ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-        ${isCollapsed ? 'md:w-16 w-64' : 'w-72'}
+        ${isOpen ? 'translate-x-0' : '-translate-x-full sm:translate-x-0'}
+        ${isCollapsed ? 'sm:w-16 w-64' : 'w-72'}
       `}
     >
-      <div className={`flex items-center justify-between transition-all duration-300 ${isCollapsed ? 'p-4' : 'p-6 md:p-8'}`}>
+      <div className={`flex items-center justify-between transition-all duration-300 ${isCollapsed ? 'p-4' : 'p-6 sm:p-8'}`}>
         {!isCollapsed && (
           <div className="flex flex-col">
             <span className="font-extrabold text-vault-text tracking-[-0.05em] text-lg uppercase leading-none">AegisVault</span>
@@ -166,14 +169,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
         
         <button 
           onClick={onClose}
-          className="md:hidden w-12 h-12 rounded-full border border-vault-border flex items-center justify-center text-vault-dim hover:text-vault-text transition-all bg-vault-dim/10 active:scale-90"
+          className="sm:hidden w-12 h-12 rounded-full border border-vault-border flex items-center justify-center text-vault-dim hover:text-vault-text transition-all bg-vault-dim/10 active:scale-90"
         >
           <X size={24} />
         </button>
 
         <button 
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className={`hidden md:flex w-8 h-8 rounded-full border border-vault-border items-center justify-center text-vault-dim hover:text-emerald-vault transition-all bg-vault-dim/5 ${isCollapsed ? 'mx-auto' : ''} active:scale-90`}
+          className={`hidden sm:flex w-8 h-8 rounded-full border border-vault-border items-center justify-center text-vault-dim hover:text-emerald-vault transition-all bg-vault-dim/5 ${isCollapsed ? 'mx-auto' : ''} active:scale-90`}
         >
           {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
         </button>
@@ -206,6 +209,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className={`p-6 border-t border-vault-border space-y-4 ${isCollapsed && window.innerWidth >= 768 ? 'items-center flex flex-col' : ''}`}>
         <SidebarStaticItem icon={<Hash size={18} />} label="Tag Registry" isCollapsed={isCollapsed} onClick={onOpenTags} />
         <SidebarStaticItem icon={<Settings size={18} />} label="System Config" isCollapsed={isCollapsed} onClick={onOpenConfig} />
+        {onUpdate && (
+          <SidebarStaticItem icon={<RefreshCcw size={18} />} label="Update Registry" isCollapsed={isCollapsed} onClick={onUpdate} />
+        )}
       </div>
     </aside>
   );
@@ -216,10 +222,10 @@ const SidebarStaticItem = ({ icon, label, isCollapsed, onClick }: { icon: any, l
     onClick={(e) => { e.stopPropagation(); onClick(); }}
     className={`
       flex items-center gap-4 transition-all group relative active:scale-95
-      ${isCollapsed && window.innerWidth >= 768 ? 'justify-center w-full p-3 text-vault-dim hover:text-emerald-vault' : 'w-full px-5 py-3 text-vault-dim hover:text-vault-text hover:bg-vault-dim/5 rounded-xl'}
+      ${isCollapsed && window.innerWidth >= 640 ? 'justify-center w-full p-3 text-vault-dim hover:text-emerald-vault' : 'w-full px-5 py-3 text-vault-dim hover:text-vault-text hover:bg-vault-dim/5 rounded-xl'}
     `}
   >
     <div className="group-hover:text-emerald-vault transition-colors">{icon}</div>
-    {(!isCollapsed || window.innerWidth < 768) && <span className="text-[10px] font-black tracking-[0.3em] uppercase">{label}</span>}
+    {(!isCollapsed || window.innerWidth < 640) && <span className="text-[10px] font-black tracking-[0.3em] uppercase">{label}</span>}
   </button>
 );

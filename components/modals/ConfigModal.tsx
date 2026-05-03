@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X, Moon, Shield, ShieldCheck, Save, Database, EyeOff, Zap, Layout, Monitor, RefreshCcw, Volume2 } from 'lucide-react';
+import { X, Moon, Shield, ShieldCheck, Save, Database, EyeOff, Zap, Layout, Monitor, RefreshCcw, Volume2, Cloud, CloudOff, Link as LinkIcon } from 'lucide-react';
 import { VaultFont } from '../../types';
 
 interface ConfigModalProps {
@@ -14,6 +14,12 @@ interface ConfigModalProps {
   setSpeechPitch: (pitch: number) => void;
   selectedVoiceURI: string | null;
   setSelectedVoiceURI: (uri: string | null) => void;
+  // Cloud Sync Props
+  isCloudConnected: boolean;
+  onCloudConnect: () => void;
+  onCloudDisconnect: () => void;
+  lastSyncTime: number | null;
+  isSyncing: boolean;
 }
 
 const ToggleOption = ({ label, description, defaultOn, icon }: { label: string, description: string, defaultOn?: boolean, icon: React.ReactNode }) => {
@@ -50,7 +56,12 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
   speechPitch,
   setSpeechPitch,
   selectedVoiceURI,
-  setSelectedVoiceURI
+  setSelectedVoiceURI,
+  isCloudConnected,
+  onCloudConnect,
+  onCloudDisconnect,
+  lastSyncTime,
+  isSyncing
 }) => {
   const [isPurging, setIsPurging] = useState(false);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
@@ -132,6 +143,61 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
             <div className="p-4 rounded-xl bg-obsidian-muted/30 border border-vault-border space-y-1">
               <span className="text-[8px] font-black uppercase tracking-widest text-vault-dim">Environment</span>
               <div className="text-sm font-bold text-emerald-vault">Sandboxed</div>
+            </div>
+          </section>
+
+          {/* Cloud Mesh Synchronization */}
+          <section className="space-y-4">
+            <div className="flex items-center gap-2 px-1">
+              <Cloud size={12} className="text-emerald-vault" />
+              <h3 className="text-[10px] font-black text-emerald-vault uppercase tracking-[0.3em]">Cloud Mesh Sync</h3>
+            </div>
+            <div className="p-5 rounded-xl bg-white/[0.02] border border-vault-border space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-bold text-vault-text uppercase tracking-widest">Google Drive Integration</span>
+                  <span className="text-[9px] text-vault-dim font-medium">Secured app-data sharding</span>
+                </div>
+                {isCloudConnected ? (
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-2 w-2 rounded-full bg-emerald-vault animate-pulse" />
+                    <span className="text-[8px] font-mono text-emerald-vault uppercase">Mesh Active</span>
+                  </div>
+                ) : (
+                  <span className="text-[8px] font-mono text-vault-dim uppercase">Offline</span>
+                )}
+              </div>
+
+              {!isCloudConnected ? (
+                <button 
+                  onClick={onCloudConnect}
+                  className="w-full py-3 bg-emerald-vault text-black rounded-lg text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 active:scale-95 shadow-lg shadow-emerald-vault/20"
+                >
+                  <LinkIcon size={12} /> Establish Cloud Uplink
+                </button>
+              ) : (
+                <div className="space-y-3">
+                  <div className="p-3 rounded-lg bg-obsidian border border-vault-border flex flex-col gap-1">
+                    <div className="flex justify-between items-center text-[8px] font-bold uppercase tracking-widest text-vault-dim">
+                      <span>Last Protocol Sync</span>
+                      <span>{lastSyncTime ? new Date(lastSyncTime).toLocaleTimeString() : 'Pending'}</span>
+                    </div>
+                    {isSyncing && (
+                      <div className="w-full bg-vault-border h-0.5 mt-1 overflow-hidden">
+                        <div className="bg-emerald-vault h-full w-1/3 animate-[slide_1.5s_infinite_linear]" 
+                             style={{ animationName: 'marquee' }} />
+                      </div>
+                    )}
+                  </div>
+                  <button 
+                    onClick={onCloudDisconnect}
+                    className="w-full py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/30 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 active:scale-95"
+                  >
+                    <CloudOff size={10} /> Sever Cloud Uplink
+                  </button>
+                </div>
+              )}
+              <p className="text-[9px] text-vault-dim leading-relaxed font-medium italic opacity-60">Architectural Note: Sync data is sharded within Google Drive's hidden App Data folder, ensuring absolute privacy from other cloud assets.</p>
             </div>
           </section>
 

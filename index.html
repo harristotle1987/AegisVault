@@ -99,25 +99,24 @@
         }
 
         html, body {
-            min-height: 100%;
+            height: 100%;
             width: 100%;
             margin: 0;
             padding: 0;
             background-color: var(--bg-primary) !important;
             color: var(--text-primary) !important;
             transition: background-color 0.3s ease, color 0.3s ease;
-            overflow-x: auto !important;
-            overflow-y: auto !important;
+            overflow: auto;
         }
 
         body {
             font-family: 'Inter', sans-serif;
             -webkit-font-smoothing: antialiased;
-            overscroll-behavior: auto;
+            overscroll-behavior-y: auto;
             user-select: auto;
             touch-action: auto;
             -webkit-tap-highlight-color: transparent;
-            font-size: 18px !important; 
+            font-size: 16px !important; 
         }
         
         #root {
@@ -131,10 +130,11 @@
 
         .vault-editor-scroll {
           overflow-y: auto !important;
-          height: 100%;
+          overflow-x: auto !important;
           -webkit-overflow-scrolling: touch;
-          overscroll-behavior: contain;
-          padding-bottom: 220px !important; 
+          overscroll-behavior-y: auto;
+          scroll-behavior: smooth;
+          padding-bottom: 250px !important; 
         }
 
         ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -148,15 +148,23 @@
         }
         
         .prose-vault table {
-          display: table;
+          display: block;
           width: 100%;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
           border-collapse: collapse;
           margin-bottom: 3rem;
           background: var(--bg-primary);
           border-radius: 12px;
-          overflow: hidden;
           box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
           border: 1px solid var(--border-color);
+          touch-action: pan-x pan-y;
+        }
+
+        .prose-vault thead, .prose-vault tbody {
+          min-width: 600px;
+          display: table;
+          width: 100%;
         }
 
         .prose-vault th {
@@ -166,19 +174,21 @@
           text-transform: uppercase;
           font-size: 0.65rem;
           letter-spacing: 0.2em;
-          padding: 1.5rem 1.5rem;
+          padding: 1rem 1.25rem;
           text-align: left;
           border-bottom: 2px solid var(--border-color);
+          white-space: nowrap;
         }
 
         .prose-vault td {
-          padding: 1.5rem 1.5rem;
+          padding: 1rem 1.25rem;
           text-align: left;
           border-bottom: 1px solid var(--border-color);
           color: var(--text-primary);
-          font-size: 15px;
-          line-height: 1.8;
+          font-size: 14px;
+          line-height: 1.6;
           vertical-align: top;
+          min-width: 140px;
         }
 
         .prose-vault tr:last-child td {
@@ -262,37 +272,120 @@
         .prose-vault details {
           margin: 1.5rem 0;
           border: 1px solid var(--border-color);
-          border-radius: 8px;
+          border-radius: 12px;
           overflow: hidden;
           background: var(--bg-secondary);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+          transition: all 0.3s ease;
+          width: 100%;
+          max-width: 100%;
+        }
+
+        .prose-vault details[open] {
+          box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+          border-color: var(--emerald-vault);
         }
 
         .prose-vault summary {
-          padding: 1rem;
+          padding: 1.25rem 1.5rem;
           cursor: pointer;
-          font-weight: 700;
-          font-size: 14px;
+          font-weight: 800;
+          font-size: 0.75rem;
           text-transform: uppercase;
-          letter-spacing: 0.1em;
+          letter-spacing: 0.15em;
           background: var(--bg-secondary);
-          color: var(--emerald-vault);
+          color: var(--text-primary);
           user-select: none;
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          list-style: none;
+        }
+
+        .prose-vault summary::-webkit-details-marker {
+          display: none;
+        }
+
+        .prose-vault summary::before {
+          content: '→';
+          color: var(--emerald-vault);
+          font-family: 'JetBrains Mono', monospace;
+          transition: transform 0.3s ease;
+        }
+
+        .prose-vault details[open] summary::before {
+          transform: rotate(90deg);
         }
 
         .prose-vault summary:hover {
           background: rgba(16, 185, 129, 0.05);
+          color: var(--emerald-vault);
         }
 
         .prose-vault details[open] summary {
           border-bottom: 1px solid var(--border-color);
+          background: var(--bg-primary);
         }
 
-        label {
-          font-size: 14px !important;
-          color: var(--text-primary) !important;
-          font-weight: 700 !important;
+        #preview-area {
+          background-color: var(--bg-primary);
+          color: var(--text-primary);
+          position: relative;
+          z-index: 1;
+          overflow-wrap: break-word;
+          word-wrap: break-word;
+          hyphens: auto;
+        }
+
+        .scroll-scrub-container {
+          position: fixed;
+          right: 20px;
+          bottom: 100px;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          z-index: 1000;
+        }
+
+        .scroll-scrub-btn {
+          width: 48px;
+          height: 48px;
+          border-radius: 16px;
+          background: var(--bg-secondary);
+          border: 1px solid var(--border-color);
+          display: flex;
+          align-items: center;
+          justify-center;
+          color: var(--text-secondary);
+          box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          backdrop-blur: 10px;
+        }
+
+        .scroll-scrub-btn:active {
+          scale: 0.9;
+          background: var(--emerald-vault);
+          color: white;
+        }
+
+        @media (max-width: 640px) {
+          .scroll-scrub-container {
+            right: 16px;
+            bottom: 32px;
+          }
+          
+          .scroll-scrub-btn {
+            width: 56px;
+            height: 56px;
+            border-radius: 20px;
+          }
         }
         
+        @keyframes marquee {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(300%); }
+        }
+
         input[type="range"] {
           cursor: pointer;
         }

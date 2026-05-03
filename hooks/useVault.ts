@@ -67,6 +67,20 @@ export const useVault = () => {
     setDocuments(prev => prev.map(d => d.id === id ? { ...d, title } : d));
   }, []);
 
+  const mergeDocuments = useCallback(async (remoteDocs: SovereignDocument[]) => {
+    let changed = false;
+    for (const remote of remoteDocs) {
+      const local = await StorageService.getDocument(remote.id);
+      if (!local || (remote.lastModified > local.lastModified)) {
+        await StorageService.saveDocument(remote);
+        changed = true;
+      }
+    }
+    if (changed) {
+      await refresh();
+    }
+  }, [refresh]);
+
   const activeDoc = documents.find(d => d.id === activeDocId) || null;
 
   return {
@@ -79,6 +93,7 @@ export const useVault = () => {
     deleteDraft,
     createDraft,
     renameDraft,
-    refresh
+    refresh,
+    mergeDocuments
   };
 };
